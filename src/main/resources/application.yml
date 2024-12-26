@@ -1,0 +1,97 @@
+server:
+  port: 8080
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:sqlserver://localhost:1433;databaseName=DATN_FASHION_SHOP;encrypt=false;trustServerCertificate=true;}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:123}
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update #chỗ này mà sửa thành drop-create thì rất nguy
+      #ddl-auto: validate
+      #Hibernate sẽ không tạo, sửa đổi hoặc xóa bất kỳ bảng, cột hay ràng buộc nào trong cơ sở dữ liệu
+      #validate thường được sử dụng trong môi trường production
+      #Nếu có sự khác biệt giữa cấu trúc cơ sở dữ liệu và các entity class
+      #lỗi sẽ được hiển thị và yêu cầu sửa đổi cấu trúc cơ sở dữ liệu một cách thủ công
+    properties:
+      hibernate:
+      dialect: org.hibernate.dialect.MySQL8Dialect
+      format_sql: true
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: datttps37451@fpt.edu.vn
+    password: gxwg orwu snox nwou
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
+    default-locale: en
+#  #flyway
+#  # Đường dẫn tới thư mục chứa các script Flyway
+#  flyway:
+#    locations: classpath:/db/migration,classpath:/dev/db/migration
+#    #Phiên bản baseline sẽ = 1 và không thực hiện bất kỳ thay đổi nào trong DB
+#    baseline-on-migrate: true
+#    baseline-version: 0
+#  data:
+#    redis:
+#      #spring.data.redis.use-redis-cache
+#      use-redis-cache: false
+#      host: ${REDIS_HOST:localhost} # Default to 'localhost' if not provided
+#      port: ${REDIS_PORT:6379}      # Default to 6379 if not provided
+  security:
+    oauth2:
+      client:
+        registration:
+          facebook:
+            clientId: YOUR_FACEBOOK_APP_ID
+            clientSecret: YOUR_FACEBOOK_APP_SECRET
+            scope:
+              - email
+              - public_profile
+api:
+  prefix: /api/v1
+jwt:
+  expiration: 2592000 #30 days = 30 * 24 * 60 * 60
+  expiration-refresh-token: 5184000 #60 days = 60 * 24 * 60 * 60
+  secretKey: TaqlmGv1iEDMRiFp/pHuID1+T84IABfuA0xXh4GhiUI=
+
+logging:
+  level:
+    org:
+      springframework.security: DEBUG
+
+# swagger-ui custom path
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /api-docs
+  show-actuator: true
+
+#health check
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      base-path: /api/v1/actuator
+      exposure:
+        #include: "health"
+        include: "health, info"
+
