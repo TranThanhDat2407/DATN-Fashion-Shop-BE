@@ -6,8 +6,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface CategoryTranslationRepository extends JpaRepository<CategoriesTranslation, Long> {
     List<CategoriesTranslation> findByCategoryIdInAndLanguageCode(List<Long> categoryIds, String languageCode);
+    // Tìm bản dịch dựa vào ID danh mục và mã ngôn ngữ
+    Optional<CategoriesTranslation> findByCategoryIdAndLanguageCode(Long categoryId, String languageCode);
+
+    List<CategoriesTranslation> findByCategoryId(Long categoryId);
 }

@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -23,11 +24,17 @@ public class Category extends BaseEntity{
     @Column(name = "image_url", length = 255)
     private String imageUrl;
 
+    @Column(name= "is_active")
+    private Boolean isActive = true;
+
     @ManyToOne
     @JoinColumn(name = "parent_id")
     private Category parentCategory;
 
-
     @ManyToMany(mappedBy = "categories") // Định nghĩa chiều ngược lại
     private Set<Product> products = new HashSet<>();
+
+
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CategoriesTranslation> translations;
 }
