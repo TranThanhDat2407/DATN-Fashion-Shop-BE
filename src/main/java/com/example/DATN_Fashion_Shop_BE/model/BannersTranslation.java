@@ -17,10 +17,10 @@ public class BannersTranslation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "title", nullable = false, length = 255)
+    @Column(name = "title", columnDefinition = "NVARCHAR(255)",nullable = false)
     private String title;
 
-    @Column(name = "subtitle", nullable = false, length = 255)
+    @Column(name = "subtitle",columnDefinition = "NVARCHAR(MAX)", nullable = false)
     private String subtitle;
 
     @ManyToOne

@@ -3,7 +3,7 @@ package com.example.DATN_Fashion_Shop_BE.controller;
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.LanguageDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
-import com.example.DATN_Fashion_Shop_BE.service.category.LanguageService;
+import com.example.DATN_Fashion_Shop_BE.service.LanguageService;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("${api.prefix}/categories")
+@RequestMapping("${api.prefix}/languages")
 @AllArgsConstructor
 public class LanguageController {
     private final LanguageService languageService;
@@ -32,7 +32,7 @@ public class LanguageController {
         List<LanguageDTO> languages = languageService.getLanguages();
 
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
-                localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_RETRIEVED_SUCCESSFULLY),
+                localizationUtils.getLocalizedMessage(MessageKeys.LANGUAGE_RETRIEVED_SUCCESSFULLY),
                 languages
         ));
     }

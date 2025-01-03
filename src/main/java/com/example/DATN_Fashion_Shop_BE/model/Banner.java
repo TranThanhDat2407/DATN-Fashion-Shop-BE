@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -31,4 +32,13 @@ public class Banner extends BaseEntity{
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
+
+    @Column(name = "activation_date")
+    private LocalDateTime activationDate;
+
+    @Column(name = "end_date")
+    private LocalDateTime endDate;
+
+    @OneToMany(mappedBy = "banner", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<BannersTranslation> translations = new HashSet<>();
 }

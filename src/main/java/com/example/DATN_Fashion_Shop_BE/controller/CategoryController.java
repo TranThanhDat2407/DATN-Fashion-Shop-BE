@@ -1,6 +1,5 @@
 package com.example.DATN_Fashion_Shop_BE.controller;
 
-import com.example.DATN_Fashion_Shop_BE.component.GlobalExceptionHandler;
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.CategoryDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.request.CategoryAdminResponseDTO;
@@ -10,7 +9,7 @@ import com.example.DATN_Fashion_Shop_BE.dto.request.CategoryEditResponseDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.FieldErrorDetails;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
-import com.example.DATN_Fashion_Shop_BE.service.category.CategoryService;
+import com.example.DATN_Fashion_Shop_BE.service.CategoryService;
 
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
@@ -31,7 +30,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -42,6 +41,9 @@ public class CategoryController {
     private final LocalizationUtils localizationUtils;
     private CategoryService categoryService;
     private static final Logger logger = LoggerFactory.getLogger(CategoryController.class);
+
+    private static final List<String> ALLOWED_IMAGE_EXTENSIONS = Arrays.asList("png", "jpg", "jpeg", "avif", "gif");
+    private static final List<String> ALLOWED_VIDEO_EXTENSIONS = Arrays.asList("mp4", "mov", "avi", "mkv");
 
     @Operation(
             summary = "Lấy danh sách category cho Admin",
@@ -235,6 +237,18 @@ public class CategoryController {
             );
         }
 
+        if (imageFile != null && !imageFile.isEmpty() &&  !isValidFile(imageFile, ALLOWED_IMAGE_EXTENSIONS)) {
+            return ResponseEntity.badRequest().body(
+                    ApiResponseUtils.errorResponse(
+                            HttpStatus.BAD_REQUEST,
+                            localizationUtils.getLocalizedMessage(MessageKeys.VALIDATION_IMAGE),
+                            "logoFile",
+                            imageFile.getOriginalFilename(),
+                            null
+                    )
+            );
+        }
+
         CategoryDTO createdCategory = categoryService.createCategoryWithImage(request, imageFile);
         request.setImageUrl(createdCategory.getImageUrl());
 
@@ -285,6 +299,19 @@ public class CategoryController {
             );
         }
 
+
+        if (imageFile != null && !imageFile.isEmpty() &&  !isValidFile(imageFile, ALLOWED_IMAGE_EXTENSIONS)) {
+            return ResponseEntity.badRequest().body(
+                    ApiResponseUtils.errorResponse(
+                            HttpStatus.BAD_REQUEST,
+                            localizationUtils.getLocalizedMessage(MessageKeys.VALIDATION_IMAGE),
+                            "logoFile",
+                            imageFile.getOriginalFilename(),
+                            null
+                    )
+            );
+        }
+
         // Cập nhật category và hình ảnh
         CategoryDTO updatedCategory = categoryService.updateCategoryWithImage(id, request, imageFile);
         request.setImageUrl(updatedCategory.getImageUrl());
@@ -328,6 +355,16 @@ public class CategoryController {
         );
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteBanner(@PathVariable Long id) {
+        categoryService.deleteCategory(id);
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.BANNER_DELETED_SUCCESSFULLY),
+                null
+        ));
+    }
+
     @Operation(
             summary = "Lấy hình ảnh của category theo tên file",
             description = "Endpoint này cho phép lấy hình ảnh của category từ hệ thống file dựa trên tên file. " +
@@ -360,6 +397,19 @@ public class CategoryController {
             }
     }
 
+    private boolean isValidFile(MultipartFile file, List<String> allowedExtensions) {
+        if (file == null || file.isEmpty()) {
+            return false;
+        }
+        String fileName = file.getOriginalFilename();
+        if (fileName == null) {
+            return false;
+        }
+
+        // Lấy đuôi file và kiểm tra
+        String fileExtension = getFileExtension(fileName);
+        return allowedExtensions.contains(fileExtension.toLowerCase());
+    }
     // Hỗ trợ nhận diện MediaType dựa trên đuôi file
     private String getFileExtension(String filename) {
         int lastIndexOfDot = filename.lastIndexOf(".");

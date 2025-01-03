@@ -1,4 +1,4 @@
-package com.example.DATN_Fashion_Shop_BE.service.category;
+package com.example.DATN_Fashion_Shop_BE.service;
 
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.CategoryDTO;
@@ -6,13 +6,13 @@ import com.example.DATN_Fashion_Shop_BE.dto.CategoryTranslationDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.request.CategoryAdminResponseDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.request.CategoryCreateRequestDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.request.CategoryEditResponseDTO;
+import com.example.DATN_Fashion_Shop_BE.model.Banner;
 import com.example.DATN_Fashion_Shop_BE.model.CategoriesTranslation;
 import com.example.DATN_Fashion_Shop_BE.model.Category;
 import com.example.DATN_Fashion_Shop_BE.model.Language;
 import com.example.DATN_Fashion_Shop_BE.repository.CategoryRepository;
 import com.example.DATN_Fashion_Shop_BE.repository.CategoryTranslationRepository;
 import com.example.DATN_Fashion_Shop_BE.repository.LanguageRepository;
-import com.example.DATN_Fashion_Shop_BE.service.FileStorageService;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
@@ -139,7 +139,6 @@ public class CategoryService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional
     public CategoryEditResponseDTO getCategoryForEdit(Long id) {
         // Lấy Category từ cơ sở dữ liệu
         Category category = categoryRepository.findById(id)
@@ -171,7 +170,7 @@ public class CategoryService {
     @Transactional
     public CategoryDTO createCategoryWithImage(CategoryCreateRequestDTO request, MultipartFile imageFile) {
         // 1. Upload file và lấy URL
-        String imageUrl = fileStorageService.uploadFile(imageFile, "categories");
+        String imageUrl = fileStorageService.uploadFileAndGetName(imageFile, "categories");
 
         // 2. Tạo Category
         Category category = new Category();
@@ -218,7 +217,7 @@ public class CategoryService {
 
         // Nếu có file ảnh mới, tải lên và cập nhật URL ảnh
         if (imageFile != null && !imageFile.isEmpty()) {
-            String imageUrl = fileStorageService.uploadFile(imageFile, "categories");
+            String imageUrl = fileStorageService.uploadFileAndGetName(imageFile, "categories");
             category.setImageUrl(imageUrl);
         }
 
@@ -341,6 +340,14 @@ public class CategoryService {
         return categoryDTOPage;
     }
 
+    @Transactional
+    public void deleteCategory(Long id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException(
+                        localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_NOT_FOUND)));
 
+        // Xóa banner (cascade sẽ tự động xóa các translations liên quan)
+        categoryRepository.delete(category);
+    }
 
 }

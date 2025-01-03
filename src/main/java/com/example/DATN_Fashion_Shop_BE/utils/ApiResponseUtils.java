@@ -1,10 +1,14 @@
 package com.example.DATN_Fashion_Shop_BE.utils;
 
+import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.FieldErrorDetails;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.BindingResult;
+
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ApiResponseUtils {
 
@@ -65,4 +69,29 @@ public class ApiResponseUtils {
                 List.of(new FieldErrorDetails(field, rejectedValue, errorMessage))
         );
     }
+
+    public static <T> ApiResponse<T> generateValidationErrorResponse(
+            BindingResult bindingResult,
+            String errorMessage,
+            LocalizationUtils localizationUtils) {
+
+        // Xử lý danh sách lỗi
+        List<FieldErrorDetails> fieldErrors = bindingResult.getFieldErrors().stream()
+                .map(error -> new FieldErrorDetails(
+                        error.getField(),
+                        error.getRejectedValue() != null ? error.getRejectedValue().toString() : null,
+                        localizationUtils.getLocalizedMessage(error.getDefaultMessage())
+                ))
+                .collect(Collectors.toList());
+
+        // Trả về phản hồi với lỗi
+        return ApiResponse.<T>builder()
+                .timestamp(LocalDateTime.now().toString())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .message(errorMessage)
+                .errors(fieldErrors)
+                .data(null) // Dữ liệu trong trường hợp lỗi sẽ là null
+                .build();
+    }
+
 }

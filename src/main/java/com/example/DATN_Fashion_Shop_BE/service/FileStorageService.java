@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
 @Service
@@ -30,6 +31,31 @@ public class FileStorageService {
             return "/images/" + subDirectory + "/" + fileName;
         } catch (IOException e) {
             throw new RuntimeException("Failed to store file", e);
+        }
+    }
+
+    public String uploadFileAndGetName(MultipartFile file, String subDirectory) {
+        try {
+            // Tạo tên file duy nhất
+            String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
+
+            // Tạo đường dẫn thư mục
+            Path directoryPath = Paths.get("uploads/" + subDirectory);
+            Path filePath = directoryPath.resolve(fileName);
+
+            // Tạo thư mục nếu chưa tồn tại
+            if (!Files.exists(directoryPath)) {
+                Files.createDirectories(directoryPath);
+            }
+
+            // Lưu file
+            Files.write(filePath, file.getBytes());
+
+            // Trả về chỉ tên file (nếu cần)
+            return fileName;
+
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store file " + file.getOriginalFilename(), e);
         }
     }
 }

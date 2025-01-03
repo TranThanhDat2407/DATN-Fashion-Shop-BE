@@ -1,4 +1,4 @@
-package com.example.DATN_Fashion_Shop_BE.service.category;
+package com.example.DATN_Fashion_Shop_BE.service;
 
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.LanguageDTO;
