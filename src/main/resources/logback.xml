@@ -27,4 +27,10 @@
     <!-- Add debug level logging for Springdoc OpenAPI to trace the issue -->
     <logger name="org.springdoc" level="debug"/>
 
+    <!-- Logger for JwtTokenFilter -->
+    <logger name="com.example.DATN_Fashion_Shop_BE.component.JwtTokenFilter" level="DEBUG"/>
+
+    <!-- Logger for Spring Security -->
+    <logger name="org.springframework.security" level="DEBUG"/>
+
 </configuration>

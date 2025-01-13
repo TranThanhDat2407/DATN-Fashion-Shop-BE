@@ -1,9 +1,7 @@
-package com.example.DATN_Fashion_Shop_BE.dto.request;
+package com.example.DATN_Fashion_Shop_BE.dto.response;
 
-import com.example.DATN_Fashion_Shop_BE.dto.CategoryDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.request.CategoryCreateRequestDTO;
 import lombok.*;
-
-import java.util.List;
 
 @Data
 @Getter

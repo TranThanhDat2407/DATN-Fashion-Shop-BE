@@ -23,6 +23,9 @@ public class Product extends BaseEntity{
     @Column(name = "status", length = 255, nullable = false)
     private String status;
 
+    @Column(name = "base_price", nullable = false)
+    private Double basePrice;
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
@@ -33,4 +36,8 @@ public class Product extends BaseEntity{
             inverseJoinColumns = @JoinColumn(name = "category_id") // Khóa ngoại từ Category
     )
     private Set<Category> categories = new HashSet<>();
+
+    @ManyToOne
+    @JoinColumn(name = "promotion_id")
+    private Promotion promotion;
 }

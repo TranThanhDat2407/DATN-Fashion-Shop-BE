@@ -1,7 +1,6 @@
-package com.example.DATN_Fashion_Shop_BE.dto.request;
+package com.example.DATN_Fashion_Shop_BE.dto.response;
 
 import com.example.DATN_Fashion_Shop_BE.dto.BannerTranslationDTO;
-import com.example.DATN_Fashion_Shop_BE.dto.CategoryTranslationDTO;
 import com.example.DATN_Fashion_Shop_BE.model.Banner;
 import com.example.DATN_Fashion_Shop_BE.model.BannersTranslation;
 import lombok.*;

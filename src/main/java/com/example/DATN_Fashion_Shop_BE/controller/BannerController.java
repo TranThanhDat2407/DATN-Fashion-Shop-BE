@@ -2,16 +2,12 @@ package com.example.DATN_Fashion_Shop_BE.controller;
 
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.BannerDTO;
-import com.example.DATN_Fashion_Shop_BE.dto.CategoryDTO;
-import com.example.DATN_Fashion_Shop_BE.dto.request.BannerAdminResponseDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.response.BannerAdminResponseDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.request.BannerCreateRequestDTO;
-import com.example.DATN_Fashion_Shop_BE.dto.request.BannerEditResponseDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.response.BannerEditResponseDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.FieldErrorDetails;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
-import com.example.DATN_Fashion_Shop_BE.model.Banner;
 import com.example.DATN_Fashion_Shop_BE.service.BannerService;
-import com.example.DATN_Fashion_Shop_BE.service.CategoryService;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,9 +32,6 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("${api.prefix}/banners")

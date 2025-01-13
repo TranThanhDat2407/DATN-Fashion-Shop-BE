@@ -5,6 +5,8 @@ import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import lombok.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 
@@ -39,13 +41,4 @@ public class BaseEntity {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-
-//    private Long getCurrentUserId() {
-//        // Giả sử bạn dùng Spring Security:
-//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//        if (authentication != null && authentication.isAuthenticated()) {
-//            return ((UserDetailsImpl) authentication.getPrincipal()).getId(); // Hoặc cách lấy ID người dùng phù hợp
-//        }
-//        return null; // Nếu không xác định được người dùng
-//    }
 }

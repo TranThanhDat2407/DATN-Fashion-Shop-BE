@@ -2,10 +2,10 @@ package com.example.DATN_Fashion_Shop_BE.controller;
 
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.CategoryDTO;
-import com.example.DATN_Fashion_Shop_BE.dto.request.CategoryAdminResponseDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.response.CategoryAdminResponseDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.request.CategoryCreateRequestDTO;
-import com.example.DATN_Fashion_Shop_BE.dto.request.CategoryCreateResponseDTO;
-import com.example.DATN_Fashion_Shop_BE.dto.request.CategoryEditResponseDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.response.CategoryCreateResponseDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.response.CategoryEditResponseDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.FieldErrorDetails;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
@@ -14,6 +14,7 @@ import com.example.DATN_Fashion_Shop_BE.service.CategoryService;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
@@ -24,6 +25,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -59,9 +61,11 @@ public class CategoryController {
                     "\n- `isActive`: Lọc các category theo trạng thái hoạt động (`true` hoặc `false`). Nếu không cung cấp, tất cả các category sẽ được lấy." +
                     "\n- `sortBy`: Chỉ định trường để sắp xếp category. Giá trị mặc định là `createdAt`." +
                     "\n- `sortDir`: Chỉ định hướng sắp xếp (tăng dần hoặc giảm dần). Giá trị mặc định là `asc` (tăng dần).",
-            tags = {"Categories"}
+            tags = {"Categories"},
+            security = { @SecurityRequirement(name = "bearer-key") }
     )
-    @GetMapping("{languageCode}/category/admin")
+    @GetMapping("{languageCode}/admin")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<PageResponse<CategoryAdminResponseDTO>>> getCategories(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -75,19 +79,9 @@ public class CategoryController {
         Page<CategoryAdminResponseDTO> pageResult = categoryService
                 .getCategoriesPage(page, size, name, parentId, isActive, languageCode, sortBy, sortDir);
 
-        PageResponse<CategoryAdminResponseDTO> response = PageResponse.<CategoryAdminResponseDTO>builder()
-                .content(pageResult.getContent())
-                .pageNo(pageResult.getNumber())
-                .pageSize(pageResult.getSize())
-                .totalPages(pageResult.getTotalPages())
-                .totalElements(pageResult.getTotalElements())
-                .first(pageResult.isFirst())
-                .last(pageResult.isLast())
-                .build();
-
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_RETRIEVED_SUCCESSFULLY),
-                response
+                PageResponse.fromPage(pageResult)
         ));
     }
 
@@ -355,6 +349,11 @@ public class CategoryController {
         );
     }
 
+    @Operation(
+            summary = "Xóa Category",
+            description = "Xóa category theo Id",
+            tags = "Categories"
+    )
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteBanner(@PathVariable Long id) {
         categoryService.deleteCategory(id);

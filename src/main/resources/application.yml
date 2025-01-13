@@ -1,6 +1,19 @@
 server:
   port: 8080
 spring:
+  #flyway
+  # Đường dẫn tới thư mục chứa các script Flyway
+  flyway:
+    locations: classpath:/db/migration,classpath:/dev/db/migration
+    #Phiên bản baseline sẽ = 1 và không thực hiện bất kỳ thay đổi nào trong DB
+    baseline-on-migrate: true
+    baseline-version: 0
+  data:
+    redis:
+      #spring.data.redis.use-redis-cache
+      use-redis-cache: false
+      host: ${REDIS_HOST:localhost} # Default to 'localhost' if not provided
+      port: ${REDIS_PORT:6379}      # Default to 6379 if not provided
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:sqlserver://localhost:1433;databaseName=DATN_FASHION_SHOP;encrypt=false;trustServerCertificate=true;}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
@@ -84,6 +97,9 @@ logging:
     com.example.DATN_Fashion_Shop_BE: DEBUG
     org.springdoc: DEBUG
     org.springframework.boot: DEBUG
+    springframework.security: DEBUG
+    root: DEBUG
+    com.example.DATN_Fashion_Shop_BE.component.JwtTokenFilter: DEBUG
 
 # swagger-ui custom path
 springdoc:

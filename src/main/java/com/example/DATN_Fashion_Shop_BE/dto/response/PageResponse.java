@@ -1,6 +1,8 @@
 package com.example.DATN_Fashion_Shop_BE.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -18,4 +20,16 @@ public class PageResponse<T> {
     private long totalElements; // Tổng số phần tử
     private boolean first;     // Là trang đầu tiên?
     private boolean last;       // Là trang cuối cùng?
+
+    public static <T> PageResponse<T> fromPage(Page<T> page) {
+        return PageResponse.<T>builder()
+                .content(page.getContent())
+                .pageNo(page.getNumber())
+                .pageSize(page.getSize())
+                .totalPages(page.getTotalPages())
+                .totalElements(page.getTotalElements())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .build();
+    }
 }

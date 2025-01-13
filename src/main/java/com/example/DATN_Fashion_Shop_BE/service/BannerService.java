@@ -2,8 +2,9 @@ package com.example.DATN_Fashion_Shop_BE.service;
 
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.BannerDTO;
-import com.example.DATN_Fashion_Shop_BE.dto.CategoryDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.request.*;
+import com.example.DATN_Fashion_Shop_BE.dto.response.BannerAdminResponseDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.response.BannerEditResponseDTO;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.BannerRepository;
 import com.example.DATN_Fashion_Shop_BE.repository.BannerTranslationRepository;
