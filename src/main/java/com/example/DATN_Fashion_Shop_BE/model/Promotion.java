@@ -11,7 +11,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "product_variants")
+@Table(name = "promotions")
 @Getter
 @Setter
 @NoArgsConstructor

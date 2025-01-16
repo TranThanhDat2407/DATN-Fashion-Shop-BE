@@ -2,6 +2,7 @@ package com.example.DATN_Fashion_Shop_BE.controller;
 
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.CategoryDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.ProductCategoryDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.response.CategoryAdminResponseDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.request.CategoryCreateRequestDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.response.CategoryCreateResponseDTO;
@@ -45,7 +46,6 @@ public class CategoryController {
     private static final Logger logger = LoggerFactory.getLogger(CategoryController.class);
 
     private static final List<String> ALLOWED_IMAGE_EXTENSIONS = Arrays.asList("png", "jpg", "jpeg", "avif", "gif");
-    private static final List<String> ALLOWED_VIDEO_EXTENSIONS = Arrays.asList("mp4", "mov", "avi", "mkv");
 
     @Operation(
             summary = "Lấy danh sách category cho Admin",
@@ -355,7 +355,7 @@ public class CategoryController {
             tags = "Categories"
     )
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteBanner(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);
 
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
@@ -395,7 +395,6 @@ public class CategoryController {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
             }
     }
-
     private boolean isValidFile(MultipartFile file, List<String> allowedExtensions) {
         if (file == null || file.isEmpty()) {
             return false;

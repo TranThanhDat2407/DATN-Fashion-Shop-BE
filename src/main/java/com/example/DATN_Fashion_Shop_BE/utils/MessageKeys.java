@@ -93,5 +93,12 @@ public class MessageKeys {
     //staff
     public static final String STAFF_NOT_FOUND = "staff.not_found";
 
+    //product
+    public static final String PRODUCTS_RETRIEVED_SUCCESSFULLY = "products.retrieved_successfully";
+    public static final String PRODUCTS_RETRIEVED_FAILED = "products.retrieved_failed";
+
+    //product_media
+    public static final String PRODUCT_MEDIA_NOT_FOUND = "product.media_not_found";
+
 
 }

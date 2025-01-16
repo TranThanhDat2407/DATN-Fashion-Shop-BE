@@ -17,16 +17,16 @@ public class ProductsTranslation extends BaseEntity{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name", length = 255, nullable = false)
+    @Column(name = "name", columnDefinition = "NVARCHAR(255)", nullable = false)
     private String name;
 
-    @Column(name = "description", columnDefinition = "TEXT")
+    @Column(name = "description", columnDefinition = "NVARCHAR(255)")
     private String description;
 
-    @Column(name = "material", length = 255)
+    @Column(name = "material", columnDefinition = "NVARCHAR(255)")
     private String material;
 
-    @Column(name = "care", length = 255)
+    @Column(name = "care", columnDefinition = "NVARCHAR(255)")
     private String care;
 
     @ManyToOne

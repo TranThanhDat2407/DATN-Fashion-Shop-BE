@@ -31,10 +31,29 @@ public class Category extends BaseEntity{
     @JoinColumn(name = "parent_id")
     private Category parentCategory;
 
-    @ManyToMany(mappedBy = "categories") // Định nghĩa chiều ngược lại
+    @ManyToMany(mappedBy = "categories")
     private Set<Product> products = new HashSet<>();
-
 
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CategoriesTranslation> translations;
+
+    public String getTranslationByLanguage(String languageCode) {
+        return translations.stream()
+                .filter(t -> t.getLanguage().getCode().equals(languageCode))
+                .map(CategoriesTranslation::getName)
+                .findFirst()
+                .orElse(null); // Hoặc giá trị mặc định
+    }
+
+    public Set<Category> getAllSubCategories() {
+        Set<Category> subCategories = new HashSet<>();
+        for (Category child : this.getSubCategories()) {
+            subCategories.add(child);
+            subCategories.addAll(child.getAllSubCategories()); // Recursively adding subcategories
+        }
+        return subCategories;
+    }
+
+    @OneToMany(mappedBy = "parentCategory")
+    private Set<Category> subCategories = new HashSet<>();
 }

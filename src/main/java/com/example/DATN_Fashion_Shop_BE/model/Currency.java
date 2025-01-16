@@ -24,7 +24,7 @@ public class Currency extends BaseEntity{
     @Column(name = "name", length = 100, nullable = false)
     private String name;
 
-    @Column(name = "symbol", length = 10)
+    @Column(name = "symbol", length = 10, columnDefinition = "NVARCHAR(10)")
     private String symbol;
 
     @Column(name = "rate_to_base")

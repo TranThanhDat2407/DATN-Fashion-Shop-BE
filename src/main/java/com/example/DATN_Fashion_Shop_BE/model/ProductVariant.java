@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "product_variants")
@@ -33,6 +35,9 @@ public class ProductVariant extends BaseEntity{
     @ManyToOne
     @JoinColumn(name = "product_id")
     private Product product;
+
+    @ManyToMany(mappedBy = "productVariants")
+    private Set<ProductMedia> productMedias = new HashSet<>();
 
     public Double getAdjustedPrice() {
         if (product.getPromotion() != null &&

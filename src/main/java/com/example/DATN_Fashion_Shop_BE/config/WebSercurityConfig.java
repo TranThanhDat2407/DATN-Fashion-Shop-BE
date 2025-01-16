@@ -57,6 +57,8 @@ public class WebSercurityConfig {
                                     String.format("%s/cart/**", apiPrefix),
                                     String.format("%s/languages/**", apiPrefix),
                                     String.format("%s/healthcheck/**", apiPrefix),
+                                    String.format("%s/currencies/**", apiPrefix),
+                                    String.format("%s/actuator/**", apiPrefix),
 
                                     "/api-docs",
                                     "/api-docs/**",

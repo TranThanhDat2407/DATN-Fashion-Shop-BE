@@ -32,4 +32,15 @@ public class AttributeValue extends BaseEntity{
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "attribute_id", nullable = false)
     private Attribute attribute;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "attribute_value_pattern_id")
+    private AttributeValuePattern attributeValuePattern;
+
+    @OneToMany(mappedBy = "colorValue")  // Mối quan hệ với màu sắc
+    private Set<ProductVariant> productVariantsForColor = new HashSet<>();
+
+    @OneToMany(mappedBy = "sizeValue")  // Mối quan hệ với kích thước
+    private Set<ProductVariant> productVariantsForSize = new HashSet<>();
+
 }

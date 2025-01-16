@@ -3,6 +3,7 @@ package com.example.DATN_Fashion_Shop_BE.service;
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.CategoryDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.CategoryTranslationDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.ProductCategoryDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.response.CategoryAdminResponseDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.request.CategoryCreateRequestDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.response.CategoryEditResponseDTO;
@@ -19,6 +20,10 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -345,8 +350,24 @@ public class CategoryService {
                 .orElseThrow(() -> new RuntimeException(
                         localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_NOT_FOUND)));
 
-        // Xóa banner (cascade sẽ tự động xóa các translations liên quan)
         categoryRepository.delete(category);
-    }
 
+        String imageName = category.getImageUrl();
+
+        if (imageName != null) {
+            // Tạo đường dẫn đến file trong thư mục uploads/categories
+            Path imagePath = Paths.get("uploads", "categories", imageName);
+
+            try {
+                boolean isDeleted = Files.deleteIfExists(imagePath); // Xóa file
+                if (isDeleted) {
+                    System.out.println("Deleted image file: " + imagePath);
+                } else {
+                    System.out.println("Image file not found: " + imagePath);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to delete image file: " + imagePath, e);
+            }
+        }
+    }
 }

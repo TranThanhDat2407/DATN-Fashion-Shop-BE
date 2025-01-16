@@ -41,4 +41,10 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
             @Param("parentId") Long parentId,
             @Param("isActive") Boolean isActive,
             Pageable pageable);
+
+    @Query("SELECT c FROM Category c JOIN c.products p WHERE p.id = :productId")
+    List<Category> findCategoriesByProductId(@Param("productId") Long productId);
+
+    @Query("SELECT c FROM Category c JOIN c.products p WHERE p.id = :productId AND c.parentCategory IS NULL")
+    List<Category> findTopLevelCategoriesByProductId(@Param("productId") Long productId);
 }

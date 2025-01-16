@@ -84,6 +84,7 @@ spring:
             scope:
               - email
               - public_profile
+
 api:
   prefix: /api/v1
 jwt:
@@ -119,5 +120,11 @@ management:
       base-path: /api/v1/actuator
       exposure:
         #include: "health"
-        include: "health, info"
+        include: "health, info, metrics"
+    metrics:
+      enabled: true
+
+exchanger:
+  api:
+    key: "7236dc721c56e195be6eef59"
 
