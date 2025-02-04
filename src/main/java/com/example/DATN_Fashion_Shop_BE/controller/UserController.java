@@ -3,6 +3,8 @@ package com.example.DATN_Fashion_Shop_BE.controller;
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.*;
 import com.example.DATN_Fashion_Shop_BE.dto.response.*;
+import com.example.DATN_Fashion_Shop_BE.dto.response.user.UserAdminResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.user.UserResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.exception.InvalidPasswordException;
 import com.example.DATN_Fashion_Shop_BE.model.Token;
@@ -24,15 +26,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("${api.prefix}/users")

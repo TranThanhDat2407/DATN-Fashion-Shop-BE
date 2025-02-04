@@ -1,8 +1,7 @@
 package com.example.DATN_Fashion_Shop_BE.dto.response;
-import com.example.DATN_Fashion_Shop_BE.model.Role;
+import com.example.DATN_Fashion_Shop_BE.dto.response.user.UserResponse;
 import com.example.DATN_Fashion_Shop_BE.model.Staff;
 import com.example.DATN_Fashion_Shop_BE.model.User;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 @Getter

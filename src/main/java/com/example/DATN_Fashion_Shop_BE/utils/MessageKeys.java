@@ -96,6 +96,8 @@ public class MessageKeys {
     //product
     public static final String PRODUCTS_RETRIEVED_SUCCESSFULLY = "products.retrieved_successfully";
     public static final String PRODUCTS_RETRIEVED_FAILED = "products.retrieved_failed";
+    public static final String PRODUCT_VARIANTS_NOT_FOUND = "product.variants_not_found";
+    public static final String PRODUCT_VARIANTS_RETRIEVED_SUCCESSFULLY = "product.variants_retrieved_successfully";
 
     //product_media
     public static final String PRODUCT_MEDIA_NOT_FOUND = "product.media_not_found";

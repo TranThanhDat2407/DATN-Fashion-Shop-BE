@@ -1,10 +1,7 @@
 package com.example.DATN_Fashion_Shop_BE.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Table(name = "products_translations")
@@ -12,6 +9,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class ProductsTranslation extends BaseEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,13 +18,13 @@ public class ProductsTranslation extends BaseEntity{
     @Column(name = "name", columnDefinition = "NVARCHAR(255)", nullable = false)
     private String name;
 
-    @Column(name = "description", columnDefinition = "NVARCHAR(255)")
+    @Column(name = "description", columnDefinition = "NVARCHAR(MAX)")
     private String description;
 
-    @Column(name = "material", columnDefinition = "NVARCHAR(255)")
+    @Column(name = "material", columnDefinition = "NVARCHAR(MAX)")
     private String material;
 
-    @Column(name = "care", columnDefinition = "NVARCHAR(255)")
+    @Column(name = "care", columnDefinition = "NVARCHAR(MAX)")
     private String care;
 
     @ManyToOne
