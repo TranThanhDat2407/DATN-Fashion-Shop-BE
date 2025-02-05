@@ -123,6 +123,10 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/healthcheck/**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/actuator/**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/currencies**", apiPrefix), "GET"),
+                Pair.of(String.format("%s/orders/**", apiPrefix), "POST"),
+                Pair.of(String.format("%s/orders/**", apiPrefix), "GET"),
+                Pair.of(String.format("%s/orders/**", apiPrefix), "PUT"),
+                Pair.of(String.format("%s/orders/**", apiPrefix), "PATCH"),
                 // Swagger
                 Pair.of("/api-docs","GET"),
                 Pair.of("/api-docs/**","GET"),
