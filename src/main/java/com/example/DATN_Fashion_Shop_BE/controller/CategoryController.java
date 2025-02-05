@@ -2,11 +2,10 @@ package com.example.DATN_Fashion_Shop_BE.controller;
 
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.CategoryDTO;
-import com.example.DATN_Fashion_Shop_BE.dto.ProductCategoryDTO;
-import com.example.DATN_Fashion_Shop_BE.dto.response.CategoryAdminResponseDTO;
-import com.example.DATN_Fashion_Shop_BE.dto.request.CategoryCreateRequestDTO;
-import com.example.DATN_Fashion_Shop_BE.dto.response.CategoryCreateResponseDTO;
-import com.example.DATN_Fashion_Shop_BE.dto.response.CategoryEditResponseDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.response.category.CategoryAdminResponseDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.request.category.CategoryCreateRequestDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.response.category.CategoryCreateResponseDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.response.category.CategoryEditResponseDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.FieldErrorDetails;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;

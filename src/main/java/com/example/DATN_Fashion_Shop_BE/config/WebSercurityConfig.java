@@ -18,6 +18,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
 
 @Configuration
 // Kích hoạt Spring Security trong ứng dụng.
@@ -58,6 +59,9 @@ public class WebSercurityConfig {
                                     String.format("%s/languages/**", apiPrefix),
                                     String.format("%s/healthcheck/**", apiPrefix),
                                     String.format("%s/currencies/**", apiPrefix),
+                                    String.format("%s/products/**", apiPrefix),
+                                    String.format("%s/attribute_values/**", apiPrefix),
+
                                     String.format("%s/actuator/**", apiPrefix),
                                     String.format("%s/orders/**", apiPrefix),
 
@@ -81,6 +85,12 @@ public class WebSercurityConfig {
 
                             .requestMatchers(GET,
                                     String.format("%s/products/**", apiPrefix)).permitAll()
+
+                            .requestMatchers(POST,
+                                    String.format("%s/products/**", apiPrefix)).permitAll()
+
+                            .requestMatchers(POST,
+                                    String.format("%s/products**", apiPrefix)).permitAll()
 
                             .requestMatchers(GET,
                                     String.format("%s/orders/**", apiPrefix)).permitAll()

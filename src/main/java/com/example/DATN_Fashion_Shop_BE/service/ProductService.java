@@ -3,11 +3,16 @@ package com.example.DATN_Fashion_Shop_BE.service;
 
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.*;
+import com.example.DATN_Fashion_Shop_BE.dto.request.product.*;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.product.CreateProductResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.product.ProductMediaResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.product.ProductVariantResponse;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -15,7 +20,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -26,7 +34,9 @@ public class ProductService {
     private final ProductVariantRepository productVariantRepository;
     private final AttributeValueRepository attributeValueRepository;
     private final ProductMediaRepository productMediaRepository;
+    private final FileStorageService fileStorageService;
     private final LocalizationUtils localizationUtils;
+    private final LanguageRepository languageRepository;
 
     public List<ProductCategoryDTO> getCategoriesByProductIdAndLangCode(Long productId, String langCode) {
         // Lấy Product dựa trên ID
@@ -122,62 +132,33 @@ public class ProductService {
         return ProductDetailDTO.fromProduct(product, langCode);
     }
 
-    public List<ProductMediaDTO> getProductMedia(Long productId) {
+    public List<ProductMediaDTO> getProductImages(Long productId) {
         List<ProductMedia> productMediaList = productMediaRepository.findByProductId(productId);
 
         return productMediaList.stream()
+                .filter(media -> "IMAGE".equals(media.getMediaType()))
                 .map(ProductMediaDTO::fromProductMedia)
                 .collect(Collectors.toList());
     }
 
-    public List<ProductMediaDTO> getProductMediaWithColor(Long productId,Long colorId) {
+    public List<ProductMediaDTO> getProductVideos(Long productId) {
+        List<ProductMedia> productMediaList = productMediaRepository.findByProductId(productId);
+
+        return productMediaList.stream()
+                .filter(media -> "VIDEO".equals(media.getMediaType()))
+                .map(ProductMediaDTO::fromProductMedia)
+                .collect(Collectors.toList());
+    }
+
+
+    public List<ProductMediaDTO> getProductMediaWithColor(Long productId, Long colorId) {
         List<ProductMedia> productMediaList = productMediaRepository
-                .findByProductIdAndColorValueId(productId,colorId);
+                .findByProductIdAndColorValueId(productId, colorId);
 
         return productMediaList.stream()
                 .map(ProductMediaDTO::fromProductMedia)
                 .collect(Collectors.toList());
     }
-
-    public Page<ProductListDTO> getProductsWithFilters(
-            String languageCode,
-            String name,
-            Long categoryId,
-            Boolean isActive,
-            int page,
-            int size,
-            String sortBy,
-            String sortDir) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDir), sortBy));
-
-        Page<Product> products = productRepository
-                .findProductsByCategoryAndName(categoryId, isActive,name,pageable);
-
-        return products.map(product -> ProductListDTO.fromProduct(product,
-                product.getTranslationByLanguage(languageCode)));
-    }
-
-    // lấy product theo khoảng giá nhưng lọc theo
-    public Page<ProductListDTO> getProductsWithLowestVariantPrice(
-            String languageCode,
-            Long categoryId,
-            Boolean isActive,
-            String nameKeyword,
-            Double minPrice,
-            Double maxPrice,
-            int page,
-            int size,
-            String sortBy,
-            String sortDir) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDir), sortBy));
-
-        Page<Product> products = productRepository.findProductsByCategoryAndLowestPrice(
-                categoryId, isActive, nameKeyword, minPrice, maxPrice, pageable);
-
-        return products.map(product -> ProductListDTO.fromProduct(product,
-                product.getTranslationByLanguage(languageCode)));
-    }
-
 
     public Page<ProductListDTO> getFilteredProducts(
             String languageCode,
@@ -211,4 +192,205 @@ public class ProductService {
                     product.getTranslationByLanguage(languageCode)));
         }
     }
+
+    public List<ProductVariant> getProductVariantsByMediaId(Long mediaId) {
+        return productVariantRepository.findProductVariantsByMediaId(mediaId);
+    }
+
+    @Transactional
+    public CreateProductResponse createProduct(CreateProductRequest request) {
+        // Tạo Product bằng Builder
+        Product product = Product.builder()
+                .status(request.getStatus())
+                .basePrice(request.getBasePrice())
+                .isActive(request.getIsActive())
+                .build();
+
+        // Xử lý danh sách bản dịch
+        List<ProductsTranslation> translations = new ArrayList<>();
+        if (request.getTranslations() != null) {
+            for (CreateProductTranslationRequest transReq : request.getTranslations()) {
+                Language language = languageRepository.findByCode(transReq.getLangCode())
+                        .orElseThrow(() -> new IllegalArgumentException("Language not found with Code: " + transReq.getLangCode()));
+                ProductsTranslation translation = ProductsTranslation.builder()
+                        .name(transReq.getName())
+                        .description(transReq.getDescription())
+                        .material(transReq.getMaterial())
+                        .care(transReq.getCare())
+                        .language(language)
+                        .product(product)
+                        .build();
+                translations.add(translation);
+            }
+        }
+        product.setTranslations(translations);
+
+        // Lưu Product cùng các bản dịch liên quan
+        Product savedProduct = productRepository.save(product);
+
+        // Trả về response sử dụng Builder
+        return CreateProductResponse.fromProduct(savedProduct);
+    }
+
+    @Transactional
+    public ProductVariantResponse createProductVariant(CreateProductVariantRequest request) {
+        Product product = productRepository.findById(request.getProductId())
+                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+
+        AttributeValue colorValue = attributeValueRepository.findById(request.getColorValueId())
+                .orElseThrow(() -> new IllegalArgumentException("Màu sắc không tồn tại"));
+
+        AttributeValue sizeValue = attributeValueRepository.findById(request.getSizeValueId())
+                .orElseThrow(() -> new IllegalArgumentException("Kích thước không tồn tại"));
+
+        ProductVariant variant = ProductVariant.builder()
+                .product(product)
+                .colorValue(colorValue)
+                .sizeValue(sizeValue)
+                .salePrice(request.getSalePrice())
+                .build();
+
+        ProductVariant savedVariant = productVariantRepository.save(variant);
+
+        return ProductVariantResponse.fromProductVariant(savedVariant);
+    }
+
+    @Transactional
+    public List<ProductVariantResponse> createProductVariantsByPattern(CreateProductVariantsByPatternRequest request) {
+        Product product = productRepository.findById(request.getProductId())
+                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại"));
+
+        AttributeValue colorValue = attributeValueRepository.findById(request.getColorValueId())
+                .orElseThrow(() -> new IllegalArgumentException("Màu sắc không tồn tại"));
+
+        // Lấy danh sách tất cả kích thước theo pattern
+        List<AttributeValue> sizeValues = attributeValueRepository.findByPatternId(request.getPatternId());
+
+        if (sizeValues.isEmpty()) {
+            throw new IllegalArgumentException("Pattern không chứa kích thước nào!");
+        }
+
+        List<ProductVariantResponse> responseList = sizeValues.stream().map(sizeValue -> {
+            ProductVariant variant = ProductVariant.builder()
+                    .product(product)
+                    .colorValue(colorValue)
+                    .sizeValue(sizeValue)
+                    .salePrice(request.getSalePrice())
+                    .build();
+
+            ProductVariant savedVariant = productVariantRepository.save(variant);
+
+            return ProductVariantResponse.fromProductVariant(savedVariant);
+        }).collect(Collectors.toList());
+
+        return responseList;
+    }
+
+    // Các phần mở rộng của hình ảnh và video
+    private static final Set<String> IMAGE_EXTENSIONS = Set.of("jpg", "jpeg", "png", "gif", "webp");
+    private static final Set<String> VIDEO_EXTENSIONS = Set.of("mp4", "avi", "mov", "mkv");
+
+    @Transactional
+    public ProductMediaResponse uploadProductMedia(Long productId, MultipartFile file) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_FAILED)
+                ));
+
+        // Lưu file và lấy URL
+        String fileUrl = fileStorageService.uploadFileAndGetName(file, "images/products");
+
+        // Xác định loại media
+        String mediaType = determineMediaType(file);
+
+        // Tạo ProductMedia entity
+        ProductMedia media = ProductMedia.builder()
+                .mediaUrl(fileUrl)
+                .mediaType(mediaType) // IMAGE hoặc VIDEO
+                .product(product)
+                .build();
+
+        ProductMedia savedMedia = productMediaRepository.save(media);
+        // Trả về response
+        return ProductMediaResponse.fromProductMedia(savedMedia);
+    }
+
+    @Transactional
+    public ProductMediaResponse updateProductMedia(Long id, MultipartFile mediaFile, UpdateProductMediaRequest request) {
+        ProductMedia productMedia = productMediaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy ProductMedia với ID: " + id));
+
+        // Nếu có file mới, thì xóa file cũ và upload file mới
+        if (mediaFile != null) {
+            fileStorageService.deleteFile(productMedia.getMediaUrl(),"products"); // Xóa ảnh cũ
+            String newMediaUrl = fileStorageService.uploadFileAndGetName(mediaFile, "images/products");
+            productMedia.setMediaUrl(newMediaUrl);
+        }
+
+        // Cập nhật metadata
+        productMedia.setSortOrder(request.getSortOrder());
+        productMedia.setModelHeight(request.getModelHeight());
+
+        // Cập nhật màu sắc nếu có
+        if (request.getColorValueId() != null) {
+            AttributeValue colorValue = attributeValueRepository.findById(request.getColorValueId())
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy màu sắc với ID: " + request.getColorValueId()));
+            productMedia.setColorValue(colorValue);
+        }
+
+        // Cập nhật danh sách `ProductVariant` nếu có
+        if (request.getProductVariantIds() != null) {
+            List<ProductVariant> variants = new ArrayList<>(productVariantRepository.findAllById(request.getProductVariantIds()));
+            productMedia.getProductVariants().clear();
+            productMedia.getProductVariants().addAll(variants);
+        }
+
+        ProductMedia updatedMedia = productMediaRepository.save(productMedia);
+        return ProductMediaResponse.fromProductMedia(updatedMedia);
+    }
+
+    @Transactional
+    public void deleteProductMedia(Long id) {
+        ProductMedia productMedia = productMediaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException(
+                        localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_NOT_FOUND)));
+
+        fileStorageService.deleteFile(productMedia.getMediaUrl(),"products");
+
+        productMediaRepository.delete(productMedia);
+    }
+
+    /**
+     * Xác định loại media dựa vào phần mở rộng của file hoặc MIME type.
+     */
+    private String determineMediaType(MultipartFile file) {
+        String fileName = file.getOriginalFilename();
+        if (fileName == null) return "UNKNOWN";
+        // Lấy phần mở rộng của file
+        String extension = getFileExtension(fileName);
+
+        // Kiểm tra nếu là ảnh
+        if (IMAGE_EXTENSIONS.contains(extension.toLowerCase())) {
+            return "IMAGE";
+        }
+
+        // Kiểm tra nếu là video
+        if (VIDEO_EXTENSIONS.contains(extension.toLowerCase())) {
+            return "VIDEO";
+        }
+
+        return "UNKNOWN";
+    }
+
+    /**
+     * Lấy phần mở rộng của file (ví dụ: "jpg" từ "image.jpg").
+     */
+    private String getFileExtension(String fileName) {
+        int lastDotIndex = fileName.lastIndexOf('.');
+        if (lastDotIndex != -1 && lastDotIndex < fileName.length() - 1) {
+            return fileName.substring(lastDotIndex + 1).toLowerCase();
+        }
+        return "";
+    }
+
 }

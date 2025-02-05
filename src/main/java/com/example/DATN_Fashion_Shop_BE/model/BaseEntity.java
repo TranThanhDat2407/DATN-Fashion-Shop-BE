@@ -33,12 +33,33 @@ public class BaseEntity {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-//        createdBy = getCurrentUserId(); // Lấy ID người dùng hiện tại
-//        updatedBy = getCurrentUserId();
+        Long currentUserId = getCurrentUserId();
+        createdBy = currentUserId;
+        updatedBy = currentUserId;
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Lấy ID người dùng hiện tại từ SecurityContextHolder.
+     * Nếu không tìm thấy hoặc không đăng nhập, trả về null (hoặc bạn có thể trả về một giá trị mặc định).
+     */
+    private Long getCurrentUserId() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.isAuthenticated()) {
+                Object principal = authentication.getPrincipal();
+                if (principal instanceof com.example.DATN_Fashion_Shop_BE.model.User) {
+                    return ((com.example.DATN_Fashion_Shop_BE.model.User) principal).getId();
+                }
+                // Nếu principal là kiểu String (ví dụ: username), bạn có thể thực hiện tìm kiếm ID từ username nếu cần
+            }
+        } catch (Exception e) {
+            // Log exception nếu cần
+        }
+        return null;
     }
 }

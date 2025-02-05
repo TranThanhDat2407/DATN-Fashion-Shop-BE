@@ -1,6 +1,7 @@
 package com.example.DATN_Fashion_Shop_BE.dto;
 
 import com.example.DATN_Fashion_Shop_BE.model.Product;
+import com.example.DATN_Fashion_Shop_BE.model.ProductMedia;
 import com.example.DATN_Fashion_Shop_BE.model.ProductVariant;
 import com.example.DATN_Fashion_Shop_BE.model.Promotion;
 import lombok.*;
@@ -13,6 +14,7 @@ import lombok.*;
 @NoArgsConstructor
 public class ProductVariantDetailDTO {
     private Long id;
+    private String variantImage;
     private String name;
     private String color;
     private String size;
@@ -34,9 +36,18 @@ public class ProductVariantDetailDTO {
             salePrice = Math.max(salePrice, 0);
         }
 
+        String variantImage = product.getMedias().stream()
+                .filter(media -> "IMAGE".equals(media.getMediaType())
+                        && media.getColorValue() != null
+                        && media.getColorValue().getId().equals(productVariant.getColorValue().getId()))
+                .map(ProductMedia::getMediaUrl)
+                .findFirst()
+                .orElse(null);
+
         return ProductVariantDetailDTO.builder()
                 .id(productVariant.getId())
                 .name(product.getTranslationByLanguage(langCode).getName())
+                .variantImage(variantImage)
                 .color(productVariant.getColorValue().getValueName())
                 .size(productVariant.getSizeValue().getValueName())
                 .basePrice(product.getBasePrice())
