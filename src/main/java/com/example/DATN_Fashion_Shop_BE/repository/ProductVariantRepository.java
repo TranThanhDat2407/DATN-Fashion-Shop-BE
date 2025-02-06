@@ -19,4 +19,6 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
             "JOIN pm.productVariants pv " +
             "WHERE pm.id = :mediaId")
     List<ProductVariant> findProductVariantsByMediaId(@Param("mediaId") Long mediaId);
+
+    List<ProductVariant> findByProduct_IdAndColorValue_Id(Long productId, Long colorId);
 }

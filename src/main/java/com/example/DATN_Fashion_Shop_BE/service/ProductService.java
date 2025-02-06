@@ -6,6 +6,7 @@ import com.example.DATN_Fashion_Shop_BE.dto.*;
 import com.example.DATN_Fashion_Shop_BE.dto.request.product.*;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.product.CreateProductResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.product.EditProductResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.product.ProductMediaResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.product.ProductVariantResponse;
 import com.example.DATN_Fashion_Shop_BE.model.*;
@@ -63,14 +64,13 @@ public class ProductService {
         // Tìm tất cả danh mục gốc liên quan đến các danh mục của sản phẩm
         List<Category> rootCategories = product.getCategories().stream()
                 .flatMap(category -> findAllRootCategories(category).stream())
-                .collect(Collectors.toList()); // Không dùng Set
+                .collect(Collectors.toList());
 
         // Chuyển đổi danh mục gốc thành DTO
         return rootCategories.stream()
                 .map(rootCategory -> {
                     // Lấy bản dịch theo mã ngôn ngữ
                     String translatedName = rootCategory.getTranslationByLanguage(langCode);
-                    System.out.println("Category ID: " + rootCategory.getId() + ", Translated Name: " + translatedName);
                     return ProductCategoryDTO.fromCategory(rootCategory, translatedName);
                 })
                 .collect(Collectors.toList());
@@ -198,6 +198,13 @@ public class ProductService {
     }
 
     @Transactional
+    public EditProductResponse getProductForEdit(Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại với ID: " + productId));
+        return EditProductResponse.fromProduct(product);
+    }
+
+    @Transactional
     public CreateProductResponse createProduct(CreateProductRequest request) {
         // Tạo Product bằng Builder
         Product product = Product.builder()
@@ -230,6 +237,61 @@ public class ProductService {
 
         // Trả về response sử dụng Builder
         return CreateProductResponse.fromProduct(savedProduct);
+    }
+
+    @Transactional
+    public CreateProductResponse updateProduct(Long id, UpdateProductRequest request) {
+        // Tìm Product theo id
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại với ID: " + id));
+
+        // Cập nhật các trường cơ bản
+        product.setStatus(request.getStatus());
+        product.setBasePrice(request.getBasePrice());
+        product.setIsActive(request.getIsActive());
+
+        // Xử lý danh sách bản dịch: Ở đây ta xóa hết các bản dịch cũ và thay thế bằng danh sách mới
+        if (request.getTranslations() != null) {
+
+            List<ProductsTranslation> newTranslations = new ArrayList<>();
+            for (CreateProductTranslationRequest transReq : request.getTranslations()) {
+                Language language = languageRepository.findByCode(transReq.getLangCode())
+                        .orElseThrow(() -> new IllegalArgumentException("Language not found with Code: " + transReq.getLangCode()));
+                ProductsTranslation translation = ProductsTranslation.builder()
+                        .name(transReq.getName())
+                        .description(transReq.getDescription())
+                        .material(transReq.getMaterial())
+                        .care(transReq.getCare())
+                        .language(language)
+                        .product(product)
+                        .build();
+                newTranslations.add(translation);
+            }
+            product.getTranslations().clear();
+            product.getTranslations().addAll(newTranslations);
+        }
+
+        // Lưu product cập nhật
+        Product savedProduct = productRepository.save(product);
+        return CreateProductResponse.fromProduct(savedProduct);
+    }
+
+    @Transactional
+    public void deleteProduct(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại với ID: " + id));
+        // Lấy danh sách ProductMedia của sản phẩm
+        List<ProductMedia> mediaList = productMediaRepository.findByProductId(id);
+
+        // Duyệt qua danh sách và xóa file của từng media
+        for (ProductMedia media : mediaList) {
+            fileStorageService.deleteFile(media.getMediaUrl(), "products");
+        }
+
+        // Xóa tất cả các bản ghi ProductMedia khỏi DB
+        productMediaRepository.deleteAll(mediaList);
+
+        productRepository.delete(product);
     }
 
     @Transactional
@@ -284,6 +346,85 @@ public class ProductService {
         }).collect(Collectors.toList());
 
         return responseList;
+    }
+
+    @Transactional
+    public ProductVariantResponse updateProductVariant(Long id, UpdateProductVariantRequest request) {
+        // Lấy ProductVariant hiện tại từ DB
+        ProductVariant variant = productVariantRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm biến thể không tồn tại với ID: " + id));
+
+        // Cập nhật salePrice nếu có
+        if (request.getSalePrice() != null) {
+            variant.setSalePrice(request.getSalePrice());
+        }
+
+        // Cập nhật màu sắc nếu có
+        if (request.getColorValueId() != null) {
+            AttributeValue colorValue = attributeValueRepository.findById(request.getColorValueId())
+                    .orElseThrow(() -> new IllegalArgumentException("Màu sắc không tồn tại với ID: " + request.getColorValueId()));
+            variant.setColorValue(colorValue);
+        }
+
+        // Cập nhật kích thước nếu có
+        if (request.getSizeValueId() != null) {
+            AttributeValue sizeValue = attributeValueRepository.findById(request.getSizeValueId())
+                    .orElseThrow(() -> new IllegalArgumentException("Kích thước không tồn tại với ID: " + request.getSizeValueId()));
+            variant.setSizeValue(sizeValue);
+        }
+
+        // Lưu thay đổi vào DB
+        ProductVariant updatedVariant = productVariantRepository.save(variant);
+
+        return ProductVariantResponse.fromProductVariant(updatedVariant);
+    }
+
+    /**
+     * Cập nhật salePrice cho tất cả các ProductVariant có productId và colorValue.id tương ứng.
+     *
+     * @param productId    ID của sản phẩm
+     * @param colorId      ID của màu sắc (colorValue)
+     * @param newSalePrice Giá mới cần cập nhật
+     */
+    public List<ProductVariantResponse> updateSalePriceForVariantsByProductAndColor(Long productId, Long colorId, Double newSalePrice) {
+        List<ProductVariant> variants = productVariantRepository.findByProduct_IdAndColorValue_Id(productId, colorId);
+
+        if (variants.isEmpty()) {
+            throw new IllegalArgumentException("Không có biến thể nào thỏa mãn productId = " + productId + " và colorId = " + colorId);
+        }
+
+        for (ProductVariant variant : variants) {
+            variant.setSalePrice(newSalePrice);
+        }
+
+        // Cập nhật tất cả biến thể cùng một lúc và lưu vào DB
+        List<ProductVariant> updatedVariants = productVariantRepository.saveAll(variants);
+
+        // Chuyển đổi các ProductVariant thành ProductVariantResponse và trả về
+        return updatedVariants.stream()
+                .map(ProductVariantResponse::fromProductVariant)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteProductVariant(Long id) {
+        ProductVariant variant = productVariantRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm biến thể không tồn tại với ID: " + id));
+        productVariantRepository.delete(variant);
+    }
+
+    @Transactional
+    public void deleteProductVariants(List<Long> variantIds) {
+        // Lấy tất cả các biến thể có ID trong danh sách variantIds
+        List<ProductVariant> variants = productVariantRepository.findAllById(variantIds);
+
+        // Nếu cần, kiểm tra xem có đủ số lượng không
+        if (variants.size() != variantIds.size()) {
+            throw new IllegalArgumentException("Không tìm thấy tất cả các biến thể với các ID cung cấp.");
+        }
+
+        // Xóa tất cả các biến thể đó
+        productVariantRepository.deleteAll(variants);
     }
 
     // Các phần mở rộng của hình ảnh và video

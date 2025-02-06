@@ -134,6 +134,11 @@
 			<version>3.3.1</version>
 		</dependency>
 
+		<dependency>
+			<groupId>org.hibernate.orm</groupId>
+			<artifactId>hibernate-envers</artifactId>
+			<version>6.6.6.Final</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.flywaydb</groupId>

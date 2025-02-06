@@ -98,4 +98,52 @@ public class AttributeValuesService {
         return attributeValueRepository.findAllByPatternIdAndName(patternId, name, pageable)
                 .map(AttributeValueResponse::fromAttributeValue);
     }
+
+    public CreateColorResponse updateColor(Long id, CreateColorRequest updateRequest, MultipartFile colorImage) {
+        // Tìm đối tượng màu theo id
+        AttributeValue color = attributeValueRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy màu với ID: " + id));
+
+        // Cập nhật các trường từ updateRequest
+        color.setValueName(updateRequest.getValueName());
+        color.setSortOrder(updateRequest.getSortOrder());
+        // Nếu có file mới, xóa file cũ và upload file mới
+        if (colorImage != null) {
+            fileStorageService.deleteFile(color.getValueImg(), "colors");
+            String newFileName = fileStorageService.uploadFileAndGetName(colorImage, "images/colors");
+            color.setValueImg(newFileName);
+        }
+
+        AttributeValue updatedColor = attributeValueRepository.save(color);
+        return CreateColorResponse.fromAttributeValues(updatedColor);
+    }
+
+    public void deleteColor(Long id) {
+        AttributeValue color = attributeValueRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy màu với ID: " + id));
+        // Nếu có file ảnh, xóa file ảnh trước
+        if (color.getValueImg() != null) {
+            fileStorageService.deleteFile(color.getValueImg(), "colors");
+        }
+        attributeValueRepository.delete(color);
+    }
+
+    public CreateSizeResponse updateSize(Long id, CreateSizeRequest updateRequest) {
+        // Tìm đối tượng kích thước theo id
+        AttributeValue size = attributeValueRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy kích thước với ID: " + id));
+
+        // Cập nhật các trường
+        size.setValueName(updateRequest.getValueName());
+        size.setSortOrder(updateRequest.getSortOrder());
+        AttributeValue updatedSize = attributeValueRepository.save(size);
+        return CreateSizeResponse.fromAttributeValues(updatedSize);
+    }
+
+    public void deleteSize(Long id) {
+        AttributeValue size = attributeValueRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy kích thước với ID: " + id));
+        attributeValueRepository.delete(size);
+    }
+
 }

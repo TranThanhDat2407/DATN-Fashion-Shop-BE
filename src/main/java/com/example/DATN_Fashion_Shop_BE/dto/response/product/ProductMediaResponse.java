@@ -4,6 +4,7 @@ import com.example.DATN_Fashion_Shop_BE.model.ProductMedia;
 import com.example.DATN_Fashion_Shop_BE.model.ProductVariant;
 import lombok.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,9 +33,13 @@ public class ProductMediaResponse {
                 .modelHeight(media.getModelHeight())
                 .colorValueId(media.getColorValue() != null ? media.getColorValue().getId() : null)
                 .productId(media.getProduct() != null ? media.getProduct().getId() : null)
-                .productVariants(media.getProductVariants().stream() // Lấy danh sách ProductVariants
-                        .map(ProductVariantResponse::fromProductVariant) // Ánh xạ mỗi ProductVariant sang ProductVariantResponse
-                        .collect(Collectors.toList())) // Thu thập vào danh sách
+                .productVariants(
+                        media.getProductVariants() != null
+                                ? media.getProductVariants().stream()
+                                .map(ProductVariantResponse::fromProductVariant)
+                                .collect(Collectors.toList())
+                                : Collections.emptyList()
+                )
                 .build();
     }
 }

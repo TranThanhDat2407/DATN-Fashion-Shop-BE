@@ -2,6 +2,7 @@ package com.example.DATN_Fashion_Shop_BE.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.envers.Audited;
 
 import java.util.ArrayList;
 import java.util.HashSet;
