@@ -106,6 +106,9 @@ public class MessageKeys {
     //order
     public static final String ORDERS_SUCCESSFULLY = "orders.successfully";
     public static final String ORDERS_CREATE_FAILED = "orders.created_failed";
+    public static final String ORDERS_PREVIEW_SUCCESS = "orders.preview.success";
+    public static final String ORDERS_PREVIEW_FAILED = "orders.preview.failed";
+
 
 
 

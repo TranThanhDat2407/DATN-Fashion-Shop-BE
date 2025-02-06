@@ -128,3 +128,8 @@ exchanger:
   api:
     key: "7236dc721c56e195be6eef59"
 
+shipping:
+  api:
+    url: https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/preview
+    key: c22baea9-bd0e-11ef-a89d-dab02cbaab48
+

@@ -23,7 +23,7 @@ public class CreateOrderResponse {
     private String shippingAddress;
     private PaymentMethodResponse paymentMethod; // Thêm thông tin chi tiết Payment Method
     private OrderStatus orderStatus;
-    private String message;
+
 
 
     public static CreateOrderResponse fromOrder(Order order) {
@@ -46,7 +46,6 @@ public class CreateOrderResponse {
                 .shippingAddress(order.getShippingAddress())
                 .paymentMethod(paymentMethodResponse)  // Trả về thông tin phương thức thanh toán
                 .orderStatus(orderStatusResponse)  // Lấy trạng thái từ OrderStatus
-                .message("Order retrieved successfully")
                 .build();
     }
 

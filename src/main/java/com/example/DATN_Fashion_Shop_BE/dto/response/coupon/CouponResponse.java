@@ -16,8 +16,8 @@ public class CouponResponse {
     private Long id;
     private User user;
     private String discountType;
-    private String discountValue;
-    private String minOrderValue;
+    private Float discountValue;
+    private Float minOrderValue;
     private String userLimit;
     private String expirationDate;
     private Boolean isActive = true;
@@ -30,8 +30,7 @@ public class CouponResponse {
                 .discountType(coupon.getDiscountType())
                 .discountValue(coupon.getDiscountValue())
                 .minOrderValue(coupon.getMinOrderValue())
-                .userLimit(coupon.getUserLimit())
-                .expirationDate(coupon.getExpirationDate())
+                    .expirationDate(coupon.getExpirationDate().toString())
                 .isActive(coupon.getIsActive())
                 .code(coupon.getCode())
                 .build();
