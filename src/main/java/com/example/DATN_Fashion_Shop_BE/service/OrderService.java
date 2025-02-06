@@ -1,8 +1,10 @@
 package com.example.DATN_Fashion_Shop_BE.service;
 
+import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.request.order.OrderRequest;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
+import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,17 +27,22 @@ public class OrderService {
     private final CouponRepository couponRepository;
     private final ShippingMethodRepository shippingMethodRepository;
     private final PaymentMethodRepository paymentMethodRepository;
+    private final LocalizationUtils localizationUtils;
 
 
     @Transactional
     public Order placeOrder(OrderRequest orderRequest) {
         // Lấy giỏ hàng của user
         Cart cart = cartRepository.findByUser_Id(orderRequest.getUserId())
-                .orElseThrow(() -> new RuntimeException("Giỏ hàng không tồn tại"));
+                .orElseThrow(() -> new RuntimeException(localizationUtils
+                        .getLocalizedMessage(MessageKeys.CART_NOT_FOUND, orderRequest.getUserId())
+
+                ));
 
         List<CartItem> cartItems = cartItemRepository.findByCartId(cart.getId());
         if (cartItems.isEmpty()) {
-            throw new RuntimeException("Giỏ hàng trống, không thể đặt hàng");
+            throw new RuntimeException(localizationUtils
+                    .getLocalizedMessage(MessageKeys.CART_ITEM_NOT_FOUND, cart.getId()));
         }
 
         // Tính tổng tiền sản phẩm
@@ -56,9 +63,10 @@ public class OrderService {
 
         // Tính phí vận chuyển
         ShippingMethod shippingMethod = shippingMethodRepository.findById(orderRequest.getShippingMethodId())
-                .orElseThrow(() -> new RuntimeException("Phương thức vận chuyển không hợp lệ"));
+                .orElseThrow(() -> new RuntimeException(localizationUtils
+                        .getLocalizedMessage(MessageKeys.SHIPPING_METHOD_NOT_VALID)));
 
-        BigDecimal shippingFee = new BigDecimal(shippingMethod.getDescription()); // Giả sử mô tả chứa giá ship
+        BigDecimal shippingFee = new BigDecimal(shippingMethod.getDescription());
 
         // Tổng tiền đơn hàng sau giảm giá + phí vận chuyển
         BigDecimal finalAmount = totalAmount.subtract(discount).add(shippingFee);
@@ -89,7 +97,8 @@ public class OrderService {
 
         // Xử lý thanh toán
         PaymentMethod paymentMethod = paymentMethodRepository.findById(orderRequest.getPaymentMethodId())
-                .orElseThrow(() -> new RuntimeException("Phương thức thanh toán không hợp lệ"));
+                .orElseThrow(() -> new RuntimeException(localizationUtils
+                        .getLocalizedMessage(MessageKeys.PAYMENT_METHOD_NOT_VALID)));
 
         Payment payment = Payment.builder()
                 .order(order)

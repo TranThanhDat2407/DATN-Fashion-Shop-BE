@@ -50,4 +50,7 @@ public class Order extends BaseEntity {
     @Column(name = "tax_amount")
     private String taxAmount;
 
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY)
+    private List<Payment> payments;
+
 }
