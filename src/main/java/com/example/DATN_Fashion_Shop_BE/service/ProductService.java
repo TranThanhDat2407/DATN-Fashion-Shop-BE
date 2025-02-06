@@ -124,6 +124,17 @@ public class ProductService {
         return ProductVariantDetailDTO.fromProductVariant(productVariant, langCode);
     }
 
+    public ProductVariantDetailDTO getLowestPriceVariant(Long productId, String langCode) {
+        ProductVariant productVariant = productVariantRepository
+                .findLowestPriceVariantByProductId(productId)
+                .orElseThrow(() -> new RuntimeException(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_FAILED))
+                );
+
+        return ProductVariantDetailDTO.fromProductVariant(productVariant, langCode);
+    }
+
+
     public ProductDetailDTO getProductDetail(Long productId, String langCode) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException(localizationUtils

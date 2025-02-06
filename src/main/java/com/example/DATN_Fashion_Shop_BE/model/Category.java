@@ -17,6 +17,7 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Audited
 public class Category extends BaseEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,6 +34,7 @@ public class Category extends BaseEntity{
     private Category parentCategory;
 
     @ManyToMany(mappedBy = "categories")
+    @Audited(targetAuditMode = org.hibernate.envers.RelationTargetAuditMode.NOT_AUDITED)
     private Set<Product> products = new HashSet<>();
 
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)

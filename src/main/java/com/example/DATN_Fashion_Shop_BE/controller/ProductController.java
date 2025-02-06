@@ -100,6 +100,20 @@ public class ProductController {
         ));
     }
 
+    @GetMapping("lowest-price-variant/{languageCode}/{productId}")
+    public ResponseEntity<ApiResponse<ProductVariantDetailDTO>> getLowestPriceProductVariant(
+            @PathVariable(value = "productId") Long productId,
+            @PathVariable(value = "languageCode") String languageCode
+    ) {
+        ProductVariantDetailDTO variant = productService
+                .getLowestPriceVariant(productId, languageCode);
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                variant
+        ));
+    }
+
     @GetMapping("detail/{languageCode}/{productId}")
     public ResponseEntity<ApiResponse<ProductDetailDTO>> getProductDetail(
             @PathVariable Long productId,
