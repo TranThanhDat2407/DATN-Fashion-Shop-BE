@@ -1,8 +1,10 @@
 package com.example.DATN_Fashion_Shop_BE.controller;
 
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
+import com.example.DATN_Fashion_Shop_BE.dto.request.Ghn.PreviewOrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.order.OrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.PreviewOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.order.CreateOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.order.OrderPreviewResponse;
 import com.example.DATN_Fashion_Shop_BE.model.Order;
@@ -33,8 +35,8 @@ public class OrderController {
             description = "API này cho phép người dùng đặt hàng, bao gồm thông tin đơn hàng và phương thức thanh toán.",
             tags = "Orders"
     )
-    @PostMapping("/place-order")
-    public ResponseEntity<ApiResponse<CreateOrderResponse>> placeOrder(
+    @PostMapping("/create-order")
+    public ResponseEntity<ApiResponse<CreateOrderResponse>> createOrder(
             @RequestBody @Valid OrderRequest orderRequest,
             BindingResult bindingResult) {
 
@@ -51,7 +53,7 @@ public class OrderController {
 
 
             // Gọi service để tạo đơn hàng
-            Order order = orderService.placeOrder(orderRequest);
+            Order order = orderService.createOrder(orderRequest);
 
             // Tạo response từ đối tượng Order
             CreateOrderResponse createOrderResponse = CreateOrderResponse.fromOrder(order);
@@ -68,12 +70,12 @@ public class OrderController {
 
     @Operation(
             summary = "Xem trước đơn hàng",
-            description = "API này cho phép người dùng xem trước tổng giá trị đơn hàng, bao gồm tổng giỏ hàng, thuế, phí vận chuyển, và giá trị cuối cùng trước khi đặt hàng.",
+            description = "API này cho phép người dùng xem trước phí vận chuyển trước khi đặt hàng.",
             tags = "Orders"
     )
-    @PostMapping("/order-preview")
-    public ResponseEntity<ApiResponse<OrderPreviewResponse>> getOrderPreview(
-            @RequestBody @Valid OrderRequest orderRequest,
+    @PostMapping("/preview")
+    public ResponseEntity<ApiResponse<PreviewOrderResponse>> previewOrder(
+            @RequestBody @Valid PreviewOrderRequest previewOrderRequest,
             BindingResult bindingResult) {
 
         // Kiểm tra lỗi đầu vào
@@ -87,28 +89,14 @@ public class OrderController {
             );
         }
 
-        try {
-            // Gọi service để tính toán tổng giá trị đơn hàng dự kiến
-            OrderPreviewResponse orderPreview = orderService.getOrderPreview(orderRequest);
+        // Gọi service để lấy thông tin dự kiến đơn hàng từ GHN
+        PreviewOrderResponse previewResponse = orderService.previewOrder(previewOrderRequest);
 
-            // Trả về phản hồi thành công với thông tin tổng giá trị đơn hàng dự kiến
-            return ResponseEntity.ok().body(ApiResponseUtils.successResponse(
-                    localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_PREVIEW_SUCCESS),
-                    orderPreview
-            ));
-
-        } catch (Exception e) {
-            // Nếu có lỗi trong quá trình tính toán, trả về lỗi
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                    ApiResponseUtils.errorResponse(
-                            HttpStatus.INTERNAL_SERVER_ERROR,
-                            localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_PREVIEW_FAILED),
-                            "exception",
-                            e.getMessage(),
-                            e.getMessage()
-                    )
-            );
-        }
+        // Trả về phản hồi thành công với thông tin preview
+        return ResponseEntity.ok().body(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_PREVIEW_SUCCESS),
+                previewResponse
+        ));
     }
 
 }

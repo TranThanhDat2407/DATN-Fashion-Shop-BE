@@ -130,6 +130,6 @@ exchanger:
 
 shipping:
   api:
-    url: https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/preview
+    url: https://dev-online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/preview
     key: c22baea9-bd0e-11ef-a89d-dab02cbaab48
 

@@ -1,5 +1,6 @@
 package com.example.DATN_Fashion_Shop_BE.dto.response.shippingMethod;
 
+import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.Fee;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
