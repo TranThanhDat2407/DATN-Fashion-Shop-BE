@@ -1,0 +1,13 @@
+package com.example.DATN_Fashion_Shop_BE.dto.request.attribute_values;
+import lombok.*;
+
+@Data
+@Builder
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+public class CreateSizeRequest {
+    private String valueName;
+    private Integer sortOrder;
+}

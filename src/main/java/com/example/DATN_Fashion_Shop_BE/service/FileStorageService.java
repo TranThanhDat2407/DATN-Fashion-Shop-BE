@@ -3,6 +3,7 @@ package com.example.DATN_Fashion_Shop_BE.service;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -56,6 +57,27 @@ public class FileStorageService {
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to store file " + file.getOriginalFilename(), e);
+        }
+    }
+
+
+    public void deleteFile(String fileUrl, String subDirectory) {
+        try {
+            // Xác định đường dẫn file đầy đủ
+            Path filePath = Paths.get(BASE_UPLOAD_DIR + subDirectory).resolve(fileUrl).normalize();
+            File file = filePath.toFile();
+
+            if (file.exists()) {
+                if (file.delete()) {
+                    System.out.println("Xóa file thành công: " + fileUrl);
+                } else {
+                    System.err.println("Không thể xóa file: " + fileUrl);
+                }
+            } else {
+                System.err.println("File không tồn tại: " + fileUrl);
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi khi xóa file: " + e.getMessage());
         }
     }
 }
