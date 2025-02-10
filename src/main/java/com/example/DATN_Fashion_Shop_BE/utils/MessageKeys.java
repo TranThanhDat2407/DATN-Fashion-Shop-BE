@@ -101,6 +101,7 @@ public class MessageKeys {
 
     //product_media
     public static final String PRODUCT_MEDIA_NOT_FOUND = "product.media_not_found";
-
+    //payment_method
+    public static final String PAYMENT_METHOD_RETRIEVED_SUCCESSFULLY = "payment_method.retrieved_successfully";
 
 }
