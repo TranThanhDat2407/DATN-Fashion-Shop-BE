@@ -20,13 +20,13 @@ public class ProductsTranslation extends BaseEntity{
     @Column(name = "name", columnDefinition = "NVARCHAR(255)", nullable = false)
     private String name;
 
-    @Column(name = "description", columnDefinition = "NVARCHAR(255)")
+    @Column(name = "description", columnDefinition = "NVARCHAR(MAX)")
     private String description;
 
-    @Column(name = "material", columnDefinition = "NVARCHAR(255)")
+    @Column(name = "material", columnDefinition = "NVARCHAR(MAX)")
     private String material;
 
-    @Column(name = "care", columnDefinition = "NVARCHAR(255)")
+    @Column(name = "care", columnDefinition = "NVARCHAR(MAX)")
     private String care;
 
     @ManyToOne
