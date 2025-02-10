@@ -1,23 +1,16 @@
 package com.example.DATN_Fashion_Shop_BE.dto.request.Ghn;
 
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
 
 import java.util.List;
 
-@Data
-@Builder
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
-public class PreviewOrderRequest {
+public class GhnCreateOrderResponse {
     @NotNull
     private Integer payment_type_id;
-//    private String note;
+    //    private String note;
     @NotNull
     private String required_note;
-//    private String return_phone;
+    //    private String return_phone;
 //    private String return_address;
 //    private Integer return_district_id;
 //    private String return_ward_code;
@@ -48,7 +41,7 @@ public class PreviewOrderRequest {
     private String to_province_name;
     @NotNull
     private Integer cod_amount;
-//    private String content;
+    //    private String content;
     @NotNull
     private Integer length;
     @NotNull
@@ -57,13 +50,13 @@ public class PreviewOrderRequest {
     private Integer height;
     @NotNull
     private Integer weight;
-//    private Integer cod_failed_amount;
+    //    private Integer cod_failed_amount;
 //    private Integer pick_station_id;
 //    private Integer deliver_station_id;
 //    private Integer insurance_value;
     @NotNull
     private Integer service_type_id;
-//    private String coupon;
+    //    private String coupon;
 //    private Integer pickup_time;
 //    private List<Integer> pick_shift;
     private List<Item> items;
