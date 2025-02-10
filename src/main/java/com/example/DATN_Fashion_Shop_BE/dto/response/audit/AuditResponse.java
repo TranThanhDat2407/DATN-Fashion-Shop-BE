@@ -1,20 +1,22 @@
-package com.example.DATN_Fashion_Shop_BE.dto.response;
-
+package com.example.DATN_Fashion_Shop_BE.dto.response.audit;
+import com.example.DATN_Fashion_Shop_BE.dto.response.BaseResponse;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.persistence.MappedSuperclass;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 
-@Data//toString
+@Data
 @Getter
 @Setter
+@SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
-@MappedSuperclass
-public class BaseResponse {
+public class AuditResponse{
+    private Integer revision;
+    private String revisionType;
+
     @JsonProperty("created_at")
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss", shape = JsonFormat.Shape.STRING)
     private LocalDateTime createdAt;

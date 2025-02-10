@@ -1,9 +1,11 @@
 package com.example.DATN_Fashion_Shop_BE.repository;
 
 import com.example.DATN_Fashion_Shop_BE.model.Category;
+import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -27,6 +29,11 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
             @Param("parentId") Long parentId,
             @Param("isActive") Boolean isActive
     );
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE Category c SET c.parentCategory = NULL WHERE c.parentCategory.id = :categoryId")
+    void updateSubCategoriesParentToNull(@Param("categoryId") Long categoryId);
 
     @Query("SELECT DISTINCT c FROM Category c " +
             "JOIN CategoriesTranslation ct ON ct.category.id = c.id " +

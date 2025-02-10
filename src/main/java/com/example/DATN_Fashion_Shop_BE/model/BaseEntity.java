@@ -1,5 +1,6 @@
 package com.example.DATN_Fashion_Shop_BE.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.envers.Audited;
@@ -8,6 +9,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 
+
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Data//toString
 @Getter
 @Setter
