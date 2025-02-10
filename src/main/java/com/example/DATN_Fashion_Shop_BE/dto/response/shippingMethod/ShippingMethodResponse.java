@@ -19,6 +19,7 @@ public class ShippingMethodResponse {
     private String methodName;
     private String description;
 
+
     public static ShippingMethodResponse fromShippingMethod(ShippingMethod shippingMethod) {
         return ShippingMethodResponse.builder()
                 .id(shippingMethod.getId())

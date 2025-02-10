@@ -12,7 +12,10 @@ public class OrderRequest {
     private Long userId;
     private Long couponId;
     private Long shippingMethodId;
-    private String shippingAddress;
+    private Long shippingAddress;
     private Long paymentMethodId;
 
+
+    private String receiverName;
+    private String receiverPhone;
 }
