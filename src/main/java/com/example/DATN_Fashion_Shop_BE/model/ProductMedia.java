@@ -1,15 +1,11 @@
 package com.example.DATN_Fashion_Shop_BE.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import org.hibernate.envers.Audited;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Entity
 @Table(name = "product_media")
@@ -17,6 +13,7 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class ProductMedia extends BaseEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -42,11 +39,11 @@ public class ProductMedia extends BaseEntity{
     @JoinColumn(name = "product_id", nullable = false)
     private Product product; // Liên kết với bảng Products
 
-    @ManyToMany
+    @ManyToMany(cascade = {CascadeType.MERGE})
     @JoinTable(
             name = "media_variants", // Bảng trung gian
             joinColumns = @JoinColumn(name = "product_media_id"), // FK tới ProductMedia
             inverseJoinColumns = @JoinColumn(name = "product_variant_id") // FK tới ProductVariant
     )
-    private Set<ProductVariant> productVariants = new HashSet<>();
+    private List<ProductVariant> productVariants = new ArrayList<>();
 }

@@ -1,22 +1,25 @@
 package com.example.DATN_Fashion_Shop_BE.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name = "products")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
+@Audited
 public class Product extends BaseEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,14 +43,30 @@ public class Product extends BaseEntity{
     private List<Category> categories = new ArrayList<>();
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @NotAudited
     private List<ProductsTranslation> translations;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @NotAudited
     private List<ProductVariant> variants;
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @NotAudited
+    private List<ProductMedia> medias;
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @NotAudited
+    private List<Review> Review;
 
     @ManyToOne
     @JoinColumn(name = "promotion_id", nullable = true)
+    @NotAudited
     private Promotion promotion;
+
+    @ManyToOne
+    @JoinColumn(name = "review_id", nullable = true)
+    @NotAudited
+    private Review review;
 
     public ProductsTranslation getTranslationByLanguage(String langCode) {
         ProductsTranslation translation = translations.stream()

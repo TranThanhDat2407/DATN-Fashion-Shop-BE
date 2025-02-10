@@ -3,10 +3,9 @@ package com.example.DATN_Fashion_Shop_BE.service;
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.CategoryDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.CategoryTranslationDTO;
-import com.example.DATN_Fashion_Shop_BE.dto.ProductCategoryDTO;
-import com.example.DATN_Fashion_Shop_BE.dto.response.CategoryAdminResponseDTO;
-import com.example.DATN_Fashion_Shop_BE.dto.request.CategoryCreateRequestDTO;
-import com.example.DATN_Fashion_Shop_BE.dto.response.CategoryEditResponseDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.response.category.CategoryAdminResponseDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.request.category.CategoryCreateRequestDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.response.category.CategoryEditResponseDTO;
 import com.example.DATN_Fashion_Shop_BE.model.CategoriesTranslation;
 import com.example.DATN_Fashion_Shop_BE.model.Category;
 import com.example.DATN_Fashion_Shop_BE.model.Language;
@@ -14,13 +13,14 @@ import com.example.DATN_Fashion_Shop_BE.repository.CategoryRepository;
 import com.example.DATN_Fashion_Shop_BE.repository.CategoryTranslationRepository;
 import com.example.DATN_Fashion_Shop_BE.repository.LanguageRepository;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -221,7 +221,11 @@ public class CategoryService {
 
         // Nếu có file ảnh mới, tải lên và cập nhật URL ảnh
         if (imageFile != null && !imageFile.isEmpty()) {
-            String imageUrl = fileStorageService.uploadFileAndGetName(imageFile, "categories");
+            String imageName = category.getImageUrl();
+            if (!imageFile.isEmpty()) {
+                fileStorageService.backupAndDeleteFile(imageName, "categories");
+            }
+            String imageUrl = fileStorageService.uploadFileAndGetName(imageFile, "/images/categories");
             category.setImageUrl(imageUrl);
         }
 
@@ -344,30 +348,22 @@ public class CategoryService {
         return categoryDTOPage;
     }
 
+    @PersistenceContext  // Inject EntityManager
+    private EntityManager entityManager;
+
     @Transactional
     public void deleteCategory(Long id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException(
                         localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_NOT_FOUND)));
 
-        categoryRepository.delete(category);
-
         String imageName = category.getImageUrl();
-
         if (imageName != null) {
-            // Tạo đường dẫn đến file trong thư mục uploads/categories
-            Path imagePath = Paths.get("uploads", "categories", imageName);
-
-            try {
-                boolean isDeleted = Files.deleteIfExists(imagePath); // Xóa file
-                if (isDeleted) {
-                    System.out.println("Deleted image file: " + imagePath);
-                } else {
-                    System.out.println("Image file not found: " + imagePath);
-                }
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to delete image file: " + imagePath, e);
-            }
+            fileStorageService.backupAndDeleteFile(imageName, "categories");
         }
+        categoryRepository.updateSubCategoriesParentToNull(id);
+
+        categoryRepository.delete(category);
     }
+
 }

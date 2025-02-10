@@ -1,10 +1,7 @@
 package com.example.DATN_Fashion_Shop_BE.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -16,6 +13,7 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class ProductVariant extends BaseEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

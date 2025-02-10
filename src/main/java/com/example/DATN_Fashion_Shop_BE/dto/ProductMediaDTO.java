@@ -14,12 +14,15 @@ public class ProductMediaDTO {
     private Long id;
     private String mediaUrl;
     private String mediaType;
+    private boolean hasVariants;
 
     public static ProductMediaDTO fromProductMedia(ProductMedia productMedia) {
         return ProductMediaDTO.builder()
                 .id(productMedia.getId())
                 .mediaUrl(productMedia.getMediaUrl())
                 .mediaType(productMedia.getMediaType())
+                .hasVariants(productMedia.getProductVariants() != null
+                        && !productMedia.getProductVariants().isEmpty()) // Kiểm tra có variant hay không
                 .build();
     }
 }
