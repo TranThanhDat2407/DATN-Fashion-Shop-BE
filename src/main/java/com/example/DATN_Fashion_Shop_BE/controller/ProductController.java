@@ -8,6 +8,7 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.StaffResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.category.CategoryCreateResponseDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.response.product.CreateProductResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.product.EditProductResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.product.ProductMediaResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.product.ProductVariantResponse;
 import com.example.DATN_Fashion_Shop_BE.model.Product;
@@ -92,6 +93,20 @@ public class ProductController {
     ) {
         ProductVariantDetailDTO variant = productService
                 .getProductVariantDetail(productVariantId, languageCode);
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                variant
+        ));
+    }
+
+    @GetMapping("lowest-price-variant/{languageCode}/{productId}")
+    public ResponseEntity<ApiResponse<ProductVariantDetailDTO>> getLowestPriceProductVariant(
+            @PathVariable(value = "productId") Long productId,
+            @PathVariable(value = "languageCode") String languageCode
+    ) {
+        ProductVariantDetailDTO variant = productService
+                .getLowestPriceVariant(productId, languageCode);
 
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
@@ -262,6 +277,59 @@ public class ProductController {
                 productResponse));
     }
 
+    /**
+     * Endpoint cập nhật sản phẩm kèm media.
+     * Nhận form-data với:
+     *  - "product": JSON của UpdateProductRequest.
+     *  - "mediaFiles": danh sách MultipartFile (optional).
+     */
+    @PutMapping(path = "/{productId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<CreateProductResponse>> updateProductWithMedia(
+            @PathVariable Long productId,
+            @RequestPart("product") @Valid @NotNull UpdateProductRequest updateRequest,
+            @RequestPart(value = "mediaFiles", required = false) List<MultipartFile> mediaFiles) {
+
+        // 1. Cập nhật sản phẩm
+        CreateProductResponse productResponse = productService.updateProduct(productId, updateRequest);
+
+        // 2. Nếu có media mới, thêm vào sản phẩm (có thể upload thêm mới hoặc cập nhật lại media cũ)
+        if (mediaFiles != null && !mediaFiles.isEmpty()) {
+            List<ProductMediaResponse> mediaResponses = mediaFiles.stream()
+                    .map(file -> productService.uploadProductMedia(productId, file))
+                    .collect(Collectors.toList());
+            productResponse.setMedia(mediaResponses);
+        }
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                productResponse));
+    }
+
+    /**
+     * API xóa sản phẩm
+     * Endpoint: DELETE /api/products/{id}
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<String>> deleteProduct(@PathVariable Long id) {
+        productService.deleteProduct(id);
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                null));
+    }
+
+    /**
+     * API lấy thông tin chi tiết của sản phẩm để sửa
+     * Endpoint: GET /api/products/edit/{productId}
+     */
+    @GetMapping("/edit/{productId}")
+    public ResponseEntity<ApiResponse<EditProductResponse>> getProductForEdit(@PathVariable Long productId) {
+        EditProductResponse productDetail = productService.getProductForEdit(productId);
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                productDetail));
+    }
+
+
     @PostMapping(path = "/insert-variant/{productId}",consumes = "multipart/form-data")
     public ResponseEntity<ApiResponse<ProductVariantResponse>> createProductVariant(
             @ModelAttribute CreateProductVariantRequest request) {
@@ -282,6 +350,58 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.PRODUCT_VARIANTS_RETRIEVED_SUCCESSFULLY),
                 variantResponses));
+    }
+
+    /**
+     * API cập nhật biến thể sản phẩm
+     * @param id ID của ProductVariant được cập nhật
+     * @param request Dữ liệu cập nhật
+     * @return ProductVariantResponse sau khi cập nhật
+     */
+    @PutMapping("product-variant/{id}")
+    public ResponseEntity<ApiResponse<ProductVariantResponse>> updateProductVariant(
+            @PathVariable Long id,
+            @RequestBody UpdateProductVariantRequest request) {
+
+        ProductVariantResponse response = productService.updateProductVariant(id, request);
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCT_VARIANTS_RETRIEVED_SUCCESSFULLY),
+                response));
+    }
+
+    @PutMapping("product-variant/{productId}/{colorId}")
+    public ResponseEntity<ApiResponse<List<ProductVariantResponse>>> updateProductVariantsPrice(
+            @PathVariable Long productId,
+            @PathVariable Long colorId,
+            @RequestParam Double salePrice) {
+
+        List<ProductVariantResponse> responses = productService.
+                updateSalePriceForVariantsByProductAndColor(productId, colorId,salePrice);
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCT_VARIANTS_RETRIEVED_SUCCESSFULLY),
+                responses));
+    }
+
+    /**
+     * API xóa biến thể sản phẩm
+     * @param id ID của ProductVariant cần xóa
+     * @return Thông báo xóa thành công
+     */
+    @DeleteMapping("product-variant/{id}")
+    public ResponseEntity<ApiResponse<String>> deleteProductVariant(@PathVariable Long id) {
+        productService.deleteProductVariant(id);
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCT_VARIANTS_RETRIEVED_SUCCESSFULLY),
+                null));
+    }
+
+
+    @DeleteMapping("/product-variants")
+    public ResponseEntity<ApiResponse<String>> deleteProductVariants(@RequestBody List<Long> variantIds) {
+        productService.deleteProductVariants(variantIds);
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCT_VARIANTS_RETRIEVED_SUCCESSFULLY),
+                null));
     }
 
     /**
@@ -331,6 +451,38 @@ public class ProductController {
                         localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
                         null));
 
+    }
+
+    @Operation(
+            summary = "Lấy hình ảnh của category theo tên file",
+            description = "Endpoint này cho phép lấy hình ảnh của category từ hệ thống file dựa trên tên file. " +
+                    "Nếu file tồn tại, API sẽ trả về hình ảnh với loại media tương ứng (JPEG, PNG, v.v.). ",
+            tags = {"Categories"}
+    )
+    @GetMapping("/image/{filename}")
+    public ResponseEntity<Resource> showImage(@PathVariable String filename) {
+        try {
+            // Construct the file path
+            Path filePath = Paths.get("uploads/images/products/" + filename).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+
+            // Check if file exists
+            if (!resource.exists()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+            }
+
+            // Get file extension to determine media type
+            String fileExtension = getFileExtension(filename).toLowerCase();
+            MediaType mediaType = determineMediaType(fileExtension);
+
+            // Return the file as binary stream
+            return ResponseEntity.ok()
+                    .contentType(mediaType)
+                    .body(resource);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
     private String getFileExtension(String filename) {

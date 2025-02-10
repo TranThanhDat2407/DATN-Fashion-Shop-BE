@@ -62,9 +62,9 @@ public class WebSercurityConfig {
                                     String.format("%s/products/**", apiPrefix),
                                     String.format("%s/payment/**", apiPrefix),
                                     String.format("%s/attribute_values/**", apiPrefix),
-
+                                    String.format("%s/categories/**", apiPrefix),
                                     String.format("%s/actuator/**", apiPrefix),
-
+                                    String.format("%s/audit/**", apiPrefix),
                                     "/api-docs",
                                     "/api-docs/**",
                                     "/swagger-resources",
@@ -88,6 +88,9 @@ public class WebSercurityConfig {
 
                             .requestMatchers(POST,
                                     String.format("%s/products/**", apiPrefix)).permitAll()
+
+                            .requestMatchers(POST,
+                                    String.format("%s/reviews/**", apiPrefix)).permitAll()
 
                             .requestMatchers(POST,
                                     String.format("%s/products**", apiPrefix)).permitAll()

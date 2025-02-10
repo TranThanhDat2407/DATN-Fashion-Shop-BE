@@ -32,7 +32,11 @@ spring:
       hibernate:
       dialect: org.hibernate.dialect.MySQL8Dialect
       format_sql: true
-
+      org.hibernate.envers.audit_table_suffix: _AUD
+      org:
+        hibernate:
+          envers:
+            store_data_at_delete: true
   mail:
     host: smtp.gmail.com
     port: 587
@@ -101,6 +105,9 @@ logging:
     springframework.security: DEBUG
     root: DEBUG
     com.example.DATN_Fashion_Shop_BE.component.JwtTokenFilter: DEBUG
+    org.hibernate.sql: DEBUG
+    org.hibernate.envers: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
 # swagger-ui custom path
 springdoc:
@@ -127,4 +134,5 @@ management:
 exchanger:
   api:
     key: "7236dc721c56e195be6eef59"
+
 

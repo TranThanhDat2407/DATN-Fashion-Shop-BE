@@ -74,6 +74,46 @@ public class AttributeValuesController {
                         response));
     }
 
+
+    @PutMapping(path = "/color/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<CreateColorResponse>> updateColor(
+            @PathVariable Long id,
+            @RequestPart("request") CreateColorRequest updateRequest,
+            @RequestPart(value = "colorImage", required = false) MultipartFile colorImage) {
+
+        CreateColorResponse response = attributeValuesService.updateColor(id, updateRequest, colorImage);
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                response));
+    }
+
+    @PutMapping("/size/{id}")
+    public ResponseEntity<ApiResponse<CreateSizeResponse>> updateSize(
+            @PathVariable Long id,
+            @RequestBody CreateSizeRequest updateRequest) {
+
+        CreateSizeResponse response = attributeValuesService.updateSize(id, updateRequest);
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                response));
+    }
+
+    @DeleteMapping("/color/{id}")
+    public ResponseEntity<ApiResponse<String>> deleteColor(@PathVariable Long id) {
+        attributeValuesService.deleteColor(id);
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                null));
+    }
+
+    @DeleteMapping("/size/{id}")
+    public ResponseEntity<ApiResponse<String>> deleteSize(@PathVariable Long id) {
+        attributeValuesService.deleteSize(id);
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                null));
+    }
+
     @GetMapping("/colors")
     public ResponseEntity<ApiResponse<PageResponse<ColorResponse>>> getAllColors(
             @RequestParam(value = "name", required = false, defaultValue = "") String name,
