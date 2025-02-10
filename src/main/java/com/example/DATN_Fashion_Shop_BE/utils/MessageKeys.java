@@ -104,4 +104,29 @@ public class MessageKeys {
     //payment_method
     public static final String PAYMENT_METHOD_RETRIEVED_SUCCESSFULLY = "payment_method.retrieved_successfully";
 
+    //order
+    public static final String ORDERS_SUCCESSFULLY = "orders.created_successfully";
+    public static final String ORDERS_CREATE_FAILED = "orders.created_failed";
+    public static final String ORDERS_PREVIEW_SUCCESS = "orders.preview_success";
+    public static final String ORDERS_PREVIEW_FAILED = "orders.preview_failed";
+
+
+
+
+// cart
+    public static final String CART_NOT_FOUND = "cart_not_found";
+
+    public static final String  CART_VARIANTS_RETRIEVED_SUCCESSFULLY = "cart.variants_retrieved_successfully";
+
+    // cartItem
+    public static final String CART_ITEM_NOT_FOUND = "cartItem_by_id_not_found";
+
+
+    // shipping_method
+    public static final String SHIPPING_METHOD_NOT_VALID= "shipping_method_not_valid";
+
+
+    // payment_method
+    public static final String PAYMENT_METHOD_NOT_VALID = "payment_method_not_valid";
+
 }

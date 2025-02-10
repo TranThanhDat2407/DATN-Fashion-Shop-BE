@@ -1,5 +1,6 @@
 package com.example.DATN_Fashion_Shop_BE.model;
 
+import com.example.DATN_Fashion_Shop_BE.dto.response.payment.PaymentMethodResponse;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,4 +20,11 @@ public class OrderStatus extends BaseEntity {
     private String statusName;
 
 
+
+    public static OrderStatus fromOrderStatus(OrderStatus orderStatus) {
+        return OrderStatus.builder()
+                .id(orderStatus.getId())
+                .statusName(orderStatus.getStatusName())
+                .build();
+    }
 }

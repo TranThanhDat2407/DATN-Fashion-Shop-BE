@@ -16,6 +16,6 @@ public class PaymentMethod {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name= "method_name", nullable = false)
+    @Column(name= "method_name",  columnDefinition = "NVARCHAR(255)", nullable = false)
     private String methodName;
 }

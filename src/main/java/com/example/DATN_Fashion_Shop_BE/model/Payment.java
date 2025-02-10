@@ -30,7 +30,7 @@ public class Payment {
     private Date paymentDate;
 
     @Column(name = "amount", nullable = false)
-    private double amount;
+    private Double amount;
 
     @Column(name="status", nullable = false)
     private String status;
