@@ -7,10 +7,7 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.StaffResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.category.CategoryCreateResponseDTO;
-import com.example.DATN_Fashion_Shop_BE.dto.response.product.CreateProductResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.product.EditProductResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.product.ProductMediaResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.product.ProductVariantResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.product.*;
 import com.example.DATN_Fashion_Shop_BE.model.Product;
 import com.example.DATN_Fashion_Shop_BE.model.ProductVariant;
 import com.example.DATN_Fashion_Shop_BE.model.Staff;
@@ -45,6 +42,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProductController {
     private final ProductService productService;
+
     private final LocalizationUtils localizationUtils;
 
     @GetMapping("color/{productId}")
@@ -215,6 +213,7 @@ public class ProductController {
             @RequestParam(required = false) String name,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) Long promotionId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
@@ -222,7 +221,7 @@ public class ProductController {
 
         Page<ProductListDTO> products = productService.getFilteredProducts(
                 languageCode, name, categoryId, isActive, minPrice, maxPrice,
-                page, size, sortBy, sortDir);
+                page, size, promotionId ,sortBy, sortDir);
 
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
@@ -453,12 +452,15 @@ public class ProductController {
 
     }
 
-    @Operation(
-            summary = "Lấy hình ảnh của category theo tên file",
-            description = "Endpoint này cho phép lấy hình ảnh của category từ hệ thống file dựa trên tên file. " +
-                    "Nếu file tồn tại, API sẽ trả về hình ảnh với loại media tương ứng (JPEG, PNG, v.v.). ",
-            tags = {"Categories"}
-    )
+    @GetMapping("/{productId}/inventory")
+    public ResponseEntity<ApiResponse<List<InventoryResponse>>> getInventoryByProductAndColor(@PathVariable Long productId, @RequestParam Long colorId) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                        productService.getInventoryByProductAndColor(productId, colorId)));
+
+    }
+
     @GetMapping("/image/{filename}")
     public ResponseEntity<Resource> showImage(@PathVariable String filename) {
         try {
@@ -484,6 +486,8 @@ public class ProductController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
+
 
     private String getFileExtension(String filename) {
         int lastIndexOfDot = filename.lastIndexOf(".");
