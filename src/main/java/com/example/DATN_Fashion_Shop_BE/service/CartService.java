@@ -9,6 +9,8 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.cart.CartItemResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.cart.CartResponse;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
@@ -28,6 +30,7 @@ public class CartService {
     private final UserRepository userRepository;
     private final ProductVariantRepository productVariantRepository;
     private final InventoryRepository inventoryRepository;
+    private final SessionService sessionService;
     private final FileStorageService fileStorageService;
     private final LocalizationUtils localizationUtils;
 
@@ -99,6 +102,32 @@ public class CartService {
     public void clearCart(Long userId) {
         Cart cart = getOrCreateCart(userId);
         cartItemRepository.deleteAll(cartItemRepository.findByCart(cart));
+    }
+
+    @Transactional
+    public CartResponse getCart(HttpServletRequest request, HttpServletResponse response) {
+        // Lấy sessionId từ request
+        String sessionId = sessionService.getSessionIdFromRequest(request);
+
+        // Nếu không có sessionId, tạo mới sessionId và lưu vào cookie
+        if (sessionId == null) {
+            sessionId = sessionService.createSession(response);  // Tạo mới sessionId và lưu vào cookie
+        }
+
+        // Lấy giỏ hàng từ sessionId nếu có, nếu không sẽ tạo mới
+        String finalSessionId = sessionId;
+        Cart cart = cartRepository.findBySessionId(sessionId)
+                .orElseGet(() -> {
+                    // Tạo giỏ hàng mới và lưu vào cơ sở dữ liệu
+                    Cart newCart = Cart.builder()
+                            .sessionId(finalSessionId)
+                            .cartItems(new ArrayList<>())
+                            .build();
+                    return cartRepository.save(newCart);
+                });
+
+        // Trả về giỏ hàng dưới dạng CartResponse
+        return CartResponse.fromCart(cart);
     }
 
     // Lấy Cart của user hoặc tạo mới nếu chưa có
