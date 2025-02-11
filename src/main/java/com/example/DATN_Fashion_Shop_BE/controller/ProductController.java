@@ -461,6 +461,16 @@ public class ProductController {
 
     }
 
+    @GetMapping("/{productId}/{colorId}/{sizeId}/inventory")
+    public ResponseEntity<ApiResponse<InventoryResponse>> getInventoryByProductAndColorAndSize(
+            @PathVariable Long productId, @PathVariable Long colorId, @PathVariable Long sizeId) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                        productService.getInventoryByProductAndColorAndSize(productId, colorId,sizeId)));
+
+    }
+
     @GetMapping("/image/{filename}")
     public ResponseEntity<Resource> showImage(@PathVariable String filename) {
         try {

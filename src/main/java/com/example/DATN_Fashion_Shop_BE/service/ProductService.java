@@ -489,6 +489,23 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
+    public InventoryResponse getInventoryByProductAndColorAndSize(Long productId, Long colorId, Long sizeId) {
+        // Lấy biến thể sản phẩm duy nhất theo productId, colorId, và sizeId
+        ProductVariant variant = productVariantRepository.findByProductIdAndColorValueIdAndSizeValueId(productId, colorId, sizeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product variant not found"));
+
+        // Lấy số lượng tồn kho của biến thể sản phẩm này
+        int stock = inventoryRepository.getStockByVariant(variant.getId());
+
+        // Trả về thông tin tồn kho dưới dạng InventoryResponse
+        return InventoryResponse.builder()
+                .productVariantId(variant.getId())
+                .colorName(variant.getColorValue().getValueName())
+                .sizeName(variant.getSizeValue().getValueName())
+                .quantityInStock(stock)
+                .build();
+    }
+
     @Transactional
     public ProductMediaResponse updateProductMedia(Long id, MultipartFile mediaFile, UpdateProductMediaRequest request) {
         ProductMedia productMedia = productMediaRepository.findById(id)
