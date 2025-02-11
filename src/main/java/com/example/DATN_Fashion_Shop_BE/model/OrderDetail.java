@@ -28,8 +28,8 @@ public class OrderDetail {
     private Integer quantity;
 
     @Column(name = "unit_price", nullable = false)
-    private double unitPrice;
+    private Double unitPrice;
 
     @Column(name = "total_price", nullable = false)
-    private double totalPrice;
+    private Double totalPrice;
 }

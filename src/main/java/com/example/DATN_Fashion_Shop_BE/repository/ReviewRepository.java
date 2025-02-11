@@ -1,6 +1,5 @@
 package com.example.DATN_Fashion_Shop_BE.repository;
 
-import com.example.DATN_Fashion_Shop_BE.model.ProductVariant;
 import com.example.DATN_Fashion_Shop_BE.model.Review;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
