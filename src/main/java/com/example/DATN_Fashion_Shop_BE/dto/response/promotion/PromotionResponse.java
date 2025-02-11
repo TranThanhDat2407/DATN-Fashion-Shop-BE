@@ -21,7 +21,9 @@ public class PromotionResponse extends BaseResponse {
     private Long id;
     private String description;
     private Double discountRate;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss", shape = JsonFormat.Shape.STRING)
     private LocalDateTime startDate;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss", shape = JsonFormat.Shape.STRING)
     private LocalDateTime endDate;
     private Boolean isActive;
     private List<Long> productIds;
