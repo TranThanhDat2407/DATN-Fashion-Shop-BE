@@ -28,10 +28,10 @@ public class Order extends BaseEntity {
     private Coupon coupon;
 
     @Column(name = "total_price", nullable = false)
-    private BigDecimal totalPrice;
+    private Double totalPrice;
 
     @Column(name = "total_amount", nullable = false)
-    private BigDecimal totalAmount;
+    private Double totalAmount;
 
     @ManyToOne
     @JoinColumn(name = "status_id", nullable = false)
@@ -45,9 +45,12 @@ public class Order extends BaseEntity {
     private ShippingMethod shippingMethod;
 
     @Column(name = "shipping_fee", nullable = false)
-    private String shippingFee;
+    private Double shippingFee;
 
     @Column(name = "tax_amount")
-    private String taxAmount;
+    private Double taxAmount;
+
+    @OneToMany(mappedBy = "order", fetch = FetchType.LAZY)
+    private List<Payment> payments;
 
 }

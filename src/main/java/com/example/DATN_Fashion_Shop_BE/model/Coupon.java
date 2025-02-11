@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "coupons")
@@ -25,16 +27,16 @@ public class Coupon extends BaseEntity {
     private String discountType;
 
     @Column(name = "discount_value", nullable = false)
-    private String discountValue;
+    private Float discountValue;
 
     @Column(name = "min_order_value", nullable = false)
-    private String minOrderValue;
-
-    @Column(name = "user_limit", nullable = false)
-    private String userLimit;
+    private Float minOrderValue;
+//
+//    @Column(name = "user_limit", nullable = false)
+//    private String userLimit;
 
     @Column(name = "expiration_date", nullable = false)
-    private String expirationDate;
+    private LocalDateTime expirationDate;
 
     @Column(name= "is_active")
     private Boolean isActive = true;
