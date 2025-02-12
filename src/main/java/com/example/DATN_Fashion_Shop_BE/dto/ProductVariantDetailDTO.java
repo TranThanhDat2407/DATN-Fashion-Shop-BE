@@ -20,6 +20,7 @@ public class ProductVariantDetailDTO {
     private String size;
     private Double basePrice;
     private Double salePrice;
+    private boolean isInWishlist;
 
     public static ProductVariantDetailDTO fromProductVariant(ProductVariant productVariant, String langCode){
         Product product = productVariant.getProduct();
@@ -54,4 +55,40 @@ public class ProductVariantDetailDTO {
                 .salePrice(salePrice)
                 .build();
     }
+
+    public static ProductVariantDetailDTO fromProductVariantAndWishList(ProductVariant productVariant, String langCode, boolean isInWishlist) {
+        Product product = productVariant.getProduct();
+        Double salePrice = productVariant.getSalePrice(); // Lấy giá salePrice từ ProductVariant
+
+        // Tính toán khuyến mãi dựa trên salePrice
+        if (product.getPromotion() != null && product.getPromotion().getIsActive()) {
+            Promotion promotion = product.getPromotion();
+
+            if (promotion.getDiscountPercentage() != null) {
+                salePrice *= (1 - promotion.getDiscountPercentage() / 100); // Áp dụng giảm giá theo %
+            }
+            // Đảm bảo salePrice không âm
+            salePrice = Math.max(salePrice, 0);
+        }
+
+        String variantImage = product.getMedias().stream()
+                .filter(media -> "IMAGE".equals(media.getMediaType())
+                        && media.getColorValue() != null
+                        && media.getColorValue().getId().equals(productVariant.getColorValue().getId()))
+                .map(ProductMedia::getMediaUrl)
+                .findFirst()
+                .orElse(null);
+
+        return ProductVariantDetailDTO.builder()
+                .id(productVariant.getId())
+                .name(product.getTranslationByLanguage(langCode).getName())
+                .variantImage(variantImage)
+                .color(productVariant.getColorValue().getValueName())
+                .size(productVariant.getSizeValue().getValueName())
+                .basePrice(product.getBasePrice())
+                .salePrice(salePrice)
+                .isInWishlist(isInWishlist) // Set giá trị
+                .build();
+    }
+
 }

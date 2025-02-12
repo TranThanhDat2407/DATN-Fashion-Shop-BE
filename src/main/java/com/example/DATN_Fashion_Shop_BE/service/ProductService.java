@@ -34,6 +34,8 @@ public class ProductService {
     private final AttributeValueRepository attributeValueRepository;
     private final ProductMediaRepository productMediaRepository;
     private final InventoryRepository inventoryRepository;
+    private final WishlistRepository wishlistRepository;
+    private final WishlistItemRepository wishlistItemRepository;
     private final FileStorageService fileStorageService;
     private final LocalizationUtils localizationUtils;
     private final LanguageRepository languageRepository;
@@ -123,16 +125,24 @@ public class ProductService {
         return ProductVariantDetailDTO.fromProductVariant(productVariant, langCode);
     }
 
-    public ProductVariantDetailDTO getLowestPriceVariant(Long productId, String langCode) {
+    public ProductVariantDetailDTO getLowestPriceVariant(Long productId, String langCode, Long userId) {
         ProductVariant productVariant = productVariantRepository
                 .findLowestPriceVariantByProductId(productId)
                 .orElseThrow(() -> new RuntimeException(
                         localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_FAILED))
                 );
 
-        return ProductVariantDetailDTO.fromProductVariant(productVariant, langCode);
-    }
+        // Lấy colorId của variant
+        Long colorId = productVariant.getColorValue().getId();
 
+        // Kiểm tra xem wishlist của user có productId & colorId này không
+        boolean isInWishlist = wishlistItemRepository.existsByWishlistUserIdAndProductVariantProductIdAndProductVariantColorValueId(
+                userId, productId, colorId
+        );
+
+        // Trả về DTO có thêm thông tin wishlist
+        return ProductVariantDetailDTO.fromProductVariantAndWishList(productVariant, langCode, isInWishlist);
+    }
 
     public ProductDetailDTO getProductDetail(Long productId, String langCode) {
         Product product = productRepository.findById(productId)
@@ -538,6 +548,14 @@ public class ProductService {
 
         ProductMedia updatedMedia = productMediaRepository.save(productMedia);
         return ProductMediaResponse.fromProductMedia(updatedMedia);
+    }
+
+    public boolean isProductInWishlist(Long userId, Long productId, Long colorId) {
+//        User user = userRepository.findById(userId)
+//                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return wishlistItemRepository
+                .existsByWishlistUserIdAndProductVariantProductIdAndProductVariantColorValueId(userId, productId, colorId);
     }
 
     @Transactional
