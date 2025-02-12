@@ -116,7 +116,7 @@ public class ProductController {
 
     @GetMapping("/wishlist/check")
     public ResponseEntity<ApiResponse<BooleanWishlistResponse>> checkProductInWishlist(
-            @RequestParam Long userId,
+            @RequestParam(required = false) Long userId,
             @RequestParam Long productId,
             @RequestParam Long colorId) {
 
