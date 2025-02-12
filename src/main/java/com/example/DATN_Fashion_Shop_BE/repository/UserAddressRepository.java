@@ -7,4 +7,8 @@ import java.util.Optional;
 
 public interface UserAddressRepository extends JpaRepository< UserAddress,Long> {
     Optional<UserAddress> findByUser_IdAndIsDefaultTrue(Long userId);
+
+    Optional<UserAddress> findByUserIdAndAddressId(Long userId, Long addressId);
+
+    boolean existsByAddressId(Long addressId);
 }

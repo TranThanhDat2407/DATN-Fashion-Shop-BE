@@ -1,10 +1,7 @@
 package com.example.DATN_Fashion_Shop_BE.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Table(name = "user_address")
@@ -12,6 +9,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class UserAddress {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,5 +34,7 @@ public class UserAddress {
 
     @Column(name = "phone", length = 20)
     private String phone;
+
+
 
 }

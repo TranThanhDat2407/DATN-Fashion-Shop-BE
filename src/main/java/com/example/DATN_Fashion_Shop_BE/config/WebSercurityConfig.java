@@ -65,6 +65,7 @@ public class WebSercurityConfig {
                                     String.format("%s/categories/**", apiPrefix),
                                     String.format("%s/actuator/**", apiPrefix),
                                     String.format("%s/orders/**", apiPrefix),
+                                    String.format("%s/address/**", apiPrefix),
 
                                     String.format("%s/audit/**", apiPrefix),
                                     "/api-docs",
