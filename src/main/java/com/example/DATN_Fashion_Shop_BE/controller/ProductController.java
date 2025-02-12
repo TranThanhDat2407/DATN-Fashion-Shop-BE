@@ -8,6 +8,7 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.StaffResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.category.CategoryCreateResponseDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.response.product.*;
+import com.example.DATN_Fashion_Shop_BE.dto.response.wishlist.BooleanWishlistResponse;
 import com.example.DATN_Fashion_Shop_BE.model.Product;
 import com.example.DATN_Fashion_Shop_BE.model.ProductVariant;
 import com.example.DATN_Fashion_Shop_BE.model.Staff;
@@ -101,14 +102,30 @@ public class ProductController {
     @GetMapping("lowest-price-variant/{languageCode}/{productId}")
     public ResponseEntity<ApiResponse<ProductVariantDetailDTO>> getLowestPriceProductVariant(
             @PathVariable(value = "productId") Long productId,
-            @PathVariable(value = "languageCode") String languageCode
+            @PathVariable(value = "languageCode") String languageCode,
+            @RequestParam(required = false) Long UserId
     ) {
         ProductVariantDetailDTO variant = productService
-                .getLowestPriceVariant(productId, languageCode);
+                .getLowestPriceVariant(productId, languageCode,UserId);
 
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
                 variant
+        ));
+    }
+
+    @GetMapping("/wishlist/check")
+    public ResponseEntity<ApiResponse<BooleanWishlistResponse>> checkProductInWishlist(
+            @RequestParam(required = false) Long userId,
+            @RequestParam Long productId,
+            @RequestParam Long colorId) {
+
+        boolean exists = productService.isProductInWishlist(userId, productId, colorId);
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                BooleanWishlistResponse.builder()
+                        .isInWishList(exists)
+                        .build()
         ));
     }
 
@@ -458,6 +475,16 @@ public class ProductController {
                 .body(ApiResponseUtils.successResponse(
                         localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
                         productService.getInventoryByProductAndColor(productId, colorId)));
+
+    }
+
+    @GetMapping("/{productId}/{colorId}/{sizeId}/inventory")
+    public ResponseEntity<ApiResponse<InventoryResponse>> getInventoryByProductAndColorAndSize(
+            @PathVariable Long productId, @PathVariable Long colorId, @PathVariable Long sizeId) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                        productService.getInventoryByProductAndColorAndSize(productId, colorId,sizeId)));
 
     }
 
