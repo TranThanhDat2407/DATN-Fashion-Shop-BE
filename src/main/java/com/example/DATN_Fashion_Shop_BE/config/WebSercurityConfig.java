@@ -67,7 +67,11 @@ public class WebSercurityConfig {
                                     String.format("%s/orders/**", apiPrefix),
                                     String.format("%s/address/**", apiPrefix),
 
+                                  "/uploads/**",
+
                                     String.format("%s/audit/**", apiPrefix),
+                                    String.format("%s/promotions/**", apiPrefix),
+
                                     "/api-docs",
                                     "/api-docs/**",
                                     "/swagger-resources",

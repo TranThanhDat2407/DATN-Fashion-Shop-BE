@@ -5,16 +5,14 @@ import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.*;
 import com.example.DATN_Fashion_Shop_BE.dto.request.product.*;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.product.CreateProductResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.product.EditProductResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.product.ProductMediaResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.product.ProductVariantResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.product.*;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -35,6 +33,9 @@ public class ProductService {
     private final ProductVariantRepository productVariantRepository;
     private final AttributeValueRepository attributeValueRepository;
     private final ProductMediaRepository productMediaRepository;
+    private final InventoryRepository inventoryRepository;
+    private final WishlistRepository wishlistRepository;
+    private final WishlistItemRepository wishlistItemRepository;
     private final FileStorageService fileStorageService;
     private final LocalizationUtils localizationUtils;
     private final LanguageRepository languageRepository;
@@ -124,16 +125,24 @@ public class ProductService {
         return ProductVariantDetailDTO.fromProductVariant(productVariant, langCode);
     }
 
-    public ProductVariantDetailDTO getLowestPriceVariant(Long productId, String langCode) {
+    public ProductVariantDetailDTO getLowestPriceVariant(Long productId, String langCode, Long userId) {
         ProductVariant productVariant = productVariantRepository
                 .findLowestPriceVariantByProductId(productId)
                 .orElseThrow(() -> new RuntimeException(
                         localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_FAILED))
                 );
 
-        return ProductVariantDetailDTO.fromProductVariant(productVariant, langCode);
-    }
+        // Lấy colorId của variant
+        Long colorId = productVariant.getColorValue().getId();
 
+        // Kiểm tra xem wishlist của user có productId & colorId này không
+        boolean isInWishlist = wishlistItemRepository.existsByWishlistUserIdAndProductVariantProductIdAndProductVariantColorValueId(
+                userId, productId, colorId
+        );
+
+        // Trả về DTO có thêm thông tin wishlist
+        return ProductVariantDetailDTO.fromProductVariantAndWishList(productVariant, langCode, isInWishlist);
+    }
 
     public ProductDetailDTO getProductDetail(Long productId, String langCode) {
         Product product = productRepository.findById(productId)
@@ -180,6 +189,7 @@ public class ProductService {
             Double maxPrice,
             int page,
             int size,
+            Long promotionId,
             String sortBy,
             String sortDir) {
 
@@ -190,7 +200,7 @@ public class ProductService {
         if (minPrice != null || maxPrice != null) {
             // Tìm sản phẩm theo giá với các điều kiện đã cho
             Page<Product> products = productRepository.findProductsByCategoryAndLowestPrice(
-                    categoryId, isActive, name, minPrice, maxPrice, pageable);
+                    categoryId, isActive, name, minPrice, maxPrice, promotionId, pageable);
 
             return products.map(product -> ProductListDTO.fromProduct(product,
                     product.getTranslationByLanguage(languageCode)));
@@ -467,6 +477,45 @@ public class ProductService {
         return ProductMediaResponse.fromProductMedia(savedMedia);
     }
 
+    public List<InventoryResponse> getInventoryByProductAndColor(Long productId, Long colorId) {
+        // Lấy tất cả các variants của product với colorId
+        List<ProductVariant> variants = productVariantRepository.findByProductAndColor(productId, colorId);
+
+        if (variants.isEmpty()) {
+            throw new ResourceNotFoundException("No product variants found with the given colorId");
+        }
+
+        // Trả về tồn kho của từng variant
+        return variants.stream()
+                .map(variant -> {
+                    int stock = inventoryRepository.getStockByVariant(variant.getId());
+                    return InventoryResponse.builder()
+                            .productVariantId(variant.getId())
+                            .colorName(variant.getColorValue().getValueName())
+                            .sizeName(variant.getSizeValue().getValueName())
+                            .quantityInStock(stock)
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    public InventoryResponse getInventoryByProductAndColorAndSize(Long productId, Long colorId, Long sizeId) {
+        // Lấy biến thể sản phẩm duy nhất theo productId, colorId, và sizeId
+        ProductVariant variant = productVariantRepository.findByProductIdAndColorValueIdAndSizeValueId(productId, colorId, sizeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product variant not found"));
+
+        // Lấy số lượng tồn kho của biến thể sản phẩm này
+        int stock = inventoryRepository.getStockByVariant(variant.getId());
+
+        // Trả về thông tin tồn kho dưới dạng InventoryResponse
+        return InventoryResponse.builder()
+                .productVariantId(variant.getId())
+                .colorName(variant.getColorValue().getValueName())
+                .sizeName(variant.getSizeValue().getValueName())
+                .quantityInStock(stock)
+                .build();
+    }
+
     @Transactional
     public ProductMediaResponse updateProductMedia(Long id, MultipartFile mediaFile, UpdateProductMediaRequest request) {
         ProductMedia productMedia = productMediaRepository.findById(id)
@@ -499,6 +548,14 @@ public class ProductService {
 
         ProductMedia updatedMedia = productMediaRepository.save(productMedia);
         return ProductMediaResponse.fromProductMedia(updatedMedia);
+    }
+
+    public boolean isProductInWishlist(Long userId, Long productId, Long colorId) {
+//        User user = userRepository.findById(userId)
+//                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return wishlistItemRepository
+                .existsByWishlistUserIdAndProductVariantProductIdAndProductVariantColorValueId(userId, productId, colorId);
     }
 
     @Transactional

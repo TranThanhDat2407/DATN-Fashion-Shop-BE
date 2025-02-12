@@ -24,4 +24,7 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
 
     @Query("SELECT pv FROM ProductVariant pv WHERE pv.product.id = :productId ORDER BY pv.salePrice ASC LIMIT 1")
     Optional<ProductVariant> findLowestPriceVariantByProductId(Long productId);
+
+    @Query("SELECT pv FROM ProductVariant pv WHERE pv.product.id = :productId AND pv.colorValue.id = :colorId")
+    List<ProductVariant> findByProductAndColor(@Param("productId") Long productId, @Param("colorId") Long colorId);
 }

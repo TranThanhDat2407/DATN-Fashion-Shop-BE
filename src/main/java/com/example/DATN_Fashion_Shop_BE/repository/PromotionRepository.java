@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface PromotionRepository extends JpaRepository<Promotion, Long> {
@@ -18,4 +19,9 @@ public interface PromotionRepository extends JpaRepository<Promotion, Long> {
     Page<Promotion> findByDateRange(@Param("startDate") LocalDateTime startDate,
                                     @Param("endDate") LocalDateTime endDate,
                                     Pageable pageable);
+
+    List<Promotion> findByEndDateBeforeAndIsActiveTrue(LocalDateTime now);
+
+    @Query("SELECT p FROM Promotion p WHERE p.startDate <= :now AND p.isActive = false")
+    List<Promotion> findByStartDate(@Param("now") LocalDateTime now);
 }

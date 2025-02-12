@@ -145,12 +145,15 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/attribute_values/**", apiPrefix), "PUT"),
                 Pair.of(String.format("%s/attribute_values/**", apiPrefix), "DELETE"),
 
+                Pair.of("/uploads/**", "GET"),
+
                 Pair.of(String.format("%s/categories/**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/audit/**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/audit/**", apiPrefix), "PUT"),
 //                Pair.of(String.format("%s/categories/**", apiPrefix), "PUT"),
 //                Pair.of(String.format("%s/categories/**", apiPrefix), "POST"),
                 Pair.of(String.format("%s/categories/**", apiPrefix), "DELETE"),
+                Pair.of(String.format("%s/promotions/**", apiPrefix), "GET"),
                 // Swagger
                 Pair.of("/api-docs","GET"),
                 Pair.of("/api-docs/**","GET"),

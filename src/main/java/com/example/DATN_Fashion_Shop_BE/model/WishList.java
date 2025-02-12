@@ -7,24 +7,21 @@ import java.util.List;
 
 
 @Entity
-@Table(name = "cart")
+@Table(name = "wishlist")
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Cart extends BaseEntity {
+public class WishList extends BaseEntity {
     @Id
     @GeneratedValue (strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(name= "session_id", length = 255)
-    private String sessionId;
 
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
 
-    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<CartItem> cartItems;
+    @OneToMany(mappedBy = "wishlist", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<WishListItem> wishListItems;
 }
