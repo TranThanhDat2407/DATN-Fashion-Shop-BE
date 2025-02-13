@@ -85,6 +85,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             "JOIN p.categories c " +
             "JOIN p.variants pv " +
             "JOIN p.translations t " +
+            "LEFT JOIN p.promotion pr " +
             "WHERE (c.id = :categoryId " +
             "   OR c.parentCategory.id = :categoryId " +
             "   OR c.parentCategory.id IN (" +
@@ -92,13 +93,15 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             "   )) " +
             "AND p.isActive = :isActive " +
             "AND (:nameKeyword IS NULL OR LOWER(t.name) LIKE LOWER(CONCAT('%', :nameKeyword, '%'))) " +
-            "AND (SELECT MIN(v.salePrice) FROM p.variants v) BETWEEN :minPrice AND :maxPrice")
+            "AND (SELECT MIN(v.salePrice) FROM p.variants v) BETWEEN :minPrice AND :maxPrice " +
+            "AND (:promotion IS NULL OR pr.id = :promotionId)")
     Page<Product> findProductsByCategoryAndLowestPrice(
             @Param("categoryId") Long categoryId,
             @Param("isActive") Boolean isActive,
             @Param("nameKeyword") String nameKeyword,
             @Param("minPrice") Double minPrice,
             @Param("maxPrice") Double maxPrice,
+            @Param("promotionId") Long promotionId,
             Pageable pageable
     );
 

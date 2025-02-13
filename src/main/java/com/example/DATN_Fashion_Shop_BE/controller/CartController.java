@@ -1,0 +1,168 @@
+package com.example.DATN_Fashion_Shop_BE.controller;
+
+import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
+import com.example.DATN_Fashion_Shop_BE.dto.request.cart.CartRequest;
+import com.example.DATN_Fashion_Shop_BE.dto.request.promotion.PromotionRequest;
+import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.cart.CartItemResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.cart.CartResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.cart.TotalCartResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.promotion.PromotionResponse;
+import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
+import com.example.DATN_Fashion_Shop_BE.model.Cart;
+import com.example.DATN_Fashion_Shop_BE.service.CartService;
+import com.example.DATN_Fashion_Shop_BE.service.PromotionService;
+import com.example.DATN_Fashion_Shop_BE.service.SessionService;
+import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
+import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+
+@RestController
+@RequestMapping("${api.prefix}/cart")
+@RequiredArgsConstructor
+public class CartController {
+
+    private final LocalizationUtils localizationUtils;
+    private final CartService cartService;
+    private final SessionService sessionService;
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<CartResponse>> getCart(
+            @RequestParam(value = "userId", required = false) Long userId,
+            @RequestParam(value = "sessionId", required = false) String sessionId,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+
+        if (sessionId == null) {
+            sessionId = sessionService.getSessionIdFromRequest(request);
+        }
+
+        if (sessionId == null && userId == null) {
+            sessionId = sessionService.generateNewSessionId();
+            sessionService.setSessionIdInCookie(response, sessionId);
+        }
+
+        Cart cart = cartService.getOrCreateCart(userId, sessionId);
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                     CartResponse.fromCart(cart)
+                )
+        );
+    }
+
+
+    @PostMapping("/add")
+    public ResponseEntity<ApiResponse<CartItemResponse>> addToCart(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String sessionId,
+            @RequestBody CartRequest request,
+            HttpServletRequest httpRequest) {
+
+        if (sessionId == null) {
+            sessionId = sessionService.getSessionIdFromRequest(httpRequest);
+        }
+
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                        cartService.addToCart(userId, sessionId, request)
+                )
+        );
+    }
+
+    @DeleteMapping("/cart/item/{cartItemId}")
+    public ResponseEntity<ApiResponse<Void>> removeFromCart(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String sessionId,
+            @PathVariable Long cartItemId,
+            HttpServletRequest request) {
+
+        if (sessionId == null) {
+            sessionId = sessionService.getSessionIdFromRequest(request);
+        }
+
+        cartService.removeFromCart(userId, sessionId, cartItemId);
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                      null
+                )
+        );
+    }
+
+    @PutMapping("/cart/{cartItemId}")
+    public ResponseEntity<ApiResponse<CartItemResponse>> updateCartItem(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String sessionId,
+            @PathVariable Long cartItemId,
+            @RequestParam int newQuantity,
+            HttpServletRequest request) {
+
+        if (sessionId == null) {
+            sessionId = sessionService.getSessionIdFromRequest(request);
+        }
+
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                        cartService.updateCart(userId, sessionId, cartItemId, newQuantity)
+                )
+        );
+    }
+
+    @DeleteMapping("/clear")
+    public ResponseEntity<ApiResponse<String>> clearCart(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String sessionId,
+            HttpServletRequest request) {
+
+        if (sessionId == null) {
+            sessionId = sessionService.getSessionIdFromRequest(request);
+        }
+
+        cartService.clearCart(userId, sessionId);
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_RETRIEVED_SUCCESSFULLY),
+                        null));
+    }
+
+    @GetMapping("/total")
+    public ResponseEntity<ApiResponse<TotalCartResponse>> getTotalCartItems(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String sessionId,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+
+        // Nếu sessionId không được gửi lên, lấy từ cookie
+        if (sessionId == null) {
+            sessionId = sessionService.getSessionIdFromRequest(request);
+        }
+
+        // Nếu vẫn không có sessionId và userId cũng null → Tạo sessionId mới
+        if (sessionId == null && userId == null) {
+            sessionId = sessionService.generateNewSessionId();
+            sessionService.setSessionIdInCookie(response, sessionId);
+        }
+
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                        cartService.getTotalCartItems(userId, sessionId)
+                )
+        );
+    }
+}

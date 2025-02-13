@@ -6,5 +6,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface UserAddressRepository extends JpaRepository< UserAddress,Long> {
+<<<<<<< HEAD
     Optional<UserAddress> findTopByUser_IdAndIsDefaultTrue(Long userId);
+=======
+    Optional<UserAddress> findByUser_IdAndIsDefaultTrue(Long userId);
+
+    Optional<UserAddress> findByUserIdAndAddressId(Long userId, Long addressId);
+
+    boolean existsByAddressId(Long addressId);
+>>>>>>> addaa5d62cdedf2edb16db20d3a8aa6dc65d8aaf
 }

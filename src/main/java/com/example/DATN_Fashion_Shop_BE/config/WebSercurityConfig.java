@@ -60,12 +60,20 @@ public class WebSercurityConfig {
                                     String.format("%s/healthcheck/**", apiPrefix),
                                     String.format("%s/currencies/**", apiPrefix),
                                     String.format("%s/products/**", apiPrefix),
+                                    String.format("%s/payment/**", apiPrefix),
                                     String.format("%s/attribute_values/**", apiPrefix),
                                     String.format("%s/categories/**", apiPrefix),
+                                    String.format("%s/wishlist/**", apiPrefix),
                                     String.format("%s/actuator/**", apiPrefix),
                                     String.format("%s/orders/**", apiPrefix),
+                                    String.format("%s/address/**", apiPrefix),
+                                    String.format("%s/banners/**", apiPrefix),
+
+                                  "/uploads/**",
 
                                     String.format("%s/audit/**", apiPrefix),
+                                    String.format("%s/promotions/**", apiPrefix),
+
                                     "/api-docs",
                                     "/api-docs/**",
                                     "/swagger-resources",
