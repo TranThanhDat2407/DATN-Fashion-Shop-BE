@@ -30,7 +30,7 @@ public class CartResponse {
 
         return CartResponse.builder()
                 .id(cart.getId())
-                .userId(cart.getUser() != null ? cart.getUser().getId() : null) // Nếu user chưa đăng nhập thì userId = null
+                .userId(cart.getUser() != null ? cart.getUser().getId() : null)
                 .sessionId(cart.getSessionId())
                 .cartItems(cartItemResponses)
                 .totalPrice(totalPrice)

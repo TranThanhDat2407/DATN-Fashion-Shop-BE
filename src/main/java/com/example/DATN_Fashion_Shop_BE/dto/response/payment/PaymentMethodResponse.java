@@ -1,5 +1,6 @@
 package com.example.DATN_Fashion_Shop_BE.dto.response.payment;
 
+import com.example.DATN_Fashion_Shop_BE.dto.PaymentMethodDTO;
 import com.example.DATN_Fashion_Shop_BE.model.Order;
 import com.example.DATN_Fashion_Shop_BE.model.PaymentMethod;
 import jakarta.persistence.*;
@@ -8,10 +9,10 @@ import lombok.*;
 import java.util.Date;
 
 @Data
-@Builder
 @Getter
 @Setter
 @AllArgsConstructor
+@Builder
 @NoArgsConstructor
 public class PaymentMethodResponse {
 

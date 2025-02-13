@@ -24,28 +24,28 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class SessionService {
-   // Tạo session ID mới và lưu vào cookie
-    public String createSession(HttpServletResponse response) {
-        String sessionId = UUID.randomUUID().toString();  // Tạo session ID mới
-        Cookie cookie = new Cookie("SESSION_ID", sessionId);
-        cookie.setHttpOnly(true);
-        cookie.setMaxAge(3600);  // Thời gian sống của session (1 giờ)
-        cookie.setPath("/");     // Cookie có hiệu lực cho toàn bộ ứng dụng
-        response.addCookie(cookie); // Thêm cookie vào response để trình duyệt lưu
 
-        return sessionId;
+    public String generateNewSessionId() {
+        return UUID.randomUUID().toString();
     }
 
-    // Lấy session ID từ cookie
+    public void setSessionIdInCookie(HttpServletResponse response, String sessionId) {
+        Cookie sessionCookie = new Cookie("SESSION_ID", sessionId);
+        sessionCookie.setHttpOnly(true);
+        sessionCookie.setMaxAge(60 * 60 * 24);  // 1 day expiration
+        sessionCookie.setPath("/");
+        response.addCookie(sessionCookie);
+    }
+
     public String getSessionIdFromRequest(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             for (Cookie cookie : cookies) {
                 if ("SESSION_ID".equals(cookie.getName())) {
-                    return cookie.getValue();  // Trả về session ID từ cookie
+                    return cookie.getValue();
                 }
             }
         }
-        return null;  // Nếu không có session ID, trả về null
+        return null;
     }
 }
