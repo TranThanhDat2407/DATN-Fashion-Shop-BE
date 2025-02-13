@@ -209,6 +209,19 @@ public class ProductController {
         ));
     }
 
+//    @GetMapping("media/{mediaId}")
+//    public ResponseEntity<ApiResponse<List<ProductMediaDTO>>> getProductImagesWithColor(
+//            @PathVariable Long mediaId
+//    ) {
+//
+//        ProductMediaDetailResponse productMedia = productService.getProductMedia(mediaId);
+//
+//        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+//                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+//                productMedia
+//        ));
+//    }
+
     @GetMapping("/media/detail/{mediaId}")
     public ResponseEntity<ApiResponse<List<ProductVariantResponse>>> getProductVariantsByMediaId(@PathVariable Long mediaId) {
         List<ProductVariant> productVariants = productService.getProductVariantsByMediaId(mediaId);
@@ -466,6 +479,16 @@ public class ProductController {
                 .body(ApiResponseUtils.successResponse(
                         localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
                         null));
+
+    }
+
+    @GetMapping("/media/info/{mediaId}")
+    public ResponseEntity<ApiResponse<ProductMediaDetailResponse>> getMediaInfo(
+            @PathVariable Long mediaId) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                        productService.getMedia(mediaId)));
 
     }
 

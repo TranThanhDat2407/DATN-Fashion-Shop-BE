@@ -569,6 +569,15 @@ public class ProductService {
         productMediaRepository.delete(productMedia);
     }
 
+    @Transactional
+    public ProductMediaDetailResponse getMedia(Long mediaId) {
+        ProductMedia productMedia = productMediaRepository.findById(mediaId)
+                .orElseThrow(() -> new RuntimeException(
+                        localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_RETRIEVED_SUCCESSFULLY)));
+
+        return ProductMediaDetailResponse.fromProductMedia(productMedia);
+    }
+
     /**
      * Xác định loại media dựa vào phần mở rộng của file hoặc MIME type.
      */
