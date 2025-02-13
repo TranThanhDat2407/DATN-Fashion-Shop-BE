@@ -1,22 +1,28 @@
 package com.example.DATN_Fashion_Shop_BE.model;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 @Entity
 @Table(name = "categories")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Audited
 public class Category extends BaseEntity{
     @Id
@@ -26,6 +32,7 @@ public class Category extends BaseEntity{
     @Column(name = "image_url", length = 255)
     private String imageUrl;
 
+    @Audited
     @Column(name= "is_active")
     private Boolean isActive = true;
 
@@ -34,11 +41,13 @@ public class Category extends BaseEntity{
     private Category parentCategory;
 
     @ManyToMany(mappedBy = "categories")
-    @Audited(targetAuditMode = org.hibernate.envers.RelationTargetAuditMode.NOT_AUDITED)
     private Set<Product> products = new HashSet<>();
 
-    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<CategoriesTranslation> translations;
+
+    @Version
+    private Long version;
 
     public String getTranslationByLanguage(String languageCode) {
         return translations.stream()

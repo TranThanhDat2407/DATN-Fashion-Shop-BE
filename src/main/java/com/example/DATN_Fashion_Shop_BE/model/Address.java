@@ -1,10 +1,7 @@
 package com.example.DATN_Fashion_Shop_BE.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Table(name = "addresses")
@@ -12,21 +9,22 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Address {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "street", length = 255)
+    @Column(name = "street",columnDefinition = "NVARCHAR(255)", length = 255)
     private String street;
 
-    @Column(name = "district", length = 100)
+    @Column(name = "district",columnDefinition = "NVARCHAR(255)", length = 100)
     private String district;
 
-    @Column(name = "ward", length = 100)
+    @Column(name = "ward",columnDefinition = "NVARCHAR(255)", length = 100)
     private String ward;
 
-    @Column(name = "city", length = 100)
+    @Column(name = "city",columnDefinition = "NVARCHAR(255)", length = 100)
     private String city;
 
     @Column(name = "latitude")
@@ -34,4 +32,6 @@ public class Address {
 
     @Column(name = "longitude")
     private Integer longitude;
+
+
 }

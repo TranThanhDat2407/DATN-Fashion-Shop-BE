@@ -101,6 +101,59 @@ public class MessageKeys {
 
     //product_media
     public static final String PRODUCT_MEDIA_NOT_FOUND = "product.media_not_found";
+    //payment_method
+    public static final String PAYMENT_METHOD_RETRIEVED_SUCCESSFULLY = "payment_method.retrieved_successfully";
 
+    //order
+    public static final String ORDERS_SUCCESSFULLY = "orders.created_successfully";
+    public static final String ORDERS_CREATE_FAILED = "orders.created_failed";
+    public static final String ORDERS_PREVIEW_SUCCESS = "orders.preview_success";
+    public static final String ORDERS_PREVIEW_FAILED = "orders.preview_failed";
+
+    //address
+    public static final String ADDRESSES_RETRIEVED_SUCCESSFULLY = "addresses.retrieved_successfully";
+    public static final String ADDRESSES_RETRIEVED_FAILED = "addresses.retrieved_failed";
+    public static final String ADDRESS_NOT_FOUND = "address.not_found";
+    public static final String USER_ID_NOT_FOUND = "user.id_not_found";
+
+    public static final String ADDRESS_DELETE_SUCCESSFULLY= "address.deleted_successfully";
+    public static final String ADDRESS_DELETE_FAILED = "address.deleted_failed";
+
+    public static final String ADDRESSES_UPDATE_SUCCESSFULLY = "address.updated_successfully";
+    public static final String ADDRESSES_UPDATE_FAILED = "address.update_failed";
+
+    public static final String ADDRESSES_ADD_SUCCESSFULLY = "address.add_successfully";
+    public static final String ADDRESSES_ADD_FAILED = "address.add_failed";
+    public static final String ADDRESS_STREET_NOT_BLANK = "address.street.not_blank";
+    public static final String ADDRESS_DISTRICT_NOT_BLANK = "address.district.not_blank";
+    public static final String ADDRESS_WARD_NOT_BLANK = "address.ward.not_blank";
+    public static final String ADDRESS_PROVINCE_NOT_BLANK = "address.province.not_blank";
+    public static final String ADDRESS_LATITUDE_NOT_NULL = "address.latitude.not_null";
+    public static final String ADDRESS_LONGITUDE_NOT_NULL = "address.longitude.not_null";
+    public static final String ADDRESS_FIRST_NAME_NOT_BLANK = "address.first_name.not_blank";
+    public static final String ADDRESS_FIRST_NAME_SIZE = "address.first_name.size";
+    public static final String ADDRESS_LAST_NAME_NOT_BLANK = "address.last_name.not_blank";
+    public static final String ADDRESS_LAST_NAME_SIZE = "address.last_name.size";
+    public static final String ADDRESS_PHONE_NUMBER_NOT_BLANK = "address.phone_number.not_blank";
+    public static final String ADDRESS_PHONE_NUMBER_INVALID = "address.phone_number.invalid";
+
+
+
+
+    // cart
+    public static final String CART_NOT_FOUND = "cart_not_found";
+
+    public static final String  CART_VARIANTS_RETRIEVED_SUCCESSFULLY = "cart.variants_retrieved_successfully";
+
+    // cartItem
+    public static final String CART_ITEM_NOT_FOUND = "cartItem_by_id_not_found";
+
+
+    // shipping_method
+    public static final String SHIPPING_METHOD_NOT_VALID= "shipping_method_not_valid";
+
+
+    // payment_method
+    public static final String PAYMENT_METHOD_NOT_VALID = "payment_method_not_valid";
 
 }

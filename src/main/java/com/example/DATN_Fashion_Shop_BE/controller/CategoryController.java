@@ -43,9 +43,7 @@ public class CategoryController {
     private final LocalizationUtils localizationUtils;
     private CategoryService categoryService;
     private static final Logger logger = LoggerFactory.getLogger(CategoryController.class);
-
     private static final List<String> ALLOWED_IMAGE_EXTENSIONS = Arrays.asList("png", "jpg", "jpeg", "avif", "gif");
-
     @Operation(
             summary = "Lấy danh sách category cho Admin",
             description = "API này được sử dụng để lấy danh sách category cho quản trị viên với các tham số phân trang và lọc theo nhiều tiêu chí." +
