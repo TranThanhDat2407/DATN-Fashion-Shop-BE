@@ -7,12 +7,16 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.cart.CartItemResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.cart.CartResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.cart.TotalCartResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.promotion.PromotionResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.service.CartService;
 import com.example.DATN_Fashion_Shop_BE.service.PromotionService;
+import com.example.DATN_Fashion_Shop_BE.service.SessionService;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,6 +35,27 @@ public class CartController {
 
     private final LocalizationUtils localizationUtils;
     private final CartService cartService;
+    private final SessionService sessionService;
+
+    @GetMapping
+    public ResponseEntity<CartResponse> getCart2(
+            @RequestParam(value = "userId", required = false) Long userId,
+            @RequestParam(value = "sessionId", required = false) String sessionId,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+
+        if (sessionId == null) {
+            sessionId = sessionService.getSessionIdFromRequest(request);
+        }
+
+        if (sessionId == null && userId == null) {
+            sessionId = sessionService.generateNewSessionId();
+            sessionService.setSessionIdInCookie(response, sessionId);
+        }
+
+        CartResponse cartResponse = cartService.getCart(userId, sessionId);
+        return ResponseEntity.ok(cartResponse);
+    }
 
     // Lấy giỏ hàng của người dùng
     @GetMapping("/{userId}")
@@ -83,5 +108,18 @@ public class CartController {
                 .body(ApiResponseUtils.successResponse(
                         localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
                         null));
+    }
+
+    @GetMapping("/total")
+    public ResponseEntity<ApiResponse<TotalCartResponse>> getTotalCartItems(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String sessionId) {
+        
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                        cartService.getTotalCartItems(userId, sessionId)
+                )
+        );
     }
 }
