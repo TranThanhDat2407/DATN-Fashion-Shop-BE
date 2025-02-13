@@ -17,16 +17,16 @@ public class Address {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "street",columnDefinition = "NVARCHAR(255)", length = 255)
+    @Column(name = "street",columnDefinition = "NVARCHAR(MAX)", nullable = false)
     private String street;
 
-    @Column(name = "district",columnDefinition = "NVARCHAR(255)", length = 100)
+    @Column(name = "district",columnDefinition = "NVARCHAR(MAX)", nullable = false)
     private String district;
 
-    @Column(name = "ward",columnDefinition = "NVARCHAR(255)", length = 100)
+    @Column(name = "ward",columnDefinition = "NVARCHAR(MAX)", nullable = false)
     private String ward;
 
-    @Column(name = "city",columnDefinition = "NVARCHAR(255)", length = 100)
+    @Column(name = "city",columnDefinition = "NVARCHAR(MAX)", nullable = false)
     private String city;
 
     @Column(name = "latitude")
