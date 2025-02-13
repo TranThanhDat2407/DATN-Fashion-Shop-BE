@@ -10,6 +10,7 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.cart.CartResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.cart.TotalCartResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.promotion.PromotionResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
+import com.example.DATN_Fashion_Shop_BE.model.Cart;
 import com.example.DATN_Fashion_Shop_BE.service.CartService;
 import com.example.DATN_Fashion_Shop_BE.service.PromotionService;
 import com.example.DATN_Fashion_Shop_BE.service.SessionService;
@@ -38,7 +39,7 @@ public class CartController {
     private final SessionService sessionService;
 
     @GetMapping
-    public ResponseEntity<CartResponse> getCart2(
+    public ResponseEntity<ApiResponse<CartResponse>> getCart(
             @RequestParam(value = "userId", required = false) Long userId,
             @RequestParam(value = "sessionId", required = false) String sessionId,
             HttpServletRequest request,
@@ -53,68 +54,110 @@ public class CartController {
             sessionService.setSessionIdInCookie(response, sessionId);
         }
 
-        CartResponse cartResponse = cartService.getCart(userId, sessionId);
-        return ResponseEntity.ok(cartResponse);
+        Cart cart = cartService.getOrCreateCart(userId, sessionId);
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                     CartResponse.fromCart(cart)
+                )
+        );
     }
 
-    // Lấy giỏ hàng của người dùng
-    @GetMapping("/{userId}")
-    public ResponseEntity<ApiResponse<CartResponse>> getCart(@PathVariable Long userId) {
-        CartResponse response =  cartService.getCartForUser(userId);
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(ApiResponseUtils.successResponse(
+
+    @PostMapping("/add")
+    public ResponseEntity<ApiResponse<CartItemResponse>> addToCart(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String sessionId,
+            @RequestBody CartRequest request,
+            HttpServletRequest httpRequest) {
+
+        if (sessionId == null) {
+            sessionId = sessionService.getSessionIdFromRequest(httpRequest);
+        }
+
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
                         localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
-                        response));
+                        cartService.addToCart(userId, sessionId, request)
+                )
+        );
     }
 
-    // Thêm sản phẩm vào giỏ hàng
-    @PostMapping("/{userId}/add")
-    public ResponseEntity<ApiResponse<CartItemResponse>> addToCart(@PathVariable Long userId,
-                                                                   @RequestBody CartRequest request) {
-        CartItemResponse response = cartService.addToCart(userId, request);
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(ApiResponseUtils.successResponse(
+    @DeleteMapping("/cart/item/{cartItemId}")
+    public ResponseEntity<ApiResponse<Void>> removeFromCart(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String sessionId,
+            @PathVariable Long cartItemId,
+            HttpServletRequest request) {
+
+        if (sessionId == null) {
+            sessionId = sessionService.getSessionIdFromRequest(request);
+        }
+
+        cartService.removeFromCart(userId, sessionId, cartItemId);
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
                         localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
-                        response));
+                      null
+                )
+        );
     }
 
-    // Cập nhật số lượng sản phẩm trong giỏ hàng
-    @PutMapping("/{userId}/update/{cartItemId}")
-    public ResponseEntity<ApiResponse<CartItemResponse>> updateCart(@PathVariable Long userId,
-                                                       @PathVariable Long cartItemId,
-                                                       @RequestParam int quantity) {
-        CartItemResponse response = cartService.updateCart(userId, cartItemId, quantity);
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(ApiResponseUtils.successResponse(
+    @PutMapping("/cart/{cartItemId}")
+    public ResponseEntity<ApiResponse<CartItemResponse>> updateCartItem(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String sessionId,
+            @PathVariable Long cartItemId,
+            @RequestParam int newQuantity,
+            HttpServletRequest request) {
+
+        if (sessionId == null) {
+            sessionId = sessionService.getSessionIdFromRequest(request);
+        }
+
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
                         localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
-                        response));
+                        cartService.updateCart(userId, sessionId, cartItemId, newQuantity)
+                )
+        );
     }
 
-    // Xóa sản phẩm khỏi giỏ hàng
-    @DeleteMapping("/{userId}/remove/{cartItemId}")
-    public ResponseEntity<ApiResponse<String>> removeFromCart(@PathVariable Long userId, @PathVariable Long cartItemId) {
-        cartService.removeFromCart(userId, cartItemId);
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(ApiResponseUtils.successResponse(
-                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
-                        null));
-    }
+    @DeleteMapping("/clear")
+    public ResponseEntity<ApiResponse<String>> clearCart(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String sessionId,
+            HttpServletRequest request) {
 
-    // Xóa toàn bộ giỏ hàng
-    @DeleteMapping("/{userId}/clear")
-    public ResponseEntity<ApiResponse<String>> clearCart(@PathVariable Long userId) {
-        cartService.clearCart(userId);
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(ApiResponseUtils.successResponse(
-                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+        if (sessionId == null) {
+            sessionId = sessionService.getSessionIdFromRequest(request);
+        }
+
+        cartService.clearCart(userId, sessionId);
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_RETRIEVED_SUCCESSFULLY),
                         null));
     }
 
     @GetMapping("/total")
     public ResponseEntity<ApiResponse<TotalCartResponse>> getTotalCartItems(
             @RequestParam(required = false) Long userId,
-            @RequestParam(required = false) String sessionId) {
-        
+            @RequestParam(required = false) String sessionId,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+
+        // Nếu sessionId không được gửi lên, lấy từ cookie
+        if (sessionId == null) {
+            sessionId = sessionService.getSessionIdFromRequest(request);
+        }
+
+        // Nếu vẫn không có sessionId và userId cũng null → Tạo sessionId mới
+        if (sessionId == null && userId == null) {
+            sessionId = sessionService.generateNewSessionId();
+            sessionService.setSessionIdInCookie(response, sessionId);
+        }
+
         return ResponseEntity.ok(
                 ApiResponseUtils.successResponse(
                         localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),

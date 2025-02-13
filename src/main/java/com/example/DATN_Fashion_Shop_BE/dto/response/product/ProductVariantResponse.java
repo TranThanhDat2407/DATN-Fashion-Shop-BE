@@ -24,7 +24,7 @@ public class ProductVariantResponse extends BaseResponse {
         return ProductVariantResponse.builder()
                 .id(variant.getId())
                 .basePrice(variant.getProduct().getBasePrice())
-                .salePrice(variant.getSalePrice())
+                .salePrice(variant.getAdjustedPrice())
                 .colorId(variant.getColorValue().getId())
                 .colorName(variant.getColorValue().getValueName())
                 .size(variant.getSizeValue().getValueName())
