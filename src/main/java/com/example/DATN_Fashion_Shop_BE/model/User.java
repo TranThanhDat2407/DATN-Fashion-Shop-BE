@@ -3,6 +3,7 @@ package com.example.DATN_Fashion_Shop_BE.model;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -60,6 +61,10 @@ public class User extends BaseEntity implements UserDetails{
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
+
+    @OneToMany(mappedBy = "user")
+    @NotAudited
+    private List<UserAddress> userAddresses;
     //danh sách quyền (role)
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
