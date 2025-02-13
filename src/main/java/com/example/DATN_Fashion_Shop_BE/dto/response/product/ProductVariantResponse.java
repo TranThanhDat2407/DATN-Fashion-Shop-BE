@@ -14,17 +14,21 @@ public class ProductVariantResponse extends BaseResponse {
     private Long id;
     private Double basePrice;
     private Double salePrice;
-    private String color;
+    private Long colorId;
+    private String colorName;
     private String size;
     private String productName;
+    private Long productId;
 
     public static ProductVariantResponse fromProductVariant(ProductVariant variant) {
         return ProductVariantResponse.builder()
                 .id(variant.getId())
                 .basePrice(variant.getProduct().getBasePrice())
                 .salePrice(variant.getSalePrice())
-                .color(variant.getColorValue().getValueName())
+                .colorId(variant.getColorValue().getId())
+                .colorName(variant.getColorValue().getValueName())
                 .size(variant.getSizeValue().getValueName())
+                .productId(variant.getProduct().getId())
                 .productName(variant.getProduct().getTranslationByLanguage("en").getName())
                 .build();
     }
