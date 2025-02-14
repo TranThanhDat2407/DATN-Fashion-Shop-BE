@@ -23,7 +23,7 @@ public class UserAddress {
     @JoinColumn(name = "address_id", nullable = false)
     private Address address;
 
-    @Column(name = "is_default", unique = true)
+    @Column(name = "is_default")
     private Boolean isDefault;
 
     @Column(name = "first_name",columnDefinition = "NVARCHAR(255)", length = 100)

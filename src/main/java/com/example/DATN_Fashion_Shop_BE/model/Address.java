@@ -28,10 +28,10 @@ public class Address {
     private String city;
 
     @Column(name = "latitude")
-    private Integer latitude;
+    private Double latitude;
 
     @Column(name = "longitude")
-    private Integer longitude;
+    private Double longitude;
 
 
 }

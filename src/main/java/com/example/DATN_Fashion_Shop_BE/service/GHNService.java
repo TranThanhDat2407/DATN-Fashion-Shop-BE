@@ -5,6 +5,7 @@ import com.example.DATN_Fashion_Shop_BE.dto.request.shippingMethod.ShippingMetho
 import com.example.DATN_Fashion_Shop_BE.dto.response.shippingMethod.ShippingOrderReviewResponse;
 import com.example.DATN_Fashion_Shop_BE.model.Address;
 import com.example.DATN_Fashion_Shop_BE.model.CartItem;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,29 +103,42 @@ public class GHNService {
         String token = "6b3b4d35-e5f0-11ef-b2e4-6ec7c647cc27";
         String shopId = "195952";
 
-        // Tổng trọng lượng của đơn hàng (giả sử mỗi sản phẩm 200g)
-        int totalWeight = cartItems.stream()
-                .mapToInt(item -> item.getQuantity() * 200) // 200g mỗi sản phẩm (có thể thay đổi)
-                .sum();
+        // Lấy districtId và wardCode từ GHN API
+        Integer districtId = getGhnDistrictId(address.getCity());
+        if (districtId == null) return 0.0;
+
+        String wardCode = getGhnWardCode(address.getWard(), districtId);
+        if (wardCode == null) return 0.0;
+
+        System.out.println("GHN District ID: {}" + districtId);
+        System.out.println("GHN Ward Code: {}" + wardCode);
+
+
+        int totalWeight = cartItems.stream().mapToInt(item -> item.getQuantity() * 400).sum();
 
         // Chuẩn bị dữ liệu gửi đến GHN
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("from_district_id", 195952);
         requestBody.put("service_id", 2);
-        requestBody.put("to_district_id", getGhnDistrictId(address.getDistrict())); // Chuyển quận của người nhận sang ID GHN
-        requestBody.put("to_ward_code", getGhnWardCode(address.getWard())); // Mã phường GHN
-        requestBody.put("height", 10);
-        requestBody.put("length", 20);
-        requestBody.put("width", 10);
-        requestBody.put("weight", totalWeight); // Tổng khối lượng tính theo gram
+        requestBody.put("to_district_id", districtId);
+        requestBody.put("to_ward_code", wardCode);
+        requestBody.put("height", 20);
+        requestBody.put("length", 30);
+        requestBody.put("width", 20);
+        requestBody.put("weight", totalWeight);
         requestBody.put("insurance_value", 1000000);
 
-        // Gửi request
+        System.out.println("District ID: " + districtId);
+        System.out.println("Ward Code: " + wardCode);
+
+
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.set("Content-Type", "application/json");
             headers.set("Token", token);
             headers.set("ShopId", shopId);
+
+
 
             HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
             RestTemplate restTemplate = new RestTemplate();
@@ -135,17 +149,22 @@ public class GHNService {
                     requestEntity,
                     Map.class
             );
+            System.out.println("Request body gửi GHN: " + new ObjectMapper().writeValueAsString(requestBody));
 
-            // Kiểm tra phản hồi từ GHN
+
             if (response.getStatusCode() == HttpStatus.OK) {
                 Map<String, Object> responseBody = response.getBody();
                 if (responseBody != null && responseBody.containsKey("data")) {
                     Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
                     return ((Number) data.get("total")).doubleValue();
                 }
+                System.out.println("GHN Response: " + response.getBody());
+
+
             }
         } catch (Exception e) {
             e.printStackTrace();
+            log.error("Lỗi khi gọi API GHN: {}", e.getMessage(), e);
         }
 
         return 0.0;
@@ -182,13 +201,13 @@ public class GHNService {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return null; // Không tìm thấy
+        return null;
     }
 
 
     public String getGhnWardCode(String wardName, int districtId) {
         String url = "https://dev-online-gateway.ghn.vn/shiip/public-api/master-data/ward";
-        String token = "YOUR_GHN_TOKEN"; // Thay bằng Token của bạn
+        String token = "6b3b4d35-e5f0-11ef-b2e4-6ec7c647cc27";
 
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -224,7 +243,8 @@ public class GHNService {
             e.printStackTrace();
         }
 
-        return null; // Trả về null nếu không tìm thấy
+        return null;
     }
+
 
 }

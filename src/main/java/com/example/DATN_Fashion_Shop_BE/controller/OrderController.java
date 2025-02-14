@@ -43,9 +43,8 @@ public class OrderController {
             description = "API này cho phép người dùng đặt hàng, bao gồm thông tin đơn hàng và phương thức thanh toán.",
             tags = "Orders"
     )
-
     @PostMapping("/create-order")
-    public ResponseEntity<?> createOrder(
+    public ResponseEntity<ApiResponse<CreateOrderResponse>> createOrder(
             @RequestBody @Valid OrderRequest orderRequest,
             BindingResult bindingResult) {
 
@@ -63,20 +62,43 @@ public class OrderController {
         // Gọi service để tạo đơn hàng
         ResponseEntity<?> response = orderService.createOrder(orderRequest);
 
-        // Kiểm tra nếu trả về URL thanh toán VNPay
+        // Trường hợp VNPay trả về Map (Link thanh toán)
         if (response.getBody() instanceof Map) {
-            return response; // Trả về luôn URL thanh toán VNPay
+            ApiResponse<Map<String, Object>> apiResponse = ApiResponseUtils.successResponse(
+                    localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_SUCCESSFULLY),
+                    (Map<String, Object>) response.getBody()
+            );
+
+            // Ép kiểu ResponseEntity<ApiResponse<Map<String, Object>>> thành ResponseEntity<ApiResponse<CreateOrderResponse>>
+            return (ResponseEntity<ApiResponse<CreateOrderResponse>>) (ResponseEntity<?>) ResponseEntity.ok(apiResponse);
         }
 
-        // Nếu không phải VNPay, tức là đơn hàng COD → Ép kiểu sang Order
-        Order order = (Order) response.getBody();
-        CreateOrderResponse createOrderResponse = CreateOrderResponse.fromOrder(order);
+        // Trường hợp COD: response.getBody() là Order
+        if (response.getBody() instanceof Order) {
+            Order order = (Order) response.getBody();
+            CreateOrderResponse createOrderResponse = CreateOrderResponse.fromOrder(order);
 
-        return ResponseEntity.ok().body(ApiResponseUtils.successResponse(
-                localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_SUCCESSFULLY),
-                createOrderResponse
-        ));
+            return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                    localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_SUCCESSFULLY),
+                    createOrderResponse
+            ));
+        }
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ApiResponseUtils.errorResponse(
+                        HttpStatus.BAD_REQUEST,
+                        localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_CREATE_FAILED),
+                        "order",
+                        null,
+                        "Không thể tạo đơn hàng, vui lòng thử lại sau."
+                )
+        );
+
+
+
     }
+
+
 
 
     @Operation(

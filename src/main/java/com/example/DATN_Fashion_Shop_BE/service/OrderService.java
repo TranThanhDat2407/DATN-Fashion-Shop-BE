@@ -47,13 +47,13 @@ public class OrderService {
     private final CouponRepository couponRepository;
     private final PaymentMethodRepository paymentMethodRepository;
     private final LocalizationUtils localizationUtils;
-    private final ShippingService shippingService;
     private final RestTemplate restTemplate;
     private final GHNConfig ghnConfig;
     private final UserAddressRepository userAddressRepository;
     private final ShippingMethodRepository shippingMethodRepository;
     private final VnPayService vnPayService;
     private final GHNService ghnService;
+    private final AddressRepository addressRepository;
 
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 //    @Transactional
@@ -253,14 +253,19 @@ public class OrderService {
         }
         discount = Math.min(discount, totalAmount);
 
-        // 📍 5️⃣ Lấy địa chỉ giao hàng của user
-        UserAddress userAddress = userAddressRepository.findTopByUser_IdAndIsDefaultTrue(orderRequest.getUserId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy địa chỉ mặc định của người dùng."));
+        // 📍 5️⃣ Xử lý địa chỉ giao hàng
+        Address address;
+        if (orderRequest.getShippingAddress() != null) {
+            address = addressRepository.findById(orderRequest.getShippingAddress())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy địa chỉ được chọn."));
+        } else {
+            UserAddress userAddress = userAddressRepository.findTopByUser_IdAndIsDefaultTrue(orderRequest.getUserId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy địa chỉ mặc định của người dùng."));
+            address = userAddress.getAddress();
+        }
 
-        Address address = userAddress.getAddress();
         String fullShippingAddress = String.format("%s, %s, %s, %s",
                 address.getStreet(), address.getWard(), address.getDistrict(), address.getCity());
-
         // 🚚 6️⃣ Tính phí vận chuyển
         double shippingFee = ghnService.calculateShippingFee(address, cartItems);
 
@@ -282,6 +287,8 @@ public class OrderService {
                 .shippingMethod(shippingMethod)
                 .taxAmount(0.0)
                 .build();
+
+        System.out.println("Shipping Fee Calculated: {}" +shippingFee);
 
         Order savedOrder = orderRepository.save(order);
 
