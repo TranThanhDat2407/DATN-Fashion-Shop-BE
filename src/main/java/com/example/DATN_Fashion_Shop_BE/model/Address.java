@@ -27,11 +27,14 @@ public class Address {
     @Column(name = "city",columnDefinition = "NVARCHAR(255)", length = 100)
     private String city;
 
+    @Column(name = "full_address",columnDefinition = "NVARCHAR(MAX)", length = 100)
+    private String fullAddress;
+
     @Column(name = "latitude")
-    private Integer latitude;
+    private Double latitude;
 
     @Column(name = "longitude")
-    private Integer longitude;
+    private Double longitude;
 
 
 }
