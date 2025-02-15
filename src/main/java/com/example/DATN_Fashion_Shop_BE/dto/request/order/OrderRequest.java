@@ -1,7 +1,6 @@
 package com.example.DATN_Fashion_Shop_BE.dto.request.order;
 
 import lombok.*;
-
 @Data
 @Builder
 @Getter
@@ -19,3 +18,4 @@ public class OrderRequest {
     private String receiverName;
     private String receiverPhone;
 }
+

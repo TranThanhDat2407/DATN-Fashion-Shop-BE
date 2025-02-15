@@ -29,7 +29,7 @@ public class UserResponse {
                 .lastName(user.getLastName())
                 .email(user.getEmail())
                 .phone(user.getPhone())
-                .active(user.getIsActive())
+                .active(user.getIsActive() != null ? user.getIsActive() : false)
                 .googleAccountId(user.getGoogleAccountId())
                 .role(user.getRole())
                 .build();

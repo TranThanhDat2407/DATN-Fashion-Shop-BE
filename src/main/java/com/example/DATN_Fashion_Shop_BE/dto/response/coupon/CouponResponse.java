@@ -26,11 +26,10 @@ public class CouponResponse {
     public static CouponResponse fromCoupon(Coupon coupon) {
         return CouponResponse.builder()
                 .id(coupon.getId())
-                .user(coupon.getUser())
                 .discountType(coupon.getDiscountType())
                 .discountValue(coupon.getDiscountValue())
                 .minOrderValue(coupon.getMinOrderValue())
-                    .expirationDate(coupon.getExpirationDate().toString())
+                .expirationDate(coupon.getExpirationDate().toString())
                 .isActive(coupon.getIsActive())
                 .code(coupon.getCode())
                 .build();

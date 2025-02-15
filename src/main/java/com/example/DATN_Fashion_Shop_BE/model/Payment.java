@@ -32,7 +32,7 @@ public class Payment {
     @Column(name = "amount", nullable = false)
     private Double amount;
 
-    @Column(name="status", nullable = false)
+    @Column(name="status",columnDefinition = "NVARCHAR(255)", nullable = false)
     private String status;
 
     @Column(name="transaction_code", nullable = false)

@@ -15,6 +15,6 @@ public class AddressReponse {
     private String district;
     private String ward;
     private String province;
-    private Integer latitude;
-    private Integer longitude;
+    private Double latitude;
+    private Double longitude;
 }
