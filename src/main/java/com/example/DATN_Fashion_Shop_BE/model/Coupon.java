@@ -31,9 +31,7 @@ public class Coupon extends BaseEntity {
 
     @Column(name = "min_order_value", nullable = false)
     private Float minOrderValue;
-//
-//    @Column(name = "user_limit", nullable = false)
-//    private String userLimit;
+
 
     @Column(name = "expiration_date", nullable = false)
     private LocalDateTime expirationDate;

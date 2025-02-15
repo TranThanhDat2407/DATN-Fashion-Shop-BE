@@ -45,7 +45,7 @@ public class User extends BaseEntity implements UserDetails{
     @Column(name = "gender", length = 20)
     private String gender;
 
-    @Column(name = "is_active")
+    @Column(name = "is_active",nullable = false)
     private Boolean isActive;
 
     @Column(name = "google_account_id", unique = true, length = 255)
