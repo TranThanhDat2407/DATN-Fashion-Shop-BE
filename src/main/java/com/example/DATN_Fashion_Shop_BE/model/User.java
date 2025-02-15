@@ -61,6 +61,9 @@ public class User extends BaseEntity implements UserDetails{
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
+    @OneToMany(mappedBy = "user")
+    @NotAudited
+    private List<CouponUserRestriction> couponUserRestrictions;
 
     @OneToMany(mappedBy = "user")
     @NotAudited
