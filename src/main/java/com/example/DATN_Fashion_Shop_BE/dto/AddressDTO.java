@@ -18,8 +18,8 @@ public class AddressDTO {
     private String district;
     private String ward;
     private String province;
-    private Integer latitude;
-    private Integer longitude;
+    private Double latitude;
+    private Double longitude;
 
     public static AddressDTO fromAddress(Address address) {
         return AddressDTO.builder()

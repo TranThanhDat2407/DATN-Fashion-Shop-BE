@@ -15,4 +15,7 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
     Optional<Cart> findBySessionId(String sessionId);
 
     Optional<Cart> findByUser_Id(Long userId);
+
+    Integer countByUserId(Long userId);
+    Integer countBySessionId(String sessionId);
 }

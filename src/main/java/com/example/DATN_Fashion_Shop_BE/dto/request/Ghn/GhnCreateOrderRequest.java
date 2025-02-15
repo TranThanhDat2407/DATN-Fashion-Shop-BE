@@ -1,10 +1,17 @@
 package com.example.DATN_Fashion_Shop_BE.dto.request.Ghn;
 
 import jakarta.validation.constraints.NotNull;
+import lombok.*;
 
 import java.util.List;
 
-public class GhnCreateOrderResponse {
+@Data
+@Builder
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+public class GhnCreateOrderRequest {
     @NotNull
     private Integer payment_type_id;
     //    private String note;

@@ -9,5 +9,5 @@ import org.springframework.stereotype.Component;
 @Data
 public class GHNConfig {
     private String token;
-    private String shopId;
+    private Integer shopId;
 }

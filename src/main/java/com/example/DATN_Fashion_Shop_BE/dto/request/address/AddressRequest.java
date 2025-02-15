@@ -28,10 +28,10 @@ public class AddressRequest {
     private String province;
 
     @NotNull(message = MessageKeys.ADDRESS_LATITUDE_NOT_NULL)
-    private Integer latitude;
+    private Double latitude;
 
     @NotNull(message = MessageKeys.ADDRESS_LONGITUDE_NOT_NULL)
-    private Integer longitude;
+    private Double longitude;
 
     @NotBlank(message = MessageKeys.ADDRESS_FIRST_NAME_NOT_BLANK)
     @Size(max = 50, message = MessageKeys.ADDRESS_FIRST_NAME_SIZE)
