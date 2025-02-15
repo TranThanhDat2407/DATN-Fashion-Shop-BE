@@ -7,6 +7,7 @@ import com.example.DATN_Fashion_Shop_BE.dto.request.cart.CartRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.attribute_values.*;
 import com.example.DATN_Fashion_Shop_BE.dto.response.cart.CartItemResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.cart.CartResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.cart.TotalCartResponse;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -34,17 +36,10 @@ public class CartService {
     private final FileStorageService fileStorageService;
     private final LocalizationUtils localizationUtils;
 
-    // Lấy giỏ hàng của người dùng
-    @Transactional
-    public CartResponse getCartForUser(Long userId) {
-        Cart cart = getOrCreateCart(userId);
-        return CartResponse.fromCart(cart);
-    }
 
-    // Thêm sản phẩm vào giỏ hàng
     @Transactional
-    public CartItemResponse addToCart(Long userId, CartRequest request) {
-        Cart cart = getOrCreateCart(userId);
+    public CartItemResponse addToCart(Long userId, String sessionId, CartRequest request) {
+        Cart cart = getOrCreateCart(userId, sessionId);
         ProductVariant productVariant = getProductVariant(request.getProductVariantId());
 
         int availableStock = getAvailableStockFromWarehouse(request.getProductVariantId());
@@ -74,10 +69,10 @@ public class CartService {
         return CartItemResponse.fromCartItem(cartItemRepository.save(cartItem));
     }
 
-    // Cập nhật số lượng sản phẩm trong giỏ hàng
+
     @Transactional
-    public CartItemResponse updateCart(Long userId, Long cartItemId, int newQuantity) {
-        Cart cart = getOrCreateCart(userId);
+    public CartItemResponse updateCart(Long userId, String sessionId, Long cartItemId, int newQuantity) {
+        Cart cart = getOrCreateCart(userId, sessionId);
         CartItem cartItem = getCartItem(cart, cartItemId);
 
         int availableStock = getAvailableStockFromWarehouse(cartItem.getProductVariant().getId());
@@ -89,58 +84,45 @@ public class CartService {
         return CartItemResponse.fromCartItem(cartItemRepository.save(cartItem));
     }
 
-    // Xóa sản phẩm khỏi giỏ hàng
     @Transactional
-    public void removeFromCart(Long userId, Long cartItemId) {
-        Cart cart = getOrCreateCart(userId);
+    public void removeFromCart(Long userId, String sessionId, Long cartItemId) {
+        Cart cart = getOrCreateCart(userId, sessionId);
         CartItem cartItem = getCartItem(cart, cartItemId);
         cartItemRepository.delete(cartItem);
     }
 
-    // Xóa toàn bộ giỏ hàng
     @Transactional
-    public void clearCart(Long userId) {
-        Cart cart = getOrCreateCart(userId);
+    public void clearCart(Long userId, String sessionId) {
+        Cart cart = getOrCreateCart(userId, sessionId);
         cartItemRepository.deleteAll(cartItemRepository.findByCart(cart));
     }
 
     @Transactional
-    public CartResponse getCart(HttpServletRequest request, HttpServletResponse response) {
-        // Lấy sessionId từ request
-        String sessionId = sessionService.getSessionIdFromRequest(request);
+    public Cart getOrCreateCart(Long userId, String sessionId) {
+        if (userId != null) {
+            // Nếu có userId, tìm cart theo user
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // Nếu không có sessionId, tạo mới sessionId và lưu vào cookie
-        if (sessionId == null) {
-            sessionId = sessionService.createSession(response);  // Tạo mới sessionId và lưu vào cookie
-        }
-
-        // Lấy giỏ hàng từ sessionId nếu có, nếu không sẽ tạo mới
-        String finalSessionId = sessionId;
-        Cart cart = cartRepository.findBySessionId(sessionId)
-                .orElseGet(() -> {
-                    // Tạo giỏ hàng mới và lưu vào cơ sở dữ liệu
-                    Cart newCart = Cart.builder()
-                            .sessionId(finalSessionId)
+            return cartRepository.findByUser(user)
+                    .orElseGet(() -> cartRepository.save(Cart.builder()
+                            .user(user)
+                            .sessionId(null)  // User đã đăng nhập, không cần sessionId
                             .cartItems(new ArrayList<>())
-                            .build();
-                    return cartRepository.save(newCart);
-                });
-
-        // Trả về giỏ hàng dưới dạng CartResponse
-        return CartResponse.fromCart(cart);
-    }
-
-    // Lấy Cart của user hoặc tạo mới nếu chưa có
-    private Cart getOrCreateCart(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        return cartRepository.findByUser(user)
-                .orElseGet(()
-                        -> cartRepository.save(Cart.builder()
-                        .user(user)
-                        .cartItems(new ArrayList<>())
-                        .build()
-        ));
+                            .build())
+            );
+        } else if (sessionId != null) {
+            // Nếu không có userId, tìm cart theo sessionId
+            return cartRepository.findBySessionId(sessionId)
+                    .orElseGet(() -> cartRepository.save(Cart.builder()
+                            .user(null)  // Không có user
+                            .sessionId(sessionId)
+                            .cartItems(new ArrayList<>())
+                            .build())
+                    );
+        } else {
+            throw new IllegalArgumentException("Both userId and sessionId are null");
+        }
     }
 
     // Lấy ProductVariant theo ID
@@ -162,5 +144,20 @@ public class CartService {
                 .stream()
                 .mapToInt(Inventory::getQuantityInStock)
                 .sum();
+    }
+
+    public TotalCartResponse getTotalCartItems(Long userId, String sessionId) {
+        if (userId != null) {
+            return TotalCartResponse.builder()
+                    .totalCart(cartRepository.countByUserId(userId))
+                    .build();
+        } else if (sessionId != null) {
+            return TotalCartResponse.builder()
+                    .totalCart(cartRepository.countBySessionId(sessionId))
+                    .build();
+        }
+        return TotalCartResponse.builder()
+                .totalCart(0)
+                .build();
     }
 }

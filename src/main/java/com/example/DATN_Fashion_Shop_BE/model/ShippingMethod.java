@@ -14,6 +14,8 @@ public class ShippingMethod {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
+    @Column(name= "method_name",  columnDefinition = "NVARCHAR(255)", nullable = false)
     private String methodName;
+    @Column(name= "description",  columnDefinition = "NVARCHAR(255)", nullable = false)
     private String description;
 }

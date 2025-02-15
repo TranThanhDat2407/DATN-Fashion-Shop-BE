@@ -32,7 +32,8 @@ public class ProductDetailDTO extends BaseResponse {
                 .care(translation.getCare())
                 .basePrice(product.getBasePrice())
                 .isActive(product.getIsActive())
-                .promotion(PromotionDTO.fromPromotion(product.getPromotion()))
+                .promotion(product.getPromotion() != null ?
+                        PromotionDTO.fromPromotion(product.getPromotion()) : null)
                 .build();
     }
 }
