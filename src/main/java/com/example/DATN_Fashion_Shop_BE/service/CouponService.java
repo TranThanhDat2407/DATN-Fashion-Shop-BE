@@ -6,10 +6,16 @@ import com.example.DATN_Fashion_Shop_BE.dto.CouponTranslationDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.request.coupon.CouponCreateRequestDTO;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
+import com.example.DATN_Fashion_Shop_BE.specification.CouponSpecification;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -190,6 +196,19 @@ public class CouponService {
                 })
                 .collect(Collectors.toList());
     }
-
+//    public Page<CouponLocalizedDTO> searchCoupons(String code, LocalDateTime expirationDate,
+//                                                  Float discountValue, Float minOrderValue,
+//                                                  String languageCode, int page, int size) {
+//        Pageable pageable = PageRequest.of(page, size);
+//        Specification<Coupon> spec = CouponSpecification.filterCoupons(code, expirationDate, discountValue, minOrderValue, languageCode);
+//
+//        Page<Coupon> couponPage = couponRepository.findAll(spec, pageable);
+//
+//        return couponPage.map(coupon -> {
+//            CouponTranslation translation = coupon.getCouponTranslationByLanguage(languageCode);
+//            List<Long> userIds = couponUserRestrictionRepository.findUserIdsByCouponId(coupon.getId());
+//            return CouponLocalizedDTO.fromCoupons(coupon, translation, userIds);
+//        });
+//    }
 
 }

@@ -3,6 +3,7 @@ package com.example.DATN_Fashion_Shop_BE.repository;
 import com.example.DATN_Fashion_Shop_BE.model.Coupon;
 import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -11,7 +12,6 @@ import java.util.Optional;
 @Repository
 public interface CouponRepository extends JpaRepository<Coupon,Long> {
     Optional<Coupon> findByCode(String couponCode);
-
 
     List<Coupon> findByIsGlobalTrueAndIsActiveTrue();
 

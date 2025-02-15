@@ -4,6 +4,7 @@ import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.AddressDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.CouponDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.CouponLocalizedDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.CouponTranslationDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.request.coupon.CouponCreateRequestDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.request.coupon.CouponRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
@@ -12,11 +13,14 @@ import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -104,6 +108,23 @@ public class CouponController {
         List<CouponLocalizedDTO> coupons = couponService.getCouponsForUser(userId, lang);
         return ResponseEntity.ok(coupons);
     }
+//    @GetMapping("/search")
+//    public ResponseEntity<ApiResponse<Page<CouponLocalizedDTO>>> searchCoupons(
+//            @RequestParam(required = false) String code,
+//            @RequestParam(required = false)
+//            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime expirationDate,
+//            @RequestParam(required = false) Float discountValue,
+//            @RequestParam(required = false) Float minOrderValue,
+//            @RequestParam(required = false) String languageCode,
+//            @RequestParam(defaultValue = "0") int page,
+//            @RequestParam(defaultValue = "10") int size
+//    ) {
+//        Page<CouponLocalizedDTO> result = couponService.searchCoupons(code, expirationDate, discountValue, minOrderValue, languageCode, page, size);
+//
+//        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+//                localizationUtils.getLocalizedMessage(MessageKeys.COUPON_GETALL_SUCCESS),
+//                result ));
+//    }
 
 
 
