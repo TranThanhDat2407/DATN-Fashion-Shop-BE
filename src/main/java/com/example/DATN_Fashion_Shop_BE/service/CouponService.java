@@ -12,14 +12,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,6 +29,7 @@ public class CouponService {
     private final CouponTranslationRepository couponTranslationRepository;
     private final UserRepository userRepository;
     private final CouponUserRestrictionRepository couponUserRestrictionRepository;
+    private final EmailService emailService;
     public boolean applyCoupon(Long userId, String couponCode) {
         Optional<Coupon> couponOpt = couponRepository.findByCode(couponCode);
         if (couponOpt.isEmpty()) {
@@ -196,19 +195,68 @@ public class CouponService {
                 })
                 .collect(Collectors.toList());
     }
-//    public Page<CouponLocalizedDTO> searchCoupons(String code, LocalDateTime expirationDate,
-//                                                  Float discountValue, Float minOrderValue,
-//                                                  String languageCode, int page, int size) {
-//        Pageable pageable = PageRequest.of(page, size);
-//        Specification<Coupon> spec = CouponSpecification.filterCoupons(code, expirationDate, discountValue, minOrderValue, languageCode);
-//
-//        Page<Coupon> couponPage = couponRepository.findAll(spec, pageable);
-//
-//        return couponPage.map(coupon -> {
-//            CouponTranslation translation = coupon.getCouponTranslationByLanguage(languageCode);
-//            List<Long> userIds = couponUserRestrictionRepository.findUserIdsByCouponId(coupon.getId());
-//            return CouponLocalizedDTO.fromCoupons(coupon, translation, userIds);
-//        });
-//    }
+    public Page<CouponLocalizedDTO> searchCoupons(String code, LocalDateTime expirationDate,
+                                                  Float discountValue, Float minOrderValue,
+                                                  String languageCode, int page, int size,
+                                                  String sortBy, String sortDirection) {
+        Sort sort;
+
+        // Xác định trường cần sắp xếp
+        if ("expirationDate".equalsIgnoreCase(sortBy)) {
+            sort = Sort.by("expirationDate");
+        } else {
+            sort = Sort.by("createdAt"); // Mặc định sắp xếp theo ngày tạo
+        }
+
+        // Xác định chiều sắp xếp (tăng dần hoặc giảm dần)
+        if ("desc".equalsIgnoreCase(sortDirection)) {
+            sort = sort.descending();
+        } else {
+            sort = sort.ascending();
+        }
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Specification<Coupon> spec = CouponSpecification.filterCoupons(code, expirationDate, discountValue, minOrderValue, languageCode);
+
+        Page<Coupon> couponPage = couponRepository.findAll(spec, pageable);
+
+        return couponPage.map(coupon -> {
+            CouponTranslation translation = coupon.getCouponTranslationByLanguage(languageCode);
+            List<Long> userIds = couponUserRestrictionRepository.findUserIdsByCouponId(coupon.getId());
+            return CouponLocalizedDTO.fromCoupons(coupon, translation, userIds);
+        });
+    }
+    public void generateBirthdayCoupons(List<User> usersWithBirthday) {
+
+        LocalDateTime today = LocalDateTime.now();
+
+        for (User user : usersWithBirthday) {
+            String couponCode = "BDAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
+            Coupon coupon = Coupon.builder()
+                    .code(couponCode)
+                    .discountType("PERCENTAGE")
+                    .discountValue(10.0f)
+                    .minOrderValue(100.0f)
+                    .expirationDate(today.plusDays(7))
+                    .isActive(true)
+                    .isGlobal(false)
+                    .build();
+            // ✅ Lưu coupon trước
+            coupon = couponRepository.save(coupon);
+
+            CouponUserRestriction restriction = CouponUserRestriction.builder()
+                    .user(user)
+                    .coupon(coupon)
+                    .build();
+
+            // ✅ Lưu restriction vào DB
+            couponUserRestrictionRepository.save(restriction);
+
+            // 📨 Gửi email thông báo cho user
+            emailService.sendBirthdayCoupon(user.getEmail(), couponCode);
+        }
+    }
+
 
 }

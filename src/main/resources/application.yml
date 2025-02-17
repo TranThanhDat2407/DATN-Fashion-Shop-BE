@@ -139,4 +139,6 @@ ghn:
   token: "6b3b4d35-e5f0-11ef-b2e4-6ec7c647cc27"
   shopId: "195952"
 
-
+  task:
+    scheduling:
+      enabled: true

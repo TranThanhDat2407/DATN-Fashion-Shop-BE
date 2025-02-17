@@ -8,6 +8,8 @@ import com.example.DATN_Fashion_Shop_BE.dto.CouponTranslationDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.request.coupon.CouponCreateRequestDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.request.coupon.CouponRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
+import com.example.DATN_Fashion_Shop_BE.model.User;
+import com.example.DATN_Fashion_Shop_BE.repository.UserRepository;
 import com.example.DATN_Fashion_Shop_BE.service.CouponService;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
@@ -20,8 +22,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("${api.prefix}/coupons")
@@ -29,6 +33,7 @@ import java.util.List;
 public class CouponController {
     private final CouponService couponService;
     private final LocalizationUtils localizationUtils;
+    private final UserRepository userRepository;
     @PostMapping("/apply")
     public ResponseEntity<ApiResponse<Boolean>> applyCoupon(
             @RequestParam Long userId, @Valid @RequestBody CouponRequest request,
@@ -108,24 +113,39 @@ public class CouponController {
         List<CouponLocalizedDTO> coupons = couponService.getCouponsForUser(userId, lang);
         return ResponseEntity.ok(coupons);
     }
-//    @GetMapping("/search")
-//    public ResponseEntity<ApiResponse<Page<CouponLocalizedDTO>>> searchCoupons(
-//            @RequestParam(required = false) String code,
-//            @RequestParam(required = false)
-//            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime expirationDate,
-//            @RequestParam(required = false) Float discountValue,
-//            @RequestParam(required = false) Float minOrderValue,
-//            @RequestParam(required = false) String languageCode,
-//            @RequestParam(defaultValue = "0") int page,
-//            @RequestParam(defaultValue = "10") int size
-//    ) {
-//        Page<CouponLocalizedDTO> result = couponService.searchCoupons(code, expirationDate, discountValue, minOrderValue, languageCode, page, size);
-//
-//        return ResponseEntity.ok(ApiResponseUtils.successResponse(
-//                localizationUtils.getLocalizedMessage(MessageKeys.COUPON_GETALL_SUCCESS),
-//                result ));
-//    }
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<Page<CouponLocalizedDTO>>> searchCoupons(
+            @RequestParam(required = false) String code,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime expirationDate,
+            @RequestParam(required = false) Float discountValue,
+            @RequestParam(required = false) Float minOrderValue,
+            @RequestParam(required = false) String languageCode,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy, // Trường để sắp xếp
+            @RequestParam(defaultValue = "asc") String sortDirection
+    ) {
+        Page<CouponLocalizedDTO> result = couponService.searchCoupons(code, expirationDate, discountValue, minOrderValue, languageCode, page, size,sortBy, sortDirection);
 
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.COUPON_GETALL_SUCCESS),
+                result ));
+    }
+//    @PostMapping("/generate-birthday")
+//    public ResponseEntity<Map<String, Object>> generateBirthdayCoupons() {
+//        LocalDate today = LocalDate.now();
+//        System.out.println("📅 Ngày hiện tại: " + today);
+//
+//        List<User> usersWithBirthday = userRepository.findByDateOfBirth(today);
+//
+//        if (usersWithBirthday.isEmpty()) {
+//            return ResponseEntity.ok(Map.of("message", "🚫 Không có user nào có sinh nhật hôm nay.", "userCount", 0));
+//        }
+//
+//        couponService.generateBirthdayCoupons(usersWithBirthday);
+//        return ResponseEntity.ok(Map.of("message", "🎉 Đã tạo mã giảm giá sinh nhật thành công!", "userCount", usersWithBirthday.size()));
+//    }
 
 
 }
