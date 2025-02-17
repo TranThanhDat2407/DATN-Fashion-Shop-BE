@@ -53,6 +53,18 @@ public class ReviewController {
     public ResponseEntity<ApiResponse<AvgRatingResponse>> getAvgRating(@PathVariable Long productId) {
         AvgRatingResponse response = reviewService.avgRating(productId);
 
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                response));
+
+    }
+
+    @GetMapping("/totalReviewByRating/{productId}")
+    public ResponseEntity<ApiResponse<TotalReviewResponse>>
+    getTotalReviewByRating(@PathVariable Long productId,
+                           @RequestParam String reviewRating
+    ) {
+        TotalReviewResponse response = reviewService.countReviewByRating(productId,reviewRating);
 
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
