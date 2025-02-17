@@ -24,20 +24,26 @@ public class AddressService {
     private final AddressRepository addressRepository;
     private final UserAddressRepository userAddressRepository;
     private final UserRepository userRepository;
-    // lấy danh sách địa chỉ theo userId
     public List<AddressDTO> getAddressesByUserId(Long userId) {
-        List<Address> addresses =  addressRepository.findAllByUserId(userId);
-        return addresses.stream()
-                .map(AddressDTO::fromAddress)
+        // Lấy danh sách UserAddress theo userId
+        List<UserAddress> userAddresses = userAddressRepository.findByUserId(userId);
+
+        // Duyệt qua danh sách userAddresses để lấy thông tin địa chỉ và userAddress
+        return userAddresses.stream()
+                .map(userAddress -> {
+                    Address address = userAddress.getAddress(); // Lấy địa chỉ từ UserAddress
+                    return AddressDTO.fromAddress(address, userAddress); // Sử dụng method từ AddressDTO để map
+                })
                 .collect(Collectors.toList());
     }
+
     // lấy địa chỉ mặc định theo userId
     public AddressDTO getDefaultAddressByUserId(Long userId) {
         return userAddressRepository.findByUser_IdAndIsDefaultTrue(userId)
-                .map(userAddress -> AddressDTO.fromAddress(userAddress.getAddress()))
+                .map(userAddress -> AddressDTO.fromAddress(userAddress.getAddress(), userAddress)) // Cung cấp cả Address và UserAddress
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy địa chỉ mặc định cho user ID: " + userId));
     }
-    // thêm địa chỉ mới theo userId
+
     @Transactional
     public AddressDTO addNewAddress(Long userId, AddressRequest request) {
         // Lấy thông tin user
@@ -49,7 +55,7 @@ public class AddressService {
                 .street(request.getStreet())
                 .district(request.getDistrict())
                 .ward(request.getWard())
-                .city(request.getProvince())
+                .city(request.getProvince()) // Chú ý: Đảm bảo bạn sử dụng đúng trường cho "tỉnh/thành phố"
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
                 .build();
@@ -57,20 +63,20 @@ public class AddressService {
         // Lưu địa chỉ vào database
         Address savedAddress = addressRepository.save(newAddress);
 
-        // Gán địa chỉ này vào user_address (không quan tâm mặc định)
+        // Gán địa chỉ này vào user_address (có thể đặt mặc định nếu cần)
         UserAddress userAddress = UserAddress.builder()
                 .user(user)
                 .address(savedAddress)
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .phone(request.getPhoneNumber())
-                .isDefault(false) // Không đặt mặc định
+                .isDefault(false) // Đặt mặc định là false, có thể cập nhật sau
                 .build();
 
         userAddressRepository.save(userAddress);
 
-        // Trả về AddressDTO
-        return AddressDTO.fromAddress(savedAddress);
+        // Trả về AddressDTO, bao gồm thông tin địa chỉ và thông tin từ UserAddress (tên, điện thoại)
+        return AddressDTO.fromAddress(savedAddress, userAddress); // Trả về AddressDTO đầy đủ thông tin
     }
 
     // update address theo id user
@@ -80,7 +86,7 @@ public class AddressService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User không tồn tại!"));
 
-        // Lấy thông tin địa chỉ từ user_address
+        // Lấy thông tin địa chỉ từ bảng user_address
         UserAddress userAddress = userAddressRepository.findByUserIdAndAddressId(userId, addressId)
                 .orElseThrow(() -> new RuntimeException("Địa chỉ không tồn tại hoặc không thuộc về người dùng!"));
 
@@ -89,23 +95,25 @@ public class AddressService {
         address.setStreet(request.getStreet());
         address.setDistrict(request.getDistrict());
         address.setWard(request.getWard());
-        address.setCity(request.getProvince());
+        address.setCity(request.getProvince()); // Đảm bảo bạn dùng đúng trường cho city/province
         address.setLatitude(Double.valueOf(request.getLatitude()));
         address.setLongitude(Double.valueOf(request.getLongitude()));
 
-        // Lưu địa chỉ cập nhật vào database
+        // Lưu địa chỉ đã được cập nhật vào database
         Address updatedAddress = addressRepository.save(address);
 
-        // Cập nhật thông tin trong bảng user_address
+        // Cập nhật thông tin người nhận trong bảng user_address
         userAddress.setFirstName(request.getFirstName());
         userAddress.setLastName(request.getLastName());
         userAddress.setPhone(request.getPhoneNumber());
 
+        // Lưu thông tin người nhận đã được cập nhật
         userAddressRepository.save(userAddress);
 
-        // Trả về AddressDTO
-        return AddressDTO.fromAddress(updatedAddress);
+        // Trả về AddressDTO, bao gồm cả thông tin địa chỉ và thông tin người nhận từ UserAddress
+        return AddressDTO.fromAddress(updatedAddress, userAddress);
     }
+
     @Transactional
     public void deleteAddress(Long userId, Long addressId) {
         // Kiểm tra xem địa chỉ có thuộc về user không
@@ -114,6 +122,11 @@ public class AddressService {
 
         // Lấy thông tin địa chỉ
         Address address = userAddress.getAddress();
+
+        // Kiểm tra xem có phải địa chỉ mặc định của người dùng không
+        if (userAddress.getIsDefault()) {
+            throw new RuntimeException("Không thể xóa địa chỉ mặc định!");
+        }
 
         // Xóa bản ghi trong bảng user_address
         userAddressRepository.delete(userAddress);
@@ -126,5 +139,6 @@ public class AddressService {
             addressRepository.delete(address);
         }
     }
+
 
 }

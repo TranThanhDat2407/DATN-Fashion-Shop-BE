@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 @Repository
-public interface CouponRepository extends JpaRepository<Coupon,Long> {
+public interface CouponRepository extends JpaRepository<Coupon,Long>,JpaSpecificationExecutor<Coupon> {
     Optional<Coupon> findByCode(String couponCode);
 
     List<Coupon> findByIsGlobalTrueAndIsActiveTrue();

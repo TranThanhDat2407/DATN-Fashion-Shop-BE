@@ -30,14 +30,14 @@ public class ReviewService {
     private final ProductRepository productRepository;
     private final LocalizationUtils localizationUtils;
 
-    public TotalReviewResponse totalReview (long productId){
+    public TotalReviewResponse totalReview (Long productId){
         Long totalReviews = reviewRepository.countByProductId(productId);
         return TotalReviewResponse.builder()
                 .totalReviews(totalReviews)
                 .build();
     }
 
-    public AvgRatingResponse avgRating (long productId){
+    public AvgRatingResponse avgRating (Long productId){
         Double avgRating = reviewRepository.findAverageReviewRateByProductId(productId);
 
         if (avgRating == null) {
@@ -49,6 +49,18 @@ public class ReviewService {
 
         return AvgRatingResponse.builder()
                 .avgRating(roundedAvgRating)
+                .build();
+    }
+
+    public TotalReviewResponse countReviewByRating (Long productId, String reviewRating){
+        Long totalReview = reviewRepository.countByProductIdAndReviewRate(productId, reviewRating);
+
+        if (totalReview == null) {
+            totalReview = 0L;
+        }
+
+        return TotalReviewResponse.builder()
+                .totalReviews(totalReview)
                 .build();
     }
 
