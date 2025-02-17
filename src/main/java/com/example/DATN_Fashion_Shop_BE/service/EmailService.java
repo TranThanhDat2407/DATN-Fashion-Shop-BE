@@ -44,4 +44,27 @@ public class EmailService {
 
         mailSender.send(message);
     }
+    public void sendBirthdayCoupon(String to, String couponCode) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(to);
+            helper.setSubject("🎉 Chúc mừng sinh nhật! Nhận ngay mã giảm giá 🎂");
+            helper.setText(buildEmailContent(couponCode), true);
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            throw new RuntimeException("Lỗi khi gửi email", e);
+        }
+    }
+
+    private String buildEmailContent(String couponCode) {
+        return "<h1>🎉 Chúc mừng sinh nhật! 🎂</h1>" +
+                "<p>Chúng tôi có một món quà dành cho bạn: một mã giảm giá đặc biệt!</p>" +
+                "<p><b>Mã giảm giá của bạn:</b> <span style='color:red;font-size:20px;'>" + couponCode + "</span></p>" +
+                "<p>Mã này có hiệu lực trong 7 ngày. Hãy tận hưởng!</p>" +
+                "<p><i>Trân trọng,<br>Đội ngũ Fashion Shop</i></p>";
+    }
+
 }

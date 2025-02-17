@@ -10,7 +10,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -42,4 +44,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
                                   @Param("endDate") LocalDateTime endDate,
                                   @Param("roleId") Long roleId,
                                   Pageable pageable);
+//    @Query("SELECT u FROM User u WHERE FUNCTION('DAY', u.dateOfBirth) = FUNCTION('DAY', CURRENT_DATE) " +
+//            "AND FUNCTION('MONTH', u.dateOfBirth) = FUNCTION('MONTH', CURRENT_DATE)")
+//    List<User> findUsersWithBirthdayToday();
+    @Query("SELECT u FROM User u WHERE CAST(u.dateOfBirth AS DATE) = :today")
+    List<User> findByDateOfBirth(@Param("today") LocalDate today);
+
+
+
+
+
 }
