@@ -9,10 +9,12 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Long> {
-    long countByProductId(Long productId);
+    Long countByProductId(Long productId);
 
     @Query("SELECT AVG(CAST(r.reviewRate AS double)) FROM Review r WHERE r.product.id = :productId")
     Double findAverageReviewRateByProductId(Long productId);
 
     Page<Review> findByProductId(Long productId, Pageable pageable);
+
+    Long countByProductIdAndReviewRate(Long productId, String reviewRate);
 }

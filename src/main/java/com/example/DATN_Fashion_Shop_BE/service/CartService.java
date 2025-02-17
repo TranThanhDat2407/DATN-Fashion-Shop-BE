@@ -32,7 +32,6 @@ public class CartService {
     private final UserRepository userRepository;
     private final ProductVariantRepository productVariantRepository;
     private final InventoryRepository inventoryRepository;
-    private final SessionService sessionService;
     private final FileStorageService fileStorageService;
     private final LocalizationUtils localizationUtils;
 
@@ -160,4 +159,73 @@ public class CartService {
                 .totalCart(0)
                 .build();
     }
+
+    @Transactional
+    public void mergeCart(String sessionId, Long userId) {
+        if (sessionId == null || userId == null) {
+            throw new IllegalArgumentException("SessionId and userId must not be null");
+        }
+
+        // Lấy cart theo sessionId (nếu có)
+        Optional<Cart> sessionCartOpt = cartRepository.findBySessionId(sessionId);
+        if (sessionCartOpt.isEmpty()) {
+            return; // Không có gì để merge
+        }
+        Cart sessionCart = sessionCartOpt.get();
+
+        // Lấy cart theo userId (hoặc tạo mới nếu chưa có)
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        Cart userCart = cartRepository.findByUser(user)
+                .orElseGet(() -> cartRepository.save(Cart.builder()
+                        .user(user)
+                        .sessionId(null)
+                        .cartItems(new ArrayList<>())
+                        .build())
+                );
+
+        // Chuyển tất cả cartItem từ sessionCart → userCart
+        for (CartItem sessionCartItem : sessionCart.getCartItems()) {
+            ProductVariant productVariant = sessionCartItem.getProductVariant();
+
+            // Lấy số lượng tồn kho từ warehouse
+            int availableStock = getAvailableStockFromWarehouse(productVariant.getId());
+            int sessionQuantity = sessionCartItem.getQuantity();
+
+            // Kiểm tra xem sản phẩm đã có trong giỏ hàng user chưa
+            Optional<CartItem> existingItemOpt = cartItemRepository.findByCartAndProductVariant(userCart, productVariant);
+
+            if (existingItemOpt.isPresent()) {
+                // Nếu đã có trong giỏ hàng, cộng số lượng nhưng không vượt quá tồn kho
+                CartItem existingItem = existingItemOpt.get();
+                int newQuantity = existingItem.getQuantity() + sessionQuantity;
+
+                if (newQuantity > availableStock) {
+                    newQuantity = availableStock; // Giới hạn số lượng theo tồn kho
+                }
+
+                existingItem.setQuantity(newQuantity);
+                cartItemRepository.save(existingItem);
+            } else {
+                // Nếu chưa có, tạo mới nhưng không vượt quá tồn kho
+                int quantityToAdd = Math.min(sessionQuantity, availableStock);
+
+                if (quantityToAdd > 0) {
+                    CartItem newItem = CartItem.builder()
+                            .cart(userCart)
+                            .productVariant(productVariant)
+                            .quantity(quantityToAdd)
+                            .build();
+
+                    cartItemRepository.save(newItem);
+                }
+            }
+        }
+        // Xóa cart item của sessionId sau khi merge
+        cartItemRepository.deleteAll(sessionCart.getCartItems());
+    }
+    
+
+
+
 }
