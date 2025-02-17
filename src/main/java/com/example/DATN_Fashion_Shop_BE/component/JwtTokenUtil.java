@@ -27,7 +27,7 @@ import java.util.function.Function;
 @RequiredArgsConstructor
 public class JwtTokenUtil {
     @Value("${jwt.expiration}")
-    private int expiration; //save to an environment variable
+    private int expiration;
 
     @Value("${jwt.expiration-refresh-token}")
     private int expirationRefreshToken;

@@ -90,8 +90,8 @@ public class AddressService {
         address.setDistrict(request.getDistrict());
         address.setWard(request.getWard());
         address.setCity(request.getProvince());
-        address.setLatitude(request.getLatitude());
-        address.setLongitude(request.getLongitude());
+        address.setLatitude(Double.valueOf(request.getLatitude()));
+        address.setLongitude(Double.valueOf(request.getLongitude()));
 
         // Lưu địa chỉ cập nhật vào database
         Address updatedAddress = addressRepository.save(address);

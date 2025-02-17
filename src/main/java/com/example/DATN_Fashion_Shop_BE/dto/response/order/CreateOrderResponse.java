@@ -28,7 +28,9 @@ public class CreateOrderResponse {
 
     public static CreateOrderResponse fromOrder(Order order) {
         UserResponse userResponse = UserResponse.fromUser(order.getUser());
-        CouponResponse couponResponse = CouponResponse.fromCoupon(order.getCoupon());
+        CouponResponse couponResponse = (order.getCoupon() != null)
+                ? CouponResponse.fromCoupon(order.getCoupon())
+                : null;
         ShippingMethodResponse shippingMethodResponse = ShippingMethodResponse.fromShippingMethod(order.getShippingMethod());
         OrderStatus orderStatusResponse = OrderStatus.fromOrderStatus(order.getOrderStatus());
 

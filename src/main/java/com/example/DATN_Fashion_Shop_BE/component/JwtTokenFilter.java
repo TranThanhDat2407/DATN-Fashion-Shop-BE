@@ -132,6 +132,11 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/address/**", apiPrefix), "DELETE"),
                 Pair.of(String.format("%s/address/**", apiPrefix), "PUT"),
 
+                Pair.of(String.format("%s/coupons/**", apiPrefix), "GET"),
+                Pair.of(String.format("%s/coupons/**", apiPrefix), "POST"),
+                Pair.of(String.format("%s/coupons/**", apiPrefix), "DELETE"),
+                Pair.of(String.format("%s/coupons/**", apiPrefix), "PUT"),
+
                 Pair.of(String.format("%s/languages**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/healthcheck/**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/actuator/**", apiPrefix), "GET"),
@@ -164,6 +169,11 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/banners/**", apiPrefix), "POST"),
                 Pair.of(String.format("%s/banners/**", apiPrefix), "PUT"),
                 Pair.of(String.format("%s/banners/**", apiPrefix), "DELETE"),
+
+                Pair.of(String.format("%s/store/**", apiPrefix), "GET"),
+                Pair.of(String.format("%s/store/**", apiPrefix), "POST"),
+                Pair.of(String.format("%s/store/**", apiPrefix), "PUT"),
+                Pair.of(String.format("%s/store/**", apiPrefix), "DELETE"),
 
                 // Swagger
                 Pair.of("/api-docs","GET"),
