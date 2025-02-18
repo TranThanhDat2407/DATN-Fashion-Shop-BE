@@ -83,7 +83,7 @@ public class CartController {
         );
     }
 
-    @DeleteMapping("/cart/item/{cartItemId}")
+    @DeleteMapping("/item/{cartItemId}")
     public ResponseEntity<ApiResponse<Void>> removeFromCart(
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) String sessionId,
@@ -103,7 +103,7 @@ public class CartController {
         );
     }
 
-    @PutMapping("/cart/{cartItemId}")
+    @PutMapping("/{cartItemId}")
     public ResponseEntity<ApiResponse<CartItemResponse>> updateCartItem(
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) String sessionId,
@@ -162,6 +162,20 @@ public class CartController {
                 ApiResponseUtils.successResponse(
                         localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
                         cartService.getTotalCartItems(userId, sessionId)
+                )
+        );
+    }
+
+    @PostMapping("/merge")
+    public ResponseEntity<ApiResponse<String>> mergeCart(
+            @RequestParam String sessionId,
+            @RequestParam Long userId) {
+
+        cartService.mergeCart(sessionId, userId);
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                        null
                 )
         );
     }

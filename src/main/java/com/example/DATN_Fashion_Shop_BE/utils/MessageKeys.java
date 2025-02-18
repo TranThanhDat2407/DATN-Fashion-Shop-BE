@@ -138,6 +138,28 @@ public class MessageKeys {
     public static final String ADDRESS_PHONE_NUMBER_INVALID = "address.phone_number.invalid";
 
 
+// coupon
+
+    public static final String COUPON_CODE_INVALID = "coupon.code.invalid";
+    public static final String COUPON_CODE_VALID = "coupon.code.valid";
+    public static final String COUPON_CODE_REQUIRED = "coupon.code.required";
+    public static final String DISCOUNT_TYPE_REQUIRED = "coupon.discountType.required";
+    public static final String DISCOUNT_VALUE_INVALID = "coupon.discountValue.invalid";
+    public static final String MIN_ORDER_VALUE_INVALID = "coupon.minOrderValue.invalid";
+    public static final String EXPIRATION_DATE_INVALID = "coupon.expirationDate.invalid";
+    public static final String COUPON_DESCRIPTION_REQUIRED = "coupon.description.required";
+    public static final String LANGUAGE_CODE_REQUIRED = "coupon.languageCode.required";
+    public static final String LANGUAGE_CODE_INVALID = "coupon.languageCode.invalid";
+    public static final String COUPON_NAME_REQUIRED = "coupon.name.required";
+    public static final String COUPON_CREATED_SUCCESS = "coupon.created.success";
+    public static final String COUPON_CREATED_FAILED = "coupon.created.failed";
+
+    public static final String COUPON_UPDATE_SUCCESS = "coupon.update.success";
+    public static final String COUPON_UPDATE_FAILED = "coupon.update.failed";
+    public static final String COUPON_GETALL_SUCCESS = "coupon.getall.success";
+    public static final String COUPON_GETALL_FAILED = "coupon.getall.failed";
+    public static final String COUPON_DELETE_SUCESS = "coupon.delete.success";
+    public static final String COUPON_DELETE_FAILED = "coupon.delete.failed";
 
 
     // cart
