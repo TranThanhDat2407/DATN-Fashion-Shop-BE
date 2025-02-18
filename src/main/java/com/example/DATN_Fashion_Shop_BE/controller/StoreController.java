@@ -35,8 +35,12 @@ public class StoreController {
     }
 
     @GetMapping("/{storeId}")
-    public ResponseEntity<StoreResponse> getStoreById(@PathVariable Long storeId) {
-        return ResponseEntity.ok(storeService.getStoreById(storeId));
+    public ResponseEntity<ApiResponse<StoreResponse>> getStoreById(@PathVariable Long storeId) {
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_RETRIEVED_SUCCESSFULLY),
+                storeService.getStoreById(storeId)
+        ));
     }
 
     @GetMapping("/inventory")
