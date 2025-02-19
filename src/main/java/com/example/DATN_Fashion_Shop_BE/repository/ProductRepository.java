@@ -94,7 +94,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             "AND p.isActive = :isActive " +
             "AND (:nameKeyword IS NULL OR LOWER(t.name) LIKE LOWER(CONCAT('%', :nameKeyword, '%'))) " +
             "AND (SELECT MIN(v.salePrice) FROM p.variants v) BETWEEN :minPrice AND :maxPrice " +
-            "AND (:promotion IS NULL OR pr.id = :promotionId)")
+            "AND (:promotionId IS NULL OR pr.id = :promotionId)")
     Page<Product> findProductsByCategoryAndLowestPrice(
             @Param("categoryId") Long categoryId,
             @Param("isActive") Boolean isActive,

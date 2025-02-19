@@ -25,6 +25,7 @@ public class StoreResponse {
    @JsonFormat(pattern = "HH:mm", shape = JsonFormat.Shape.STRING)
    private LocalDateTime closeHour;
    private String fullAddress;
+   private Double distance;
 
    public static StoreResponse fromStore(Store store) {
       return StoreResponse.builder()
@@ -38,6 +39,22 @@ public class StoreResponse {
               .openHour(store.getOpenHour() != null ? store.getOpenHour() : null)
               .closeHour(store.getCloseHour() != null ? store.getCloseHour() : null)
               .fullAddress(store.getAddress().getFullAddress())
+              .build();
+   }
+
+   public static StoreResponse fromStoreDistance(Store store, Double distance) {
+      return StoreResponse.builder()
+              .id(store.getId())
+              .name(store.getName())
+              .email(store.getEmail())
+              .phone(store.getPhone())
+              .isActive(store.getIsActive())
+              .latitude(store.getAddress().getLatitude())
+              .longitude(store.getAddress().getLongitude())
+              .openHour(store.getOpenHour() != null ? store.getOpenHour() : null)
+              .closeHour(store.getCloseHour() != null ? store.getCloseHour() : null)
+              .fullAddress(store.getAddress().getFullAddress())
+              .distance(distance)
               .build();
    }
 }
