@@ -14,12 +14,10 @@ import com.example.DATN_Fashion_Shop_BE.repository.StoreRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -30,11 +28,10 @@ public class StoreService {
     private final InventoryRepository inventoryRepository;
 
     @Transactional
-    public PageResponse<StoreResponse> searchStores(String name, String city, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
+    public PageResponse<StoreResponse> searchStores(String name, String city, int page, int size, Double userLat, Double userLon) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
 
         Page<Store> stores;
-
         if (name != null && !name.isEmpty() && city != null && !city.isEmpty()) {
             stores = storeRepository.findByNameContainingIgnoreCaseAndAddress_CityContainingIgnoreCase(name, city, pageable);
         } else if (name != null && !name.isEmpty()) {
@@ -45,7 +42,15 @@ public class StoreService {
             stores = storeRepository.findAll(pageable);
         }
 
-        return PageResponse.fromPage(stores.map(StoreResponse::fromStore));
+        List<StoreResponse> storeResponses = stores.stream().map(store -> {
+                    Double distance = (userLat != null && userLon != null) ?
+                            calculateDistance(userLat, userLon,
+                                    store.getAddress().getLatitude(), store.getAddress().getLongitude()) : null;
+                    return StoreResponse.fromStoreDistance(store, distance);
+                }).sorted(Comparator.comparing(StoreResponse::getDistance, Comparator.nullsLast(Comparator.naturalOrder()))) // Sắp xếp theo distance
+                .toList();
+
+        return PageResponse.fromPage(new PageImpl<>(storeResponses, pageable, stores.getTotalElements()));
     }
 
     public StoreInventoryResponse stockInStore(
@@ -147,4 +152,21 @@ public class StoreService {
         }
     }
 
+    double haversine(double val) {
+        return Math.pow(Math.sin(val / 2), 2);
+    }
+
+    double calculateDistance(double startLat, double startLong, double endLat, double endLong) {
+        final int EARTH_RADIUS = 6371;
+        double dLat = Math.toRadians((endLat - startLat));
+        double dLong = Math.toRadians((endLong - startLong));
+
+        startLat = Math.toRadians(startLat);
+        endLat = Math.toRadians(endLat);
+
+        double a = haversine(dLat) + Math.cos(startLat) * Math.cos(endLat) * haversine(dLong);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return EARTH_RADIUS * c;
+    }
 }

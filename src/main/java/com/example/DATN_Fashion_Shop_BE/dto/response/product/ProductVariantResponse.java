@@ -16,6 +16,7 @@ public class ProductVariantResponse extends BaseResponse {
     private Double salePrice;
     private Long colorId;
     private String colorName;
+    private Long sizeId;
     private String size;
     private String productName;
     private Long productId;
@@ -27,6 +28,7 @@ public class ProductVariantResponse extends BaseResponse {
                 .salePrice(variant.getAdjustedPrice())
                 .colorId(variant.getColorValue().getId())
                 .colorName(variant.getColorValue().getValueName())
+                .sizeId(variant.getSizeValue().getId())
                 .size(variant.getSizeValue().getValueName())
                 .productId(variant.getProduct().getId())
                 .productName(variant.getProduct().getTranslationByLanguage("en").getName())
