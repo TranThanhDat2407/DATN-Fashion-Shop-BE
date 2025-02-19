@@ -74,8 +74,7 @@ public class OrderController {
         }
 
         // Trường hợp COD: response.getBody() là Order
-        if (response.getBody() instanceof Order) {
-            Order order = (Order) response.getBody();
+        if (response.getBody() instanceof Order order) {
             CreateOrderResponse createOrderResponse = CreateOrderResponse.fromOrder(order);
 
             return ResponseEntity.ok(ApiResponseUtils.successResponse(

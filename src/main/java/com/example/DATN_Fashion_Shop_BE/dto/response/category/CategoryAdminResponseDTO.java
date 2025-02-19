@@ -1,5 +1,6 @@
 package com.example.DATN_Fashion_Shop_BE.dto.response.category;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -10,13 +11,17 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CategoryAdminResponseDTO {
+public class CategoryAdminResponseDTO{
     private Long id;
     private String name;
     private String imageUrl;
     private Boolean isActive;
     private Long parentId;
     private String parentName;
-    private LocalDateTime createdAt;  // Thêm createdAt
-    private LocalDateTime updatedAt;  // Thêm updatedAt
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss", shape = JsonFormat.Shape.STRING)
+    private LocalDateTime createdAt;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss", shape = JsonFormat.Shape.STRING)
+    private LocalDateTime updatedAt;
+    private Long createdBy;
+    private Long updatedBy;
 }

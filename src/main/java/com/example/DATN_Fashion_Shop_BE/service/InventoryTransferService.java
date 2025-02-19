@@ -69,21 +69,106 @@ public class InventoryTransferService {
         Inventory warehouseInventory = inventoryRepository.findByProductVariantIdAndWarehouseNotNull(transfer.getProductVariant().getId())
                 .stream().findFirst().orElseThrow(() -> new IllegalStateException("No inventory found in warehouse"));
 
-        if (warehouseInventory.getQuantityInStock() < transfer.getQuantity()) {
+        // Kiểm tra quantityInStock nếu nó là null, gán giá trị mặc định là 0
+        Integer warehouseQuantityInStock = warehouseInventory.getQuantityInStock() != null ? warehouseInventory.getQuantityInStock() : 0;
+
+        if (warehouseQuantityInStock < transfer.getQuantity()) {
             throw new IllegalStateException("Not enough stock in warehouse to confirm transfer");
         }
-        warehouseInventory.setQuantityInStock(warehouseInventory.getQuantityInStock() - transfer.getQuantity());
+        warehouseInventory.setQuantityInStock(warehouseQuantityInStock - transfer.getQuantity());
         inventoryRepository.save(warehouseInventory);
 
         // Cập nhật hàng tồn kho ở Store
         Inventory storeInventory = inventoryRepository.findByProductVariantIdAndStoreNotNull(transfer.getProductVariant().getId())
                 .stream().findFirst().orElse(new Inventory());
 
+        // Kiểm tra quantityInStock nếu nó là null, gán giá trị mặc định là 0
+        Integer storeQuantityInStock = storeInventory.getQuantityInStock() != null
+                ? storeInventory.getQuantityInStock() : 0;
+
         storeInventory.setProductVariant(transfer.getProductVariant());
         storeInventory.setStore(transfer.getStore());
-        storeInventory.setQuantityInStock(storeInventory.getQuantityInStock() + transfer.getQuantity());
+        storeInventory.setQuantityInStock(storeQuantityInStock + transfer.getQuantity());
 
         inventoryRepository.save(storeInventory);
+
+        // Đánh dấu transfer là CONFIRMED
+        transfer.setStatus(TransferStatus.CONFIRMED);
+        return inventoryTransferRepository.save(transfer);
+    }
+    // Hủy yêu cầu chuyển kho
+    @Transactional
+    public InventoryTransfer cancelTransfer(Long transferId) {
+        InventoryTransfer transfer = inventoryTransferRepository.findById(transferId)
+                .orElseThrow(() -> new IllegalArgumentException("Transfer request not found"));
+
+        if (transfer.getStatus() == TransferStatus.CONFIRMED) {
+            throw new IllegalStateException("Cannot cancel a confirmed transfer");
+        }
+
+        // Đánh dấu transfer là CANCELED
+        transfer.setStatus(TransferStatus.CANCELED);
+        return inventoryTransferRepository.save(transfer);
+    }
+
+    @Transactional
+    public InventoryTransfer returnToWarehouse(Long storeId, Long warehouseId, Long productVariantId, Integer quantity) {
+        Store store = storeRepository.findById(storeId)
+                .orElseThrow(() -> new IllegalArgumentException("Store not found"));
+        Warehouse warehouse = warehouseRepository.findById(warehouseId)
+                .orElseThrow(() -> new IllegalArgumentException("Warehouse not found"));
+        ProductVariant productVariant = productVariantRepository.findById(productVariantId)
+                .orElseThrow(() -> new IllegalArgumentException("Product Variant not found"));
+
+        // Kiểm tra số lượng hàng tại cửa hàng
+        Inventory storeInventory = inventoryRepository.findByProductVariantIdAndStoreNotNull(productVariantId)
+                .stream().findFirst().orElseThrow(() -> new IllegalStateException("No inventory found in store"));
+
+        if (storeInventory.getQuantityInStock() < quantity) {
+            throw new IllegalStateException("Not enough stock available in store");
+        }
+
+        // Tạo yêu cầu trả hàng về kho
+        InventoryTransfer transfer = InventoryTransfer.builder()
+                .warehouse(warehouse)
+                .store(store)
+                .productVariant(productVariant)
+                .quantity(quantity)
+                .status(TransferStatus.PENDING)
+                .isReturn(true) // Đánh dấu đây là yêu cầu trả hàng
+                .build();
+
+        return inventoryTransferRepository.save(transfer);
+    }
+
+    @Transactional
+    public InventoryTransfer confirmReturnTransfer(Long transferId) {
+        InventoryTransfer transfer = inventoryTransferRepository.findById(transferId)
+                .orElseThrow(() -> new IllegalArgumentException("Return transfer request not found"));
+
+        if (transfer.getStatus() == TransferStatus.CONFIRMED) {
+            throw new IllegalStateException("Return transfer already confirmed");
+        }
+
+        // Cập nhật kho cửa hàng (giảm số lượng)
+        Inventory storeInventory = inventoryRepository.findByProductVariantIdAndStoreNotNull(transfer.getProductVariant().getId())
+                .stream().findFirst().orElseThrow(() -> new IllegalStateException("No inventory found in store"));
+
+        if (storeInventory.getQuantityInStock() < transfer.getQuantity()) {
+            throw new IllegalStateException("Not enough stock in store to confirm return transfer");
+        }
+        storeInventory.setQuantityInStock(storeInventory.getQuantityInStock() - transfer.getQuantity());
+        inventoryRepository.save(storeInventory);
+
+        // Cập nhật kho tổng (tăng số lượng)
+        Inventory warehouseInventory = inventoryRepository.findByProductVariantIdAndWarehouseNotNull(transfer.getProductVariant().getId())
+                .stream().findFirst().orElse(new Inventory());
+
+        warehouseInventory.setProductVariant(transfer.getProductVariant());
+        warehouseInventory.setWarehouse(transfer.getWarehouse());
+        warehouseInventory.setQuantityInStock(warehouseInventory.getQuantityInStock() + transfer.getQuantity());
+
+        inventoryRepository.save(warehouseInventory);
 
         // Đánh dấu transfer là CONFIRMED
         transfer.setStatus(TransferStatus.CONFIRMED);
