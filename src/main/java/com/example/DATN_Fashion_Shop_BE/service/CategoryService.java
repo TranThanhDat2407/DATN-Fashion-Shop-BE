@@ -342,6 +342,8 @@ public class CategoryService {
                     .parentName(parentName)  // Parent category name
                     .createdAt(category.getCreatedAt())  // Add createdAt
                     .updatedAt(category.getUpdatedAt())  // Add updatedAt
+                    .updatedBy(category.getUpdatedBy())
+                    .createdBy(category.getCreatedBy())
                     .build();
         });
 

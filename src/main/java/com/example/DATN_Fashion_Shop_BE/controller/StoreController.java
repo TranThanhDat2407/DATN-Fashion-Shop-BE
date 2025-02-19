@@ -27,10 +27,13 @@ public class StoreController {
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String city,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) Double userLat,
+            @RequestParam(required = false) Double userLon
+            ) {
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_RETRIEVED_SUCCESSFULLY),
-                storeService.searchStores(name, city, page, size)
+                storeService.searchStores(name, city, page, size, userLat, userLon)
         ));
     }
 
