@@ -113,7 +113,7 @@ public class GHNService {
         requestBody.put("to_ward_code", wardCode);
         requestBody.put("height", 20);
         requestBody.put("length", 30);
-        requestBody.put("width", 40);
+        requestBody.put("width", 20);
         requestBody.put("weight", totalWeight);
         requestBody.put("insurance_value", 1000000);
 
