@@ -20,6 +20,7 @@ public class VNPayService  {
     private static final String vnp_HashSecret = "HJF2G7EHCHPX0K446LBH17FKQUF56MB5";
     private static final String vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"; // URL VNPay
     private static final String vnp_ReturnUrl = "http://localhost:4200/client/usd/en/payment_success"; // URL trả về sau khi thanh toán
+    private static final String vnp_IpnUrl = "https://c84e-171-251-218-11.ngrok-free.app/api/v1/payment/vnpay_ipn"; // URL VNPay gọi khi thanh toán xong
 
     public static String hmacSHA512(String data, String key) {
         try {
@@ -50,6 +51,7 @@ public class VNPayService  {
         params.put("vnp_OrderType", "other");
         params.put("vnp_Locale", "vn");
         params.put("vnp_ReturnUrl", vnp_ReturnUrl);
+//        params.put("vnp_IpnUrl", vnp_IpnUrl);
         params.put("vnp_IpAddr", ipAddr);
         params.put("vnp_CreateDate", new java.text.SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
 
