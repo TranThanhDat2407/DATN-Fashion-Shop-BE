@@ -20,11 +20,11 @@ public class OrderStatus extends BaseEntity {
     private String statusName;
 
 
-
     public static OrderStatus fromOrderStatus(OrderStatus orderStatus) {
         return OrderStatus.builder()
                 .id(orderStatus.getId())
                 .statusName(orderStatus.getStatusName())
                 .build();
     }
+
 }

@@ -70,6 +70,7 @@ public class WebSercurityConfig {
                                     String.format("%s/coupons/**", apiPrefix),
                                     String.format("%s/banners/**", apiPrefix),
                                     String.format("%s/store/**", apiPrefix),
+                                    String.format("%s/vnpay/**", apiPrefix),
                                   "/uploads/**",
 
                                     String.format("%s/inventory-transfers/**", apiPrefix),
