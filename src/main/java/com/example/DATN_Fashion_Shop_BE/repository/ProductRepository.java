@@ -66,7 +66,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             "FROM Product p " +
             "JOIN p.categories c " +
             "JOIN p.translations t " +
-            "WHERE (c.id = :categoryId " +
+            "WHERE (:categoryId is NULL OR c.id = :categoryId " +
             "   OR c.parentCategory.id = :categoryId " +
             "   OR c.parentCategory.id IN (" +
             "       SELECT sc.id FROM Category sc WHERE sc.parentCategory.id = :categoryId" +
@@ -86,7 +86,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             "JOIN p.variants pv " +
             "JOIN p.translations t " +
             "LEFT JOIN p.promotion pr " +
-            "WHERE (c.id = :categoryId " +
+            "WHERE (:categoryId is NULL OR c.id = :categoryId " +
             "   OR c.parentCategory.id = :categoryId " +
             "   OR c.parentCategory.id IN (" +
             "       SELECT sc.id FROM Category sc WHERE sc.parentCategory.id = :categoryId" +

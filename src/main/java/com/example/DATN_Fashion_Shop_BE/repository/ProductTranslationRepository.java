@@ -10,10 +10,12 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface ProductTranslationRepository extends JpaRepository<ProductsTranslation, Long> {
-    @Query("SELECT pt FROM ProductsTranslation pt WHERE pt.product.id " +
-            "IN :productIds AND pt.language.code = :languageCode")
-    List<ProductsTranslation> findByProductIdInAndLanguageCode(
-            @Param("productIds") List<Long> productIds,
-            @Param("languageCode") String languageCode
+    @Query("SELECT pt FROM ProductsTranslation pt " +
+            "WHERE LOWER(pt.name) LIKE LOWER(CONCAT('%', :name, '%')) " +
+            "AND pt.language.code = :language " +
+            "AND pt.product.isActive = true")
+    List<ProductsTranslation> searchByNameAndLanguage(
+            @Param("name") String name,
+            @Param("language") String language
     );
 }
