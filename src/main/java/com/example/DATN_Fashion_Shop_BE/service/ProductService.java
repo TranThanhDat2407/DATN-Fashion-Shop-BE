@@ -34,7 +34,7 @@ public class ProductService {
     private final AttributeValueRepository attributeValueRepository;
     private final ProductMediaRepository productMediaRepository;
     private final InventoryRepository inventoryRepository;
-    private final WishlistRepository wishlistRepository;
+    private final ProductTranslationRepository productsTranslationRepository;
     private final WishlistItemRepository wishlistItemRepository;
     private final FileStorageService fileStorageService;
     private final LocalizationUtils localizationUtils;
@@ -216,6 +216,13 @@ public class ProductService {
 
     public List<ProductVariant> getProductVariantsByMediaId(Long mediaId) {
         return productVariantRepository.findProductVariantsByMediaId(mediaId);
+    }
+
+    public List<ProductSearchResponse> searchProducts(String name, String language) {
+        return productsTranslationRepository.searchByNameAndLanguage(name, language)
+                .stream()
+                .map(ProductSearchResponse::fromTranslation)
+                .collect(Collectors.toList());
     }
 
     @Transactional

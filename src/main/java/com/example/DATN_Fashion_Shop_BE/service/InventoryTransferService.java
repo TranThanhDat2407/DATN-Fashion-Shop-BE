@@ -106,7 +106,6 @@ public class InventoryTransferService {
             throw new IllegalStateException("Cannot cancel a confirmed transfer");
         }
 
-        // Đánh dấu transfer là CANCELED
         transfer.setStatus(TransferStatus.CANCELED);
         return inventoryTransferRepository.save(transfer);
     }
@@ -154,19 +153,28 @@ public class InventoryTransferService {
         Inventory storeInventory = inventoryRepository.findByProductVariantIdAndStoreNotNull(transfer.getProductVariant().getId())
                 .stream().findFirst().orElseThrow(() -> new IllegalStateException("No inventory found in store"));
 
-        if (storeInventory.getQuantityInStock() < transfer.getQuantity()) {
+        // Kiểm tra quantityInStock nếu nó là null, gán giá trị mặc định là 0
+        int storeQuantityInStock = storeInventory.getQuantityInStock() != null ? storeInventory.getQuantityInStock() : 0;
+
+        if (storeQuantityInStock < transfer.getQuantity()) {
             throw new IllegalStateException("Not enough stock in store to confirm return transfer");
         }
-        storeInventory.setQuantityInStock(storeInventory.getQuantityInStock() - transfer.getQuantity());
+
+        storeInventory.setQuantityInStock(storeQuantityInStock - transfer.getQuantity());
         inventoryRepository.save(storeInventory);
 
         // Cập nhật kho tổng (tăng số lượng)
         Inventory warehouseInventory = inventoryRepository.findByProductVariantIdAndWarehouseNotNull(transfer.getProductVariant().getId())
-                .stream().findFirst().orElse(new Inventory());
+                .stream().findFirst().orElseGet(() -> {
+                    Inventory newInventory = new Inventory();
+                    newInventory.setProductVariant(transfer.getProductVariant());
+                    newInventory.setWarehouse(transfer.getWarehouse());
+                    newInventory.setQuantityInStock(0); // Giá trị mặc định khi tạo mới
+                    return newInventory;
+                });
 
-        warehouseInventory.setProductVariant(transfer.getProductVariant());
-        warehouseInventory.setWarehouse(transfer.getWarehouse());
-        warehouseInventory.setQuantityInStock(warehouseInventory.getQuantityInStock() + transfer.getQuantity());
+        int warehouseQuantityInStock = warehouseInventory.getQuantityInStock() != null ? warehouseInventory.getQuantityInStock() : 0;
+        warehouseInventory.setQuantityInStock(warehouseQuantityInStock + transfer.getQuantity());
 
         inventoryRepository.save(warehouseInventory);
 
@@ -174,4 +182,5 @@ public class InventoryTransferService {
         transfer.setStatus(TransferStatus.CONFIRMED);
         return inventoryTransferRepository.save(transfer);
     }
+
 }

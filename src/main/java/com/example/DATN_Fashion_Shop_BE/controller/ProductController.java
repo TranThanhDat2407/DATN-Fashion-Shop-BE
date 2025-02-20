@@ -183,6 +183,21 @@ public class ProductController {
         ));
     }
 
+    @GetMapping("suggest/{langCode}")
+    public ResponseEntity<ApiResponse<List<ProductSearchResponse>>> getProductImages(
+            @PathVariable String langCode,
+            @RequestParam (required = false) String productName
+            ) {
+
+        List<ProductSearchResponse> products = productService.searchProducts(productName, langCode);
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                products
+        ));
+    }
+
+
     @GetMapping("videos/{productId}")
     public ResponseEntity<ApiResponse<List<ProductMediaDTO>>> getProductVideos(
             @PathVariable Long productId) {
@@ -209,19 +224,6 @@ public class ProductController {
         ));
     }
 
-//    @GetMapping("media/{mediaId}")
-//    public ResponseEntity<ApiResponse<List<ProductMediaDTO>>> getProductImagesWithColor(
-//            @PathVariable Long mediaId
-//    ) {
-//
-//        ProductMediaDetailResponse productMedia = productService.getProductMedia(mediaId);
-//
-//        return ResponseEntity.ok(ApiResponseUtils.successResponse(
-//                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
-//                productMedia
-//        ));
-//    }
-
     @GetMapping("/media/detail/{mediaId}")
     public ResponseEntity<ApiResponse<List<ProductVariantResponse>>> getProductVariantsByMediaId(@PathVariable Long mediaId) {
         List<ProductVariant> productVariants = productService.getProductVariantsByMediaId(mediaId);
@@ -238,7 +240,7 @@ public class ProductController {
     @GetMapping("/{languageCode}")
     public ResponseEntity<ApiResponse<PageResponse<ProductListDTO>>> getFilteredProducts(
             @PathVariable String languageCode,
-            @RequestParam Long categoryId,
+            @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false, defaultValue = "true") Boolean isActive,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) Double minPrice,
