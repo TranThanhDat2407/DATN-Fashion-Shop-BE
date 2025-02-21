@@ -207,7 +207,7 @@ public class OrderService {
 
             } if ("VNPAY".equalsIgnoreCase(paymentMethod.getMethodName())) {
                 String vnp_TxnRef = String.valueOf(savedOrder.getId());
-                long vnp_Amount = (long) (finalAmount * 100); // Đảm bảo kiểu dữ liệu là long
+                long vnp_Amount = (long) (finalAmount * 100);
                 String vnp_IpAddr = request.getRemoteAddr();
                 String vnp_OrderInfo = "Thanh toán đơn hàng " + vnp_TxnRef; // Thông tin đơn hàng
 
