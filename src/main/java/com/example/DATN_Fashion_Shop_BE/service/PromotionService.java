@@ -143,4 +143,21 @@ public class PromotionService {
         return PromotionResponse.fromPromotion(promotion);
     }
 
+    @Transactional
+    public void updateProductsPromotion(Long promotionId, List<Long> productIds, boolean activate) {
+        Promotion promotion = promotionRepository.findById(promotionId)
+                .orElseThrow(() -> new RuntimeException("Promotion not found"));
+
+        List<Product> products = productRepository.findAllById(productIds);
+
+        for (Product product : products) {
+            if (activate) {
+                product.setPromotion(promotion);
+            } else {
+                product.setPromotion(null); // Gỡ bỏ promotion
+            }
+        }
+
+        productRepository.saveAll(products);
+    }
 }
