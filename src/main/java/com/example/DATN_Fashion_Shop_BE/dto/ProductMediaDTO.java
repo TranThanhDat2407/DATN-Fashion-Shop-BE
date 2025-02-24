@@ -14,6 +14,7 @@ public class ProductMediaDTO {
     private Long id;
     private String mediaUrl;
     private String mediaType;
+    private Long colorId;
     private boolean hasVariants;
 
     public static ProductMediaDTO fromProductMedia(ProductMedia productMedia) {
@@ -21,6 +22,8 @@ public class ProductMediaDTO {
                 .id(productMedia.getId())
                 .mediaUrl(productMedia.getMediaUrl())
                 .mediaType(productMedia.getMediaType())
+                .colorId(productMedia.getColorValue() != null
+                        ? productMedia.getColorValue().getId() : null)
                 .hasVariants(productMedia.getProductVariants() != null
                         && !productMedia.getProductVariants().isEmpty()) // Kiểm tra có variant hay không
                 .build();

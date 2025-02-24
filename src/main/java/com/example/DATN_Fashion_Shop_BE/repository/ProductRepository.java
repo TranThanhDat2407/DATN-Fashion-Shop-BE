@@ -66,7 +66,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             "FROM Product p " +
             "JOIN p.categories c " +
             "JOIN p.translations t " +
-            "WHERE (c.id = :categoryId " +
+            "WHERE (:categoryId is NULL OR c.id = :categoryId " +
             "   OR c.parentCategory.id = :categoryId " +
             "   OR c.parentCategory.id IN (" +
             "       SELECT sc.id FROM Category sc WHERE sc.parentCategory.id = :categoryId" +
@@ -86,7 +86,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             "JOIN p.variants pv " +
             "JOIN p.translations t " +
             "LEFT JOIN p.promotion pr " +
-            "WHERE (c.id = :categoryId " +
+            "WHERE (:categoryId is NULL OR c.id = :categoryId " +
             "   OR c.parentCategory.id = :categoryId " +
             "   OR c.parentCategory.id IN (" +
             "       SELECT sc.id FROM Category sc WHERE sc.parentCategory.id = :categoryId" +
@@ -94,7 +94,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             "AND p.isActive = :isActive " +
             "AND (:nameKeyword IS NULL OR LOWER(t.name) LIKE LOWER(CONCAT('%', :nameKeyword, '%'))) " +
             "AND (SELECT MIN(v.salePrice) FROM p.variants v) BETWEEN :minPrice AND :maxPrice " +
-            "AND (:promotion IS NULL OR pr.id = :promotionId)")
+            "AND (:promotionId IS NULL OR pr.id = :promotionId)")
     Page<Product> findProductsByCategoryAndLowestPrice(
             @Param("categoryId") Long categoryId,
             @Param("isActive") Boolean isActive,

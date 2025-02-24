@@ -24,6 +24,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -143,6 +145,36 @@ public class CategoryService {
                 .collect(Collectors.toList());
     }
 
+    public CategoryDTO getParentCategoriesWithTranslations(String languageCode, Long categoryId, Boolean isActive) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Category not found with id: " + categoryId));
+
+        // Tìm danh mục cha gần nhất thỏa mãn điều kiện isActive (nếu có)
+        Category parent = category.getParentCategory();
+        while (parent != null && isActive != null && !parent.getIsActive().equals(isActive)) {
+            parent = parent.getParentCategory();
+        }
+
+        // Nếu không có danh mục cha nào thỏa mãn, trả về null
+        if (parent == null) {
+            return null;
+        }
+
+        // Lấy bản dịch của danh mục cha gần nhất
+        CategoriesTranslation translation = categoryTranslationRepository
+                .findByCategoryIdAndLanguageCode(parent.getId(), languageCode)
+                .orElse(null);
+
+        // Chuyển sang DTO
+        return CategoryDTO.builder()
+                .id(parent.getId())
+                .imageUrl(parent.getImageUrl())
+                .name(translation != null ? translation.getName() : "")
+                .isActive(parent.getIsActive())
+                .build();
+    }
+
+
     public CategoryEditResponseDTO getCategoryForEdit(Long id) {
         // Lấy Category từ cơ sở dữ liệu
         Category category = categoryRepository.findById(id)
@@ -174,7 +206,7 @@ public class CategoryService {
     @Transactional
     public CategoryDTO createCategoryWithImage(CategoryCreateRequestDTO request, MultipartFile imageFile) {
         // 1. Upload file và lấy URL
-        String imageUrl = fileStorageService.uploadFileAndGetName(imageFile, "categories");
+        String imageUrl = fileStorageService.uploadFileAndGetName(imageFile, "images/categories");
 
         // 2. Tạo Category
         Category category = new Category();
@@ -342,6 +374,8 @@ public class CategoryService {
                     .parentName(parentName)  // Parent category name
                     .createdAt(category.getCreatedAt())  // Add createdAt
                     .updatedAt(category.getUpdatedAt())  // Add updatedAt
+                    .updatedBy(category.getUpdatedBy())
+                    .createdBy(category.getCreatedBy())
                     .build();
         });
 

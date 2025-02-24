@@ -1,9 +1,13 @@
 package com.example.DATN_Fashion_Shop_BE.controller;
 
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
+import com.example.DATN_Fashion_Shop_BE.dto.StoreLoginDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.UserLoginDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.LoginResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.StaffResponse;
 import com.example.DATN_Fashion_Shop_BE.model.Staff;
+import com.example.DATN_Fashion_Shop_BE.model.Token;
 import com.example.DATN_Fashion_Shop_BE.model.User;
 import com.example.DATN_Fashion_Shop_BE.service.StaffService;
 import com.example.DATN_Fashion_Shop_BE.service.TokenService;
@@ -12,10 +16,13 @@ import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -59,5 +66,67 @@ public class StaffController {
                     )
             );
         }
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<?>> storeLogin(
+            @Valid @RequestBody StoreLoginDTO storeLoginRequest,
+            BindingResult result,
+            HttpServletRequest request
+    ) {
+        if (result.hasErrors()) {
+            return ResponseEntity.badRequest().body(
+                    ApiResponseUtils.generateValidationErrorResponse(
+                            result,
+                            localizationUtils.getLocalizedMessage(MessageKeys.LOGIN_FAILED),
+                            localizationUtils
+                    )
+            );
+        }
+
+        try {
+            String token = staffService.storeLogin(
+                    storeLoginRequest.getEmail(),
+                    storeLoginRequest.getPassword(),
+                    storeLoginRequest.getStoreId()
+            );
+
+            String userAgent = request.getHeader("User-Agent");
+            User userDetail = userService.getUserDetailsFromToken(token);
+            Token jwtToken = tokenService.addToken(userDetail, token, isMobileDevice(userAgent));
+
+            LoginResponse loginResponse = LoginResponse.builder()
+                    .message(localizationUtils.getLocalizedMessage(MessageKeys.LOGIN_SUCCESSFULLY))
+                    .token(jwtToken.getToken())
+                    .tokenType(jwtToken.getTokenType())
+                    .refreshToken(jwtToken.getRefreshToken())
+                    .username(userDetail.getUsername())
+                    .roles(userDetail.getAuthorities().stream().map(item -> item.getAuthority()).toList())
+                    .id(userDetail.getId())
+                    .build();
+
+            return ResponseEntity.ok(
+                    ApiResponseUtils.successResponse(
+                            localizationUtils.getLocalizedMessage(MessageKeys.LOGIN_SUCCESSFULLY),
+                            loginResponse
+                    )
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    ApiResponseUtils.errorResponse(
+                            HttpStatus.BAD_REQUEST,
+                            localizationUtils.getLocalizedMessage(MessageKeys.LOGIN_FAILED),
+                            null,
+                            null,
+                            e.getMessage()
+                    )
+            );
+        }
+    }
+
+    private boolean isMobileDevice(String userAgent) {
+        // Kiểm tra User-Agent header để xác định thiết bị di động
+        // Ví dụ đơn giản:
+        return userAgent.toLowerCase().contains("mobile");
     }
 }

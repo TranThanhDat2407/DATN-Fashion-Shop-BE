@@ -17,37 +17,29 @@ import lombok.*;
 @NoArgsConstructor
 public class CreateOrderResponse {
     private Long orderId;
-    private UserResponse user; // Thêm thông tin chi tiết User
-    private CouponResponse coupon; // Thêm thông tin chi tiết Coupon
-    private ShippingMethodResponse shippingMethod; // Thêm thông tin chi tiết Shipping Method
+    private Long userId; // Thêm thông tin chi tiết User
+    private Long couponId; // Thêm thông tin chi tiết Coupon
+    private String shippingMethodName; // Thêm thông tin chi tiết Shipping Method
     private String shippingAddress;
-    private PaymentMethodResponse paymentMethod; // Thêm thông tin chi tiết Payment Method
-    private OrderStatus orderStatus;
+    private String paymentMethodName; // Thêm thông tin chi tiết Payment Method
+    private String orderStatusName;
 
 
 
     public static CreateOrderResponse fromOrder(Order order) {
-        UserResponse userResponse = UserResponse.fromUser(order.getUser());
-        CouponResponse couponResponse = (order.getCoupon() != null)
-                ? CouponResponse.fromCoupon(order.getCoupon())
-                : null;
-        ShippingMethodResponse shippingMethodResponse = ShippingMethodResponse.fromShippingMethod(order.getShippingMethod());
-        OrderStatus orderStatusResponse = OrderStatus.fromOrderStatus(order.getOrderStatus());
-
-        // Lấy Payment tương ứng với Order
-        Payment payment = order.getPayments().stream().findFirst().orElse(null);
-        PaymentMethodResponse paymentMethodResponse = (payment != null)
-                ? PaymentMethodResponse.fromPaymentMethod(payment.getPaymentMethod())
-                : null;
-
         return CreateOrderResponse.builder()
                 .orderId(order.getId())
-                .user(userResponse)
-                .coupon(couponResponse)
-                .shippingMethod(shippingMethodResponse)
+                .userId(order.getUser() != null ? order.getUser().getId() : null)
+                .couponId(order.getCoupon() != null ? order.getCoupon().getId() : null)
+                .shippingMethodName(order.getShippingMethod() != null ? order.getShippingMethod().getMethodName() : null)
                 .shippingAddress(order.getShippingAddress())
-                .paymentMethod(paymentMethodResponse)  // Trả về thông tin phương thức thanh toán
-                .orderStatus(orderStatusResponse)  // Lấy trạng thái từ OrderStatus
+                .paymentMethodName(
+                        order.getPayments().stream()
+                                .findFirst()
+                                .map(payment -> payment.getPaymentMethod().getMethodName())
+                                .orElse(null)
+                )
+                .orderStatusName(order.getOrderStatus() != null ? order.getOrderStatus().getStatusName() : null)
                 .build();
     }
 

@@ -12,10 +12,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.text.Normalizer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -72,54 +75,40 @@ public class GHNService {
 
 
 
-    public Double getShippingFee(ShippingMethodRequest shippingRequest) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Token", ghnConfig.getToken());
-        headers.set("Content-Type", "application/json");
-
-        HttpEntity<ShippingMethodRequest> requestEntity = new HttpEntity<>(shippingRequest, headers);
-
-        try {
-            ResponseEntity<ShippingOrderReviewResponse> response = restTemplate.exchange(
-                    "https://dev-online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee",
-                    HttpMethod.POST,
-                    requestEntity,
-                    ShippingOrderReviewResponse.class
-            );
-
-            if (response.getBody() != null && response.getBody().getFee() != null) {
-                return (double) response.getBody().getFee().getMain_service();
-            }
-        } catch (Exception e) {
-            log.error("Lỗi khi lấy phí vận chuyển từ GHN: {}", e.getMessage());
-        }
-
-        return 0.0; // Nếu có lỗi, trả về 0.0 thay vì ném lỗi
-    }
-
-
     public double calculateShippingFee(Address address, List<CartItem> cartItems) {
         String ghnApiUrl = "https://dev-online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee";
         String token = "6b3b4d35-e5f0-11ef-b2e4-6ec7c647cc27";
         String shopId = "195952";
+//        int shopDistrictId = 1457;
+
 
         // Lấy districtId và wardCode từ GHN API
-        Integer districtId = getGhnDistrictId(address.getCity());
-        if (districtId == null) return 0.0;
-
+        Integer districtId = getGhnDistrictId(address.getCity(), address.getDistrict());
+        if (districtId == null) {
+            log.warn("⚠ Không tìm thấy District ID cho: {}", address.getCity());
+            return 0.0;
+        }
+        String fromWardCode = getGhnWardCode("21705", 1457);
+        if (fromWardCode == null) {
+            log.warn("⚠ Không tìm thấy From Ward Code, dùng giá trị mặc định.");
+            fromWardCode = "21705";
+        }
         String wardCode = getGhnWardCode(address.getWard(), districtId);
-        if (wardCode == null) return 0.0;
+        if (wardCode == null) {
+            log.warn("⚠ Không tìm thấy Ward Code cho: {} - {}", address.getDistrict(), address.getWard());
+            return 0.0;
+        }
 
-        System.out.println("GHN District ID: {}" + districtId);
-        System.out.println("GHN Ward Code: {}" + wardCode);
+        log.debug("✅ Lấy thành công District ID: {}, Ward Code: {}", districtId, wardCode);
 
-
-        int totalWeight = cartItems.stream().mapToInt(item -> item.getQuantity() * 400).sum();
+        int totalWeight = cartItems.stream().mapToInt(item -> item.getQuantity() * 300).sum();
 
         // Chuẩn bị dữ liệu gửi đến GHN
         Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("from_district_id", 195952);
-        requestBody.put("service_id", 2);
+        requestBody.put("service_type_id", 2);
+        requestBody.put("service_id", 53321);
+        requestBody.put("from_district_id", 1457);
+        requestBody.put("from_ward_code",fromWardCode);
         requestBody.put("to_district_id", districtId);
         requestBody.put("to_ward_code", wardCode);
         requestBody.put("height", 20);
@@ -128,17 +117,13 @@ public class GHNService {
         requestBody.put("weight", totalWeight);
         requestBody.put("insurance_value", 1000000);
 
-        System.out.println("District ID: " + districtId);
-        System.out.println("Ward Code: " + wardCode);
-
-
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.set("Content-Type", "application/json");
             headers.set("Token", token);
             headers.set("ShopId", shopId);
 
-
+            log.debug("🛠 Request gửi đến GHN: {}", new ObjectMapper().writeValueAsString(requestBody));
 
             HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
             RestTemplate restTemplate = new RestTemplate();
@@ -149,7 +134,6 @@ public class GHNService {
                     requestEntity,
                     Map.class
             );
-            System.out.println("Request body gửi GHN: " + new ObjectMapper().writeValueAsString(requestBody));
 
 
             if (response.getStatusCode() == HttpStatus.OK) {
@@ -158,48 +142,82 @@ public class GHNService {
                     Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
                     return ((Number) data.get("total")).doubleValue();
                 }
-                System.out.println("GHN Response: " + response.getBody());
-
-
+                log.info("📩 Phản hồi GHN nhưng không có dữ liệu hợp lệ: {}", response.getBody());
+            } else {
+                log.error("❌ Lỗi GHN HTTP: {}", response.getStatusCode());
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            log.error("Lỗi khi gọi API GHN: {}", e.getMessage(), e);
+            log.error("❌ Lỗi khi gọi API GHN: {}", e.getMessage(), e);
         }
 
         return 0.0;
     }
 
-    public Integer getGhnDistrictId(String districtName) {
-        String url = "https://dev-online-gateway.ghn.vn/shiip/public-api/master-data/district";
+
+    public Integer getGhnDistrictId(String provinceName, String districtName) {
+        String provinceUrl = "https://dev-online-gateway.ghn.vn/shiip/public-api/master-data/province";
+        String districtUrl = "https://dev-online-gateway.ghn.vn/shiip/public-api/master-data/district";
         String token = "6b3b4d35-e5f0-11ef-b2e4-6ec7c647cc27";
 
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.set("Content-Type", "application/json");
             headers.set("Token", token);
-
             HttpEntity<String> requestEntity = new HttpEntity<>(headers);
             RestTemplate restTemplate = new RestTemplate();
 
-            ResponseEntity<Map> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    requestEntity,
-                    Map.class
-            );
+            // Lấy danh sách tỉnh/thành phố
+            ResponseEntity<Map> provinceResponse = restTemplate.exchange(provinceUrl, HttpMethod.GET, requestEntity, Map.class);
 
-            if (response.getStatusCode() == HttpStatus.OK) {
-                List<Map<String, Object>> districts = (List<Map<String, Object>>) response.getBody().get("data");
+            if (provinceResponse.getStatusCode() == HttpStatus.OK && provinceResponse.getBody() != null) {
+                List<Map<String, Object>> provinces = (List<Map<String, Object>>) provinceResponse.getBody().get("data");
 
-                for (Map<String, Object> district : districts) {
-                    if (district.get("DistrictName").toString().equalsIgnoreCase(districtName)) {
-                        return (Integer) district.get("DistrictID");
+                if (provinces != null) {
+                    Optional<Map<String, Object>> matchedProvince = provinces.stream()
+                            .filter(province -> provinceName.equalsIgnoreCase(province.get("ProvinceName").toString()))
+                            .findFirst();
+
+                    if (matchedProvince.isPresent()) {
+                        Integer provinceId = (Integer) matchedProvince.get().get("ProvinceID");
+                        log.debug("✅ Tìm thấy Province ID cho {}: {}", provinceName, provinceId);
+
+                        // Lấy danh sách quận/huyện theo provinceId
+                        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(districtUrl)
+                                .queryParam("province_id", provinceId);
+
+                        ResponseEntity<Map> districtResponse = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, requestEntity, Map.class);
+
+                        if (districtResponse.getStatusCode() == HttpStatus.OK && districtResponse.getBody() != null) {
+                            List<Map<String, Object>> districtList = (List<Map<String, Object>>) districtResponse.getBody().get("data");
+
+                            if (districtList != null) {
+                                Optional<Map<String, Object>> matchedDistrict = districtList.stream()
+                                        .filter(district -> {
+                                            String districtMainName = district.get("DistrictName").toString();
+                                            List<String> nameExtensions = (List<String>) district.get("NameExtension");
+
+                                            return normalize(districtMainName).equalsIgnoreCase(normalize(districtName)) ||
+                                                    nameExtensions.stream().anyMatch(name -> normalize(name).equalsIgnoreCase(normalize(districtName)));
+                                        })
+                                        .findFirst();
+
+                                if (matchedDistrict.isPresent()) {
+                                    Integer districtId = (Integer) matchedDistrict.get().get("DistrictID");
+                                    log.debug("✅ Tìm thấy District ID cho {} - {}: {}", provinceName, districtName, districtId);
+                                    return districtId;
+                                }
+                            }
+                        }
+                        log.warn("⚠ Không tìm thấy District ID cho {} - {}", provinceName, districtName);
+                    } else {
+                        log.warn("⚠ Không tìm thấy Province ID cho {}", provinceName);
                     }
                 }
+            } else {
+                log.error("❌ Lỗi khi gọi API GHN lấy Province: HTTP {}", provinceResponse.getStatusCode());
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("❌ Exception khi gọi API GHN: ", e);
         }
         return null;
     }
@@ -220,30 +238,48 @@ public class GHNService {
             HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
             RestTemplate restTemplate = new RestTemplate();
 
-            ResponseEntity<Map> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    requestEntity,
-                    Map.class
-            );
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, Map.class);
 
-            if (response.getStatusCode() == HttpStatus.OK) {
-                Map<String, Object> responseBody = response.getBody();
-                if (responseBody != null && responseBody.containsKey("data")) {
-                    List<Map<String, Object>> wards = (List<Map<String, Object>>) responseBody.get("data");
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                List<Map<String, Object>> wards = (List<Map<String, Object>>) response.getBody().get("data");
 
-                    for (Map<String, Object> ward : wards) {
-                        if (ward.get("WardName").toString().equalsIgnoreCase(wardName)) {
-                            return ward.get("WardCode").toString();
-                        }
+                if (wards != null) {
+                    Optional<Map<String, Object>> matchedWard = wards.stream()
+                            .filter(ward -> {
+                                String wardMainName = ward.get("WardName").toString();
+                                List<String> nameExtensions = (List<String>) ward.get("NameExtension");
+
+                                return normalize(wardMainName).equalsIgnoreCase(normalize(wardName)) ||
+                                        nameExtensions.stream().anyMatch(name -> normalize(name).equalsIgnoreCase(normalize(wardName)));
+                            })
+                            .findFirst();
+
+
+                    if (matchedWard.isPresent()) {
+                        String wardCode = matchedWard.get().get("WardCode").toString();
+                        log.debug("✅ Tìm thấy Ward Code cho {} - {}: {}", districtId, wardName, wardCode);
+                        return wardCode;
                     }
                 }
             }
+            log.warn("⚠ Không tìm thấy Ward Code cho {} - {}", districtId, wardName);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("❌ Exception khi gọi API GHN: ", e);
         }
 
         return null;
+    }
+
+
+    private String normalize(String input) {
+        if (input == null) return "";
+
+        // Bước 1: Chuẩn hóa Unicode để loại bỏ dấu tiếng Việt
+        String noDiacritics = Normalizer.normalize(input, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
+
+        // Bước 2: Chuyển về chữ thường và loại bỏ ký tự đặc biệt, nhưng giữ lại dấu cách
+        return noDiacritics.toLowerCase().replaceAll("[^a-z0-9 ]", "").trim().replaceAll("\\s+", " ");
     }
 
 

@@ -16,6 +16,7 @@ public class ProductVariantDetailDTO {
     private Long id;
     private String variantImage;
     private String name;
+    private Long colorId;
     private String color;
     private String size;
     private Double basePrice;
@@ -49,6 +50,7 @@ public class ProductVariantDetailDTO {
                 .id(productVariant.getId())
                 .name(product.getTranslationByLanguage(langCode).getName())
                 .variantImage(variantImage)
+                .colorId(productVariant.getColorValue().getId())
                 .color(productVariant.getColorValue().getValueName())
                 .size(productVariant.getSizeValue().getValueName())
                 .basePrice(product.getBasePrice())
@@ -83,6 +85,7 @@ public class ProductVariantDetailDTO {
                 .id(productVariant.getId())
                 .name(product.getTranslationByLanguage(langCode).getName())
                 .variantImage(variantImage)
+                .colorId(productVariant.getColorValue().getId())
                 .color(productVariant.getColorValue().getValueName())
                 .size(productVariant.getSizeValue().getValueName())
                 .basePrice(product.getBasePrice())

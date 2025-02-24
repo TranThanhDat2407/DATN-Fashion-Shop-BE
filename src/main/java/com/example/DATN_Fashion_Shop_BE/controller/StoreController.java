@@ -6,6 +6,8 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreInventoryResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreStockResponse;
+import com.example.DATN_Fashion_Shop_BE.model.Inventory;
 import com.example.DATN_Fashion_Shop_BE.service.StoreService;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
@@ -27,16 +29,23 @@ public class StoreController {
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String city,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) Double userLat,
+            @RequestParam(required = false) Double userLon
+            ) {
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_RETRIEVED_SUCCESSFULLY),
-                storeService.searchStores(name, city, page, size)
+                storeService.searchStores(name, city, page, size, userLat, userLon)
         ));
     }
 
     @GetMapping("/{storeId}")
-    public ResponseEntity<StoreResponse> getStoreById(@PathVariable Long storeId) {
-        return ResponseEntity.ok(storeService.getStoreById(storeId));
+    public ResponseEntity<ApiResponse<StoreResponse>> getStoreById(@PathVariable Long storeId) {
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_RETRIEVED_SUCCESSFULLY),
+                storeService.getStoreById(storeId)
+        ));
     }
 
     @GetMapping("/inventory")
@@ -79,4 +88,23 @@ public class StoreController {
         ));
     }
 
+
+    @GetMapping("/product-inventory/{storeId}")
+    public ResponseEntity<ApiResponse<PageResponse<StoreStockResponse>>> getInventoryByStore(
+            @PathVariable Long storeId,
+            @RequestParam(defaultValue = "vi") String languageCode,
+            @RequestParam(required = false) String productName,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir
+    ) {
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_RETRIEVED_SUCCESSFULLY),
+                PageResponse.fromPage(storeService
+                        .getInventoryByStoreId(storeId, languageCode, productName, categoryId, page, size, sortBy, sortDir))
+        ));
+    }
 }

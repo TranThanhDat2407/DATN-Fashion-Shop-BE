@@ -20,6 +20,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -37,7 +39,7 @@ public class CartController {
     private final LocalizationUtils localizationUtils;
     private final CartService cartService;
     private final SessionService sessionService;
-
+    private static final Logger log = LoggerFactory.getLogger(CartController.class);
     @GetMapping
     public ResponseEntity<ApiResponse<CartResponse>> getCart(
             @RequestParam(value = "userId", required = false) Long userId,
@@ -132,6 +134,11 @@ public class CartController {
         if (sessionId == null) {
             sessionId = sessionService.getSessionIdFromRequest(request);
         }
+        log.info("🛒 Xóa giỏ hàng với userId: {}, sessionId: {}", userId, sessionId);
+        if (userId == null && sessionId == null) {
+            log.error("❌ Cả userId và sessionId đều null!");
+        }
+
 
         cartService.clearCart(userId, sessionId);
         return ResponseEntity.ok(

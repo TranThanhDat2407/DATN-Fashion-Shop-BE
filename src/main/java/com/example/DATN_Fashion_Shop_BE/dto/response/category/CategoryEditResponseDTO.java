@@ -1,6 +1,7 @@
 package com.example.DATN_Fashion_Shop_BE.dto.response.category;
 
 import com.example.DATN_Fashion_Shop_BE.dto.CategoryTranslationDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.response.BaseResponse;
 import com.example.DATN_Fashion_Shop_BE.model.Category;
 import lombok.*;
 
@@ -14,7 +15,7 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CategoryEditResponseDTO {
+public class CategoryEditResponseDTO extends BaseResponse {
     private Long id;
     private String imageUrl;
     private Long parentId;
@@ -22,8 +23,7 @@ public class CategoryEditResponseDTO {
     private List<CategoryTranslationDTO> translations;
 
     public static CategoryEditResponseDTO fromCategory(Category category) {
-        // Sử dụng builder để tạo đối tượng DTO
-        return CategoryEditResponseDTO.builder()
+        CategoryEditResponseDTO response = CategoryEditResponseDTO.builder()
                 .id(category.getId())
                 .imageUrl(category.getImageUrl())
                 .parentId(category.getParentCategory() != null ? category.getParentCategory().getId() : null)
@@ -34,5 +34,10 @@ public class CategoryEditResponseDTO {
                         .collect(Collectors.toList())
                         : new ArrayList<>())
                 .build();
+        response.setCreatedAt(response.getCreatedAt());
+        response.setUpdatedAt(response.getUpdatedAt());
+        response.setUpdatedBy(response.getUpdatedBy());
+        response.setCreatedBy(response.getCreatedBy());
+        return response;
     }
 }

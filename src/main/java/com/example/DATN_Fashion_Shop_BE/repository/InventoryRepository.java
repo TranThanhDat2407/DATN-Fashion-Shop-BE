@@ -1,6 +1,8 @@
 package com.example.DATN_Fashion_Shop_BE.repository;
 
 import com.example.DATN_Fashion_Shop_BE.model.Inventory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -29,4 +31,17 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
                                                  @Param("colorId") Long colorId,
                                                  @Param("sizeId") Long sizeId,
                                                  @Param("storeId") Long storeId);
+
+
+    Page<Inventory> findByStoreIdAndProductVariant_Product_Translations_LanguageCodeAndProductVariant_Product_Translations_NameContainingIgnoreCaseAndProductVariant_Product_Categories_IdIn(
+            Long storeId, String languageCode, String productName, List<Long> categoryIds, Pageable pageable);
+
+    Page<Inventory> findByStoreIdAndProductVariant_Product_Translations_LanguageCodeAndProductVariant_Product_Categories_IdIn(
+            Long storeId, String languageCode, List<Long> categoryIds, Pageable pageable);
+
+    Page<Inventory> findByStoreIdAndProductVariant_Product_Translations_LanguageCodeAndProductVariant_Product_Translations_NameContainingIgnoreCase(
+            Long storeId, String languageCode, String productName, Pageable pageable);
+
+    Page<Inventory> findByStoreIdAndProductVariant_Product_Translations_LanguageCode(
+            Long storeId, String languageCode, Pageable pageable);
 }

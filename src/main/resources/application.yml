@@ -139,6 +139,14 @@ ghn:
   token: "6b3b4d35-e5f0-11ef-b2e4-6ec7c647cc27"
   shopId: "195952"
 
+vnpay:
+  tmnCode: "IQUTYPIQ"
+  secretKey: "HJF2G7EHCHPX0K446LBH17FKQUF56MB5"
+  apiUrl: https://sandbox.vnpayment.vn/merchant_webapi/api/transaction
+
+
   task:
     scheduling:
       enabled: true
+
+

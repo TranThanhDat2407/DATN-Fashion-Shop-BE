@@ -137,6 +137,11 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/coupons/**", apiPrefix), "DELETE"),
                 Pair.of(String.format("%s/coupons/**", apiPrefix), "PUT"),
 
+                Pair.of(String.format("%s/inventory-transfers/**", apiPrefix), "GET"),
+                Pair.of(String.format("%s/inventory-transfers/**", apiPrefix), "POST"),
+                Pair.of(String.format("%s/inventory-transfers/**", apiPrefix), "DELETE"),
+                Pair.of(String.format("%s/inventory-transfers/**", apiPrefix), "PUT"),
+
                 Pair.of(String.format("%s/languages**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/healthcheck/**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/actuator/**", apiPrefix), "GET"),
@@ -175,6 +180,20 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/store/**", apiPrefix), "PUT"),
                 Pair.of(String.format("%s/store/**", apiPrefix), "DELETE"),
 
+
+                Pair.of(String.format("%s/vnpay/**", apiPrefix), "GET"),
+                Pair.of(String.format("%s/vnpay/**", apiPrefix), "POST"),
+                Pair.of(String.format("%s/vnpay/**", apiPrefix), "PUT"),
+                Pair.of(String.format("%s/vnpay/**", apiPrefix), "DELETE"),
+
+                Pair.of(String.format("%s/staff/login", apiPrefix), "POST"),
+
+
+                Pair.of(String.format("%s/order-details/**", apiPrefix), "GET"),
+                Pair.of(String.format("%s/order-details/**", apiPrefix), "POST"),
+                Pair.of(String.format("%s/order-details/**", apiPrefix), "PUT"),
+                Pair.of(String.format("%s/order-details/**", apiPrefix), "DELETE"),
+
                 // Swagger
                 Pair.of("/api-docs","GET"),
                 Pair.of("/api-docs/**","GET"),
@@ -189,8 +208,9 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         String requestPath = request.getServletPath();
         String requestMethod = request.getMethod();
         logger.debug("Checking request: Path = " + requestPath + ", Method = " + requestMethod);
-        // {languageCode} có thể là bất kỳ ngôn ngữ nào (ví dụ: 'en', 'vi', 'fr', ...)
-        if (requestPath.matches("^/api/.+/categories/.+/admin$") && requestMethod.equalsIgnoreCase("GET")) {
+
+        if (requestPath.matches("^/api/.+/categories/.+/admin$")
+                && requestMethod.equalsIgnoreCase("GET")) {
             logger.debug("Not bypassing: Path matches /api/{version}/categories/{languageCode}/admin");
             return false;  // Không bypass
         }
