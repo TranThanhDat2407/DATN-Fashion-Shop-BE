@@ -70,11 +70,15 @@ public class WebSercurityConfig {
                                     String.format("%s/coupons/**", apiPrefix),
                                     String.format("%s/banners/**", apiPrefix),
                                     String.format("%s/store/**", apiPrefix),
+                                    String.format("%s/vnpay/**", apiPrefix),
+                                    String.format("%s/order-details/**", apiPrefix),
                                   "/uploads/**",
 
                                     String.format("%s/inventory-transfers/**", apiPrefix),
                                     String.format("%s/audit/**", apiPrefix),
                                     String.format("%s/promotions/**", apiPrefix),
+
+                                    String.format("%s/staff/**", apiPrefix),
 
                                     "/api-docs",
                                     "/api-docs/**",
@@ -108,6 +112,7 @@ public class WebSercurityConfig {
 
                             .requestMatchers(GET,
                                     String.format("%s/orders/**", apiPrefix)).permitAll()
+
 
                             .requestMatchers(GET,
                                     String.format("%s/order_details/**", apiPrefix)).permitAll()

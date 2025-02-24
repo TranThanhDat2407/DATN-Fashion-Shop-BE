@@ -40,45 +40,60 @@ public class InventoryTransferController {
     private static final Logger logger = LoggerFactory.getLogger(InventoryTransferController.class);
 
     @PostMapping("/create")
-    public ResponseEntity<InventoryTransferResponse> createTransfer(
+    public ResponseEntity<ApiResponse<InventoryTransferResponse>> createTransfer(
             @RequestParam Long warehouseId,
             @RequestParam Long storeId,
             @RequestParam Long productVariantId,
             @RequestParam Integer quantity) {
         InventoryTransfer transfer = inventoryTransferService.createTransfer(warehouseId, storeId, productVariantId, quantity);
-        return ResponseEntity.ok(InventoryTransferResponse.fromInventoryTransfer(transfer));
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                InventoryTransferResponse.fromInventoryTransfer(transfer)
+        ));
     }
 
-    // ✅📦 Xác nhận hàng đã đến cửa hàng
     @PutMapping("/confirm/{transferId}")
-    public ResponseEntity<InventoryTransferResponse> confirmTransfer(@PathVariable Long transferId) {
+    public ResponseEntity<ApiResponse<InventoryTransferResponse>> confirmTransfer(@PathVariable Long transferId) {
         InventoryTransfer transfer = inventoryTransferService.confirmTransfer(transferId);
-        return ResponseEntity.ok(InventoryTransferResponse.fromInventoryTransfer(transfer));
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                InventoryTransferResponse.fromInventoryTransfer(transfer)
+        ));
     }
 
-    // ❌📦 Hủy yêu cầu chuyển kho
     @PutMapping("/cancel/{transferId}")
-    public ResponseEntity<InventoryTransfer> cancelTransfer(@PathVariable Long transferId) {
+    public ResponseEntity<ApiResponse<InventoryTransferResponse>> cancelTransfer(@PathVariable Long transferId) {
         InventoryTransfer transfer = inventoryTransferService.cancelTransfer(transferId);
-        return ResponseEntity.ok(transfer);
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                InventoryTransferResponse.fromInventoryTransfer(transfer)
+        ));
     }
 
-    // 🔄🏬 Tạo yêu cầu trả hàng từ cửa hàng về kho
     @PostMapping("/return")
-    public ResponseEntity<InventoryTransfer> returnToWarehouse(
+    public ResponseEntity<ApiResponse<InventoryTransferResponse>> returnToWarehouse(
             @RequestParam Long storeId,
             @RequestParam Long warehouseId,
             @RequestParam Long productVariantId,
             @RequestParam Integer quantity) {
         InventoryTransfer transfer = inventoryTransferService.returnToWarehouse(storeId, warehouseId, productVariantId, quantity);
-        return ResponseEntity.ok(transfer);
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                InventoryTransferResponse.fromInventoryTransfer(transfer)
+        ));
     }
 
-    // ✅🔄 Xác nhận hàng đã trả về kho
     @PutMapping("/confirm-return/{transferId}")
-    public ResponseEntity<InventoryTransfer> confirmReturnTransfer(@PathVariable Long transferId) {
+    public ResponseEntity<ApiResponse<InventoryTransferResponse>> confirmReturnTransfer(@PathVariable Long transferId) {
         InventoryTransfer transfer = inventoryTransferService.confirmReturnTransfer(transferId);
-        return ResponseEntity.ok(transfer);
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                InventoryTransferResponse.fromInventoryTransfer(transfer)
+        ));
     }
 
 }

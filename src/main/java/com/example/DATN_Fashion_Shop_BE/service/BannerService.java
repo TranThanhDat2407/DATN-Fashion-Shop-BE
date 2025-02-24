@@ -234,6 +234,7 @@ public class BannerService {
         return BannerAdminResponseDTO.fromBanner(banner, bannerTranslation);
     }
 
+    //@Scheduled(cron = "0 * * * * ?")
     @Scheduled(cron = "0 30 2 * * ?")  // Chạy vào lúc 2h30 sáng mỗi ngày
     public void checkAndUpdateBannerStatus() {
         // Lấy danh sách tất cả các banner
