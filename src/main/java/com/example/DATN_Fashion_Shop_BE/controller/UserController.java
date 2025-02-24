@@ -188,10 +188,6 @@ public class UserController {
 
 
     @PostMapping("/details")
-    @PreAuthorize("hasRole('ROLE_ADMIN') " +
-            "or hasRole('ROLE_CURSTOMER')" +
-            "or hasRole('ROLE_STORE_STAFF')" +
-            "or hasRole('ROLE_STORE_MANAGER')")
     @Operation( summary = "Lấy thông tin chi tiết người dùng",
             description = """
         API này được sử dụng để lấy thông tin chi tiết của người dùng từ token Bearer.

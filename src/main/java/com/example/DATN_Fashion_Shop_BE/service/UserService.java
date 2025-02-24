@@ -151,7 +151,7 @@ public class UserService{
                 email, password,
                 existingUser.getAuthorities()
         );
-        //authenticate with Java Spring security
+
         authenticationManager.authenticate(authenticationToken);
         return jwtTokenUtil.generateToken(existingUser);
     }
