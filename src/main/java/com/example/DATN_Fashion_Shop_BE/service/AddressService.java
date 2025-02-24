@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -139,6 +140,23 @@ public class AddressService {
             addressRepository.delete(address);
         }
     }
+    public boolean setDefaultAddress(Long addressId, Long userId) {
+        // Bước 1: Lấy tất cả các địa chỉ của người dùng và đặt isDefault = false
+        List<UserAddress> userAddresses = userAddressRepository.findByUserId(userId);
+        userAddresses.forEach(userAddress -> userAddress.setIsDefault(false));
+        userAddressRepository.saveAll(userAddresses); // Lưu lại tất cả địa chỉ với isDefault = false
+
+        // Bước 2: Tìm địa chỉ cần đặt làm mặc định và set isDefault = true
+        Optional<UserAddress> userAddressOpt = userAddressRepository.findByUserIdAndAddressId(userId, addressId);
+        if (userAddressOpt.isPresent()) {
+            UserAddress userAddress = userAddressOpt.get();
+            userAddress.setIsDefault(true); // Đặt địa chỉ này làm mặc định
+            userAddressRepository.save(userAddress); // Lưu lại địa chỉ đã thay đổi
+            return true; // Thành công
+        }
+        return false; // Không tìm thấy địa chỉ cần thay đổi
+    }
+
 
 
 }

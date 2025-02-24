@@ -79,6 +79,8 @@ public class WebSercurityConfig {
                                     String.format("%s/audit/**", apiPrefix),
                                     String.format("%s/promotions/**", apiPrefix),
 
+                                    String.format("%s/staff/**", apiPrefix),
+
                                     "/api-docs",
                                     "/api-docs/**",
                                     "/swagger-resources",
@@ -111,6 +113,7 @@ public class WebSercurityConfig {
 
                             .requestMatchers(GET,
                                     String.format("%s/orders/**", apiPrefix)).permitAll()
+
 
                             .requestMatchers(GET,
                                     String.format("%s/order_details/**", apiPrefix)).permitAll()

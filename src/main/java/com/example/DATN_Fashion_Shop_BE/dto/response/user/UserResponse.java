@@ -1,8 +1,11 @@
 package com.example.DATN_Fashion_Shop_BE.dto.response.user;
 import com.example.DATN_Fashion_Shop_BE.model.Role;
 import com.example.DATN_Fashion_Shop_BE.model.User;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
+
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -14,6 +17,9 @@ public class UserResponse {
     private String firstName;
     private String lastName;
     private String email;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss", shape = JsonFormat.Shape.STRING)
+    private LocalDateTime dateOfBirth;
+    private String gender;
     private String phone;
     @JsonProperty("role")
     private Role role;
@@ -29,6 +35,8 @@ public class UserResponse {
                 .lastName(user.getLastName())
                 .email(user.getEmail())
                 .phone(user.getPhone())
+                .gender(user.getGender())
+                .dateOfBirth(user.getDateOfBirth())
                 .active(user.getIsActive() != null ? user.getIsActive() : false)
                 .googleAccountId(user.getGoogleAccountId())
                 .role(user.getRole())

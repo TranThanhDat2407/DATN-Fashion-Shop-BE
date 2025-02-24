@@ -18,9 +18,11 @@ import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -53,8 +55,13 @@ public class CouponController {
                 isApplied
         ));
     }
-    @PostMapping("/create")
-    public ResponseEntity<ApiResponse<CouponDTO>> createCoupon(@Valid @RequestBody CouponCreateRequestDTO request, BindingResult bindingResult) {
+    @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<CouponDTO>> createCoupon(
+            @RequestPart("request") @Valid CouponCreateRequestDTO request,
+            BindingResult bindingResult,
+            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
+
+        // 1️⃣ Kiểm tra lỗi validate dữ liệu đầu vào
         if (bindingResult.hasErrors()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     ApiResponseUtils.generateValidationErrorResponse(
@@ -64,15 +71,25 @@ public class CouponController {
                     )
             );
         }
-        CouponDTO createdCoupon = couponService.createCoupon(request);
+
+        // 2️⃣ Gọi service để tạo coupon và upload ảnh
+        CouponDTO createdCoupon = couponService.createCoupon(request, imageFile);
+
+        // 3️⃣ Trả về response thành công
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.COUPON_CREATED_SUCCESS),
                 createdCoupon
         ));
     }
 
+
     @PutMapping("update/{id}")
-    public ResponseEntity<ApiResponse<CouponDTO>> updateCoupon(@PathVariable Long id, @Valid @RequestBody CouponCreateRequestDTO request, BindingResult bindingResult) {
+    public ResponseEntity<ApiResponse<CouponDTO>> updateCoupon(
+            @PathVariable Long id,
+            @RequestPart("request") @Valid CouponCreateRequestDTO request,
+            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile,
+            BindingResult bindingResult) {
+
         if (bindingResult.hasErrors()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     ApiResponseUtils.generateValidationErrorResponse(
@@ -83,12 +100,13 @@ public class CouponController {
             );
         }
 
-        CouponDTO updatedCoupon = couponService.updateCoupon(id, request);
+        CouponDTO updatedCoupon = couponService.updateCoupon(id, request, imageFile);
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.COUPON_UPDATE_SUCCESS),
                 updatedCoupon
         ));
     }
+
     @DeleteMapping("delete/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteCoupon(@PathVariable Long id) {
         couponService.deleteCoupon(id);
