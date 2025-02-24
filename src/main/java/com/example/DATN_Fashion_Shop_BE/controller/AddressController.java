@@ -47,8 +47,6 @@ public class AddressController {
             @RequestParam Long userId,
             @Valid @RequestBody AddressRequest request,
             BindingResult bindingResult) {
-
-
         if (bindingResult.hasErrors()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     ApiResponseUtils.generateValidationErrorResponse(
@@ -102,6 +100,28 @@ public class AddressController {
                 localizationUtils.getLocalizedMessage(MessageKeys.ADDRESS_DELETE_SUCCESSFULLY),
                 null
         ));
+    }
+    @PutMapping("/set-default")
+    public ResponseEntity<ApiResponse<String>> setDefaultAddress(
+            @RequestParam("addressId") Long addressId,
+            @RequestParam("userId") Long userId) {
+
+        // Gọi service để cập nhật địa chỉ mặc định
+        boolean result = addressService.setDefaultAddress(addressId, userId);
+
+        if (result) {
+
+            return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                    localizationUtils.getLocalizedMessage(MessageKeys.ADDRESS_SET_DEFAULT_SUCCESSFULLY),
+                    null
+            ));
+        } else {
+
+            return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                    localizationUtils.getLocalizedMessage(MessageKeys.ADDRESS_SET_DEFAULT_FAILED),
+                    null
+            ));
+        }
     }
 
 

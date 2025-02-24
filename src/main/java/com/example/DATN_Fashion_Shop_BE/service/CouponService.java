@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -30,6 +31,9 @@ public class CouponService {
     private final UserRepository userRepository;
     private final CouponUserRestrictionRepository couponUserRestrictionRepository;
     private final EmailService emailService;
+    private final FileStorageService fileStorageService;
+
+
     public boolean applyCoupon(Long userId, String couponCode) {
         Optional<Coupon> couponOpt = couponRepository.findByCode(couponCode);
         if (couponOpt.isEmpty()) {
@@ -58,7 +62,14 @@ public class CouponService {
         return true;
     }
     @Transactional
-    public CouponDTO createCoupon(CouponCreateRequestDTO request) {
+    public CouponDTO createCoupon(CouponCreateRequestDTO request, MultipartFile imageFile) {
+        String imageUrl = null;
+
+        // Kiểm tra nếu có ảnh thì upload
+        if (imageFile != null && !imageFile.isEmpty()) {
+            imageUrl = fileStorageService.uploadFileAndGetName(imageFile, "coupons");
+        }
+
         // 1️⃣ Tạo Coupon
         Coupon coupon = Coupon.builder()
                 .code(request.getCode())
@@ -68,11 +79,12 @@ public class CouponService {
                 .expirationDate(request.getExpirationDate())
                 .isActive(true)
                 .isGlobal(request.getIsGlobal()) // Set isGlobal
+                .imageUrl(imageUrl) // Lưu đường dẫn ảnh vào DB
                 .build();
 
         coupon = couponRepository.save(coupon);
 
-
+        // 2️⃣ Nếu không phải global, tạo ràng buộc với user
         if (!request.getIsGlobal() && request.getUserIds() != null && !request.getUserIds().isEmpty()) {
             List<User> users = userRepository.findAllById(request.getUserIds());
             Coupon finalCoupon = coupon;
@@ -84,7 +96,9 @@ public class CouponService {
                     .collect(Collectors.toList());
             couponUserRestrictionRepository.saveAll(restrictions);
         }
-        Coupon finalCoupon = coupon;
+
+        // 3️⃣ Lưu bản dịch coupon
+        Coupon finalCoupon1 = coupon;
         List<CouponTranslation> translations = request.getTranslations().stream()
                 .map(translationDTO -> {
                     Language language = languageRepository.findByCode(translationDTO.getLanguageCode())
@@ -93,14 +107,26 @@ public class CouponService {
                     return CouponTranslation.builder()
                             .name(translationDTO.getName())
                             .description(translationDTO.getDescription())
-                            .coupon(finalCoupon)
+                            .coupon(finalCoupon1)
                             .language(language)
                             .build();
                 })
                 .collect(Collectors.toList());
 
         couponTranslationRepository.saveAll(translations);
-        return CouponDTO.fromCoupon(coupon);
+
+        // 4️⃣ Trả về CouponDTO đã có ảnh
+        return CouponDTO.builder()
+                .id(coupon.getId())
+                .code(coupon.getCode())
+                .discountType(coupon.getDiscountType())
+                .discountValue(coupon.getDiscountValue())
+                .minOrderValue(coupon.getMinOrderValue())
+                .expirationDate(coupon.getExpirationDate())
+                .isActive(coupon.getIsActive())
+                .isGlobal(coupon.getIsGlobal())
+                .imageUrl(coupon.getImageUrl()) // Trả về đường dẫn ảnh
+                .build();
     }
 
     @Transactional
@@ -227,12 +253,9 @@ public class CouponService {
         });
     }
     public void generateBirthdayCoupons(List<User> usersWithBirthday) {
-
         LocalDateTime today = LocalDateTime.now();
-
         for (User user : usersWithBirthday) {
             String couponCode = "BDAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-
             Coupon coupon = Coupon.builder()
                     .code(couponCode)
                     .discountType("PERCENTAGE")

@@ -118,6 +118,8 @@ public class MessageKeys {
 
     public static final String ADDRESS_DELETE_SUCCESSFULLY= "address.deleted_successfully";
     public static final String ADDRESS_DELETE_FAILED = "address.deleted_failed";
+    public static final String ADDRESS_SET_DEFAULT_SUCCESSFULLY = "address.set_default_successfully";
+    public static final String ADDRESS_SET_DEFAULT_FAILED = "address.set_default_failed";
 
     public static final String ADDRESSES_UPDATE_SUCCESSFULLY = "address.updated_successfully";
     public static final String ADDRESSES_UPDATE_FAILED = "address.update_failed";

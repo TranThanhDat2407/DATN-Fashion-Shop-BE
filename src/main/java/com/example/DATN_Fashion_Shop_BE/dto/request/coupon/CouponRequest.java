@@ -16,8 +16,10 @@ import java.time.LocalDateTime;
 public class CouponRequest {
     @NotBlank(message = MessageKeys.COUPON_CODE_REQUIRED)
     private String code;
+    private String imageUrl;
     private String discountType;
     private Float discountValue;
     private Float minOrderValue;
     private LocalDateTime expirationDate;
+
 }
