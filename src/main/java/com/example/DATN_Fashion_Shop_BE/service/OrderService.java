@@ -8,6 +8,7 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.GhnPreviewResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.PreviewOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.order.CreateOrderResponse;
 
+import com.example.DATN_Fashion_Shop_BE.dto.response.order.HistoryOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
@@ -18,6 +19,9 @@ import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -199,9 +203,7 @@ public class OrderService {
             if ("COD".equalsIgnoreCase(paymentMethod.getMethodName())) {
                 log.info("🛒 Đơn hàng {} sẽ thanh toán khi nhận hàng (COD).", savedOrder.getId());
                 // 🛒 🔟 Xóa giỏ hàng sau khi đặt hàng thành công
-                cartItemRepository.deleteAll(cartItems);
-                cartRepository.delete(cart);
-                log.info("✅ Giỏ hàng đã được xóa sau khi đặt hàng.");
+
 
             } if ("VNPAY".equalsIgnoreCase(paymentMethod.getMethodName())) {
                 String vnp_TxnRef = String.valueOf(savedOrder.getId());
@@ -214,6 +216,11 @@ public class OrderService {
                 log.info("💳 URL thanh toán VNPay: {}", paymentUrl);
                 return ResponseEntity.ok(Collections.singletonMap("paymentUrl", paymentUrl));
             }
+
+            cartItemRepository.deleteAll(cartItems);
+            cartRepository.delete(cart);
+            log.info("✅ Giỏ hàng đã được xóa sau khi đặt hàng.");
+
 
             CreateOrderResponse createOrderResponse = CreateOrderResponse.fromOrder(savedOrder);
             log.info("✅ Đơn hàng được tạo thành công: {}", createOrderResponse);
@@ -235,16 +242,19 @@ public class OrderService {
 
 
     }
-    public void updateOrderStatus(Long orderId, String paymentStatus) {
+
+
+
+    public void updateOrderStatus(Long orderId, String status) {
         // Tìm đơn hàng theo orderId
         Optional<Order> orderOptional = orderRepository.findById(orderId);
 
         if (orderOptional.isPresent()) {
             Order order = orderOptional.get();
 
-            // Tìm trạng thái mới dựa trên paymentStatus
-            String statusName = "FAILURE"; // Mặc định là FAILURE
-            if ("SUCCESS".equals(paymentStatus)) {
+            // Tìm trạng thái mới dựa trên Status
+            String statusName = "PENDING";
+            if ("SUCCESS".equals(status)) {
                 statusName = "DONE"; // Cập nhật trạng thái khi thanh toán thành công
             }
 
@@ -337,6 +347,13 @@ public class OrderService {
 //
 //    }
 
+
+    public Page<HistoryOrderResponse> getOrderHistoryByUserId(Long userId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Order> ordersPage = orderRepository.findByUserId(userId, pageable);
+
+        return ordersPage.map(HistoryOrderResponse::fromHistoryOrder);
+    }
 
 
 }
