@@ -109,6 +109,13 @@ public class MessageKeys {
     public static final String ORDERS_CREATE_FAILED = "orders.created_failed";
     public static final String ORDERS_PREVIEW_SUCCESS = "orders.preview_success";
     public static final String ORDERS_PREVIEW_FAILED = "orders.preview_failed";
+    public static final String ORDERS_HISTORY_NOT_FOUND = "orders.history_not_found";
+    public static final String ORDERS_HISTORY_SUCCESS = "orders.history_successful";
+
+
+    //orderDetail
+    public static final String ORDER_DETAILS_NOT_FOUND = "order.details.not.found";
+    public static final String ORDER_DETAILS_SUCCESS = "order.details.success";
 
     //address
     public static final String ADDRESSES_RETRIEVED_SUCCESSFULLY = "addresses.retrieved_successfully";

@@ -3,6 +3,7 @@ package com.example.DATN_Fashion_Shop_BE.controller;
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.*;
 import com.example.DATN_Fashion_Shop_BE.dto.request.promotion.PromotionRequest;
+import com.example.DATN_Fashion_Shop_BE.dto.request.promotion.UpdateProductsPromotionRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.promotion.PromotionResponse;
@@ -83,6 +84,16 @@ public class PromotionController {
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.BANNER_DELETED_SUCCESSFULLY),
                 null));
+    }
+
+    @PostMapping("/{promotionId}/update-products")
+    public ResponseEntity<?> updateProductsPromotion(
+            @PathVariable Long promotionId,
+            @RequestBody UpdateProductsPromotionRequest request) {
+
+        promotionService.updateProductsPromotion(promotionId, request.getProductIds(), request.isActivate());
+
+        return ResponseEntity.ok("Products updated successfully");
     }
 
 

@@ -8,6 +8,7 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.GhnCreateOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.PreviewOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.order.CreateOrderResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.order.HistoryOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.order.OrderPreviewResponse;
 import com.example.DATN_Fashion_Shop_BE.model.CartItem;
 import com.example.DATN_Fashion_Shop_BE.model.Order;
@@ -28,6 +29,7 @@ import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,7 +42,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-
+import java.util.stream.Collectors;
 
 
 @RestController
@@ -54,6 +56,7 @@ public class OrderController {
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final CartService cartService;
+    private final VnPayController vnPayController;
 
 
     private static final Logger log = LoggerFactory.getLogger(OrderController.class);
@@ -142,11 +145,6 @@ public class OrderController {
 
 
 
-
-
-
-
-
     @Operation(
             summary = "Xem trước đơn hàng",
             description = "API này cho phép người dùng xem trước phí vận chuyển trước khi đặt hàng.",
@@ -179,147 +177,40 @@ public class OrderController {
     }
 
 
-//    @PostMapping("/vnpay/callback")
-//    public ResponseEntity<?> vnpayCallback(@RequestParam Map<String, String> responseParams) {
-//        String vnp_TxnRef = responseParams.get("vnp_TxnRef");
-//        String vnp_ResponseCode = responseParams.get("vnp_ResponseCode");
-//
-//        Optional<Order> optionalOrder = orderRepository.findById(Long.parseLong(vnp_TxnRef));
-//
-//        if (optionalOrder.isPresent()) {
-//            Order order = optionalOrder.get();
-//
-//            if ("00".equals(vnp_ResponseCode)) { // "00" là mã giao dịch thành công của VNPay
-//                log.info("✅ Thanh toán thành công cho đơn hàng {}", order.getId());
-//
-//                // Cập nhật trạng thái thanh toán
-//                Payment payment = order.getPayments().get(0);
-//                payment.setStatus("SUCCESS");
-//                paymentRepository.save(payment);
-//
-//                // Xóa giỏ hàng sau khi thanh toán thành công
-//                cartItemRepository.deleteByCartUserId(order.getUser().getId());
-//                cartRepository.deleteByUserId(order.getUser().getId());
-//                log.info("✅ Giỏ hàng đã được xóa sau khi thanh toán VNPay thành công.");
-//            } else {
-//                log.warn("⚠️ Thanh toán không thành công cho đơn hàng {}, mã lỗi: {}", order.getId(), vnp_ResponseCode);
-//            }
-//        } else {
-//            log.error("❌ Không tìm thấy đơn hàng với mã giao dịch: {}", vnp_TxnRef);
-//            return ResponseEntity.badRequest().body("Đơn hàng không tồn tại.");
-//        }
-//
-//        return ResponseEntity.ok("Xử lý thanh toán hoàn tất.");
-//    }
-//
-//
-//    @PostMapping("/payment/vnpay-return")
-//    public String vnpayReturn(@RequestParam Map<String, String> params) {
-//        try {
-//            // Lấy thông tin trả về từ VNPay
-//            String vnp_SecureHash = params.get("vnp_SecureHash");
-//            String secureHash = hashAndBuildUrl(params); // Tạo lại secure hash từ tham số
-//
-//            if (vnp_SecureHash.equals(secureHash)) {
-//                // Kiểm tra xem mã bảo mật có khớp không
-//                String vnp_ResponseCode = params.get("vnp_ResponseCode");
-//                String orderIdString = params.get("vnp_TxnRef"); // orderId trả về là String
-//                Long orderId = Long.parseLong(orderIdString); // Chuyển đổi sang Long
-//                String paymentStatus = "FAILURE";
-//
-//                if ("00".equals(vnp_ResponseCode)) {
-//                    paymentStatus = "SUCCESS";
-//                }
-//
-//                // Cập nhật trạng thái đơn hàng
-//                orderService.updateOrderStatus(orderId, paymentStatus);
-//
-//                return "redirect:/payment/result?status=" + paymentStatus;
-//            } else {
-//                return "redirect:/payment/result?status=FAILED";
-//            }
-//        } catch (Exception e) {
-//            log.error("Error processing VNPay callback", e);
-//            return "redirect:/payment/result?status=FAILED";
-//        }
-//    }
-//
-//
-//    @GetMapping("/callback")
-//    public String handleVNPayCallback(@RequestParam Map<String, String> params) {
-//        String vnp_ResponseCode = params.get("vnp_ResponseCode");
-//        String vnp_TxnRef = params.get("vnp_TxnRef"); // Mã đơn hàng
-//
-//        if ("00".equals(vnp_ResponseCode)) {
-//            return "Thanh toán thành công! Mã đơn hàng: " + vnp_TxnRef;
-//        } else {
-//            return "Thanh toán thất bại! Vui lòng thử lại.";
-//        }
-//    }
-    @Transactional
-    @PostMapping("/vnpay/callback")
-    public ResponseEntity<?> handleVNPayCallback(@RequestParam Map<String, String> params, HttpServletResponse response) {
+    @Operation(
+            summary = "Lấy lịch sử đơn hàng",
+            description = "API này cho phép người dùng xem danh sách đơn hàng đã đặt theo userId.",
+            tags = "Orders"
+    )
+    @GetMapping("/history/{userId}")
+    public ResponseEntity<ApiResponse<Page<HistoryOrderResponse>>> getOrderHistory(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
-        try {
-            log.info("🔥 VNPay callback triggered!");
-            log.info("VNPay callback received with params: {}", params);
+        Page<HistoryOrderResponse> historyOrders = orderService.getOrderHistoryByUserId(userId, page, size);
 
-            String vnp_TxnRef = params.get("vnp_TxnRef"); // Mã đơn hàng
-            String vnp_ResponseCode = params.get("vnp_ResponseCode"); // Mã phản hồi VNPay
-            String vnp_SecureHash = params.get("vnp_SecureHash"); // Chữ ký bảo mật
-            String userId = params.get("userId");
-            String sessionId = params.get("sessionId");
+        // Nếu không có đơn hàng nào
+        if (historyOrders.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    ApiResponseUtils.errorResponse(
+                            HttpStatus.NOT_FOUND,
+                            localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_HISTORY_NOT_FOUND),
+                            null
 
-            // Xác thực chữ ký
-            String calculatedHash = hashAndBuildUrl(params);
-            if (!vnp_SecureHash.equals(calculatedHash)) {
-                log.error("❌ Chữ ký không hợp lệ! Giao dịch bị từ chối.");
-                return ResponseEntity.badRequest().body("Chữ ký không hợp lệ.");
-            }
-
-            // Tìm đơn hàng theo ID
-            Optional<Order> optionalOrder = orderRepository.findById(Long.parseLong(vnp_TxnRef));
-            if (optionalOrder.isEmpty()) {
-                log.error("❌ Không tìm thấy đơn hàng với mã giao dịch: {}", vnp_TxnRef);
-                return ResponseEntity.badRequest().body("Đơn hàng không tồn tại.");
-            }
-
-            Order order = optionalOrder.get();
-            String paymentStatus = "FAILURE";
-
-            if ("00".equals(vnp_ResponseCode)) {
-                log.info("VNPay Response Code: {}", vnp_ResponseCode);
-
-                // Giao dịch thành công
-                log.info("✅ Thanh toán thành công cho đơn hàng {}", order.getId());
-                paymentStatus = "SUCCESS";
-
-                // Cập nhật trạng thái thanh toán
-                Payment payment = order.getPayments().get(0);
-                payment.setStatus("SUCCESS");
-                paymentRepository.save(payment);
-
-                // Xóa giỏ hàng sau khi thanh toán thành công
-                cartService.clearCart(Long.valueOf(userId), sessionId);
-                log.info("✅ Giỏ hàng đã được xóa.");
-
-
-            } else {
-                // Giao dịch thất bại
-                log.warn("⚠️ Thanh toán thất bại cho đơn hàng {}, mã lỗi: {}", order.getId(), vnp_ResponseCode);
-            }
-
-            // Cập nhật trạng thái đơn hàng
-            orderService.updateOrderStatus(order.getId(), paymentStatus);
-
-            // Nếu request từ trình duyệt, redirect về kết quả thanh toán
-            response.sendRedirect("/payment/result?status=" + paymentStatus);
-            return ResponseEntity.ok("Xử lý thanh toán hoàn tất.");
-        } catch (Exception e) {
-            log.error("❌ Lỗi xử lý callback từ VNPay", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi xử lý callback.");
+                    )
+            );
         }
+
+        // Trả về danh sách lịch sử đơn hàng có phân trang
+        return ResponseEntity.ok().body(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_HISTORY_SUCCESS),
+                        historyOrders
+                )
+        );
     }
+
 
 
     private String hashAndBuildUrl(Map<String, String> params) {
@@ -350,6 +241,7 @@ public class OrderController {
         return query.toString();
     }
 
+
     private String hmacSHA512(String key, String data) {
         try {
             Mac hmac = Mac.getInstance("HmacSHA512");
@@ -367,6 +259,9 @@ public class OrderController {
             throw new RuntimeException("Lỗi mã hóa HmacSHA512", e);
         }
     }
+
+
+
 }
 
 

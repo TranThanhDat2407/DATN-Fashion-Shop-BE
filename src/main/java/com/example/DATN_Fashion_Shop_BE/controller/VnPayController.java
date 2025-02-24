@@ -3,6 +3,7 @@ package com.example.DATN_Fashion_Shop_BE.controller;
 import com.example.DATN_Fashion_Shop_BE.service.VNPayService;
 
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -18,7 +20,7 @@ import java.util.TreeMap;
 
 
 @RestController
-@RequestMapping("/api/v1/vnpay")
+@RequestMapping("/api/v1/payment")
 @AllArgsConstructor
 public class VnPayController {
     private final VNPayService vnPayService;
@@ -29,10 +31,85 @@ public class VnPayController {
         return paymentUrl;
     }
 
+
+
+    @GetMapping("/vnpay_ipn")
+    public ResponseEntity<String> vnPayIPN(HttpServletRequest request) {
+        Map<String, String[]> paramMap = request.getParameterMap();
+        Map<String, String> vnpParams = new HashMap<>();
+
+        for (Map.Entry<String, String[]> entry : paramMap.entrySet()) {
+            vnpParams.put(entry.getKey(), entry.getValue()[0]);
+        }
+
+        // Lấy giá trị vnp_SecureHash để kiểm tra chữ ký
+        String vnpSecureHash = vnpParams.get("vnp_SecureHash");
+        vnpParams.remove("vnp_SecureHash");
+
+        // Sắp xếp các tham số theo thứ tự bảng chữ cái và tạo chuỗi để ký
+        String signData = vnpParams.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(e -> e.getKey() + "=" + e.getValue())
+                .reduce((a, b) -> a + "&" + b)
+                .orElse("");
+
+        // Kiểm tra chữ ký hợp lệ
+        String expectedHash = VNPayService.hmacSHA512(signData, "HJF2G7EHCHPX0K446LBH17FKQUF56MB5");
+
+        if (!expectedHash.equals(vnpSecureHash)) {
+            return ResponseEntity.badRequest().body("Invalid signature");
+        }
+
+        // Kiểm tra trạng thái giao dịch
+        String transactionStatus = vnpParams.get("vnp_TransactionStatus");
+        if ("00".equals(transactionStatus)) {
+            // ✅ Thanh toán thành công -> Cập nhật trạng thái đơn hàng trong DB
+            return ResponseEntity.ok("Payment success");
+        } else {
+            // ❌ Thanh toán thất bại hoặc bị huỷ
+            return ResponseEntity.ok("Payment failed");
+        }
+    }
+
+//    @PostMapping("/verify")
+//    public ResponseEntity<?> verifyPayment(@RequestBody Map<String, String> requestParams) {
+//        String vnp_SecureHash = requestParams.remove("vnp_SecureHash"); // Lấy chữ ký từ VNPay
+//        SortedMap<String, String> sortedParams = new TreeMap<>(requestParams); // Sắp xếp tham số
+//
+//        // Tạo lại chuỗi dữ liệu cần ký
+//        StringBuilder hashData = new StringBuilder();
+//        for (Map.Entry<String, String> entry : sortedParams.entrySet()) {
+//            if (hashData.length() > 0) hashData.append("&");
+//            hashData.append(entry.getKey()).append("=").append(URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
+//        }
+//
+//        // Tạo lại chữ ký
+//        String generatedHash = vnPayService.hmacSHA512(hashData.toString(), vnp_SecureHash);
+//
+//        if (generatedHash.equals(vnp_SecureHash)) {
+//            // Kiểm tra trạng thái giao dịch
+//            String transactionStatus = requestParams.get("vnp_TransactionStatus");
+//            if ("00".equals(transactionStatus)) {
+//                return ResponseEntity.ok("Giao dịch thành công! 🎉");
+//            } else {
+//                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Giao dịch thất bại! ❌");
+//            }
+//        } else {
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Chữ ký không hợp lệ! 🛑");
+//        }
+//    }
+
+
     @PostMapping("/verify")
     public ResponseEntity<?> verifyPayment(@RequestBody Map<String, String> requestParams) {
-        String vnp_SecureHash = requestParams.remove("vnp_SecureHash"); // Lấy chữ ký từ VNPay
-        SortedMap<String, String> sortedParams = new TreeMap<>(requestParams); // Sắp xếp tham số
+        String vnp_SecureHash = requestParams.get("vnp_SecureHash"); // Lấy chữ ký từ VNPay
+        if (vnp_SecureHash == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Lỗi: Không tìm thấy vnp_SecureHash! ❌");
+        }
+
+        // Loại bỏ vnp_SecureHash khỏi params để tạo chữ ký mới
+        Map<String, String> sortedParams = new TreeMap<>(requestParams);
+        sortedParams.remove("vnp_SecureHash");
 
         // Tạo lại chuỗi dữ liệu cần ký
         StringBuilder hashData = new StringBuilder();
@@ -41,11 +118,10 @@ public class VnPayController {
             hashData.append(entry.getKey()).append("=").append(URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
         }
 
-        // Tạo lại chữ ký
-        String generatedHash = vnPayService.hmacSHA512(hashData.toString(), vnp_SecureHash);
+        // 🔥 Dùng secretKey của VNPay để tạo lại chữ ký
+        String generatedHash = vnPayService.hmacSHA512(hashData.toString(), "HJF2G7EHCHPX0K446LBH17FKQUF56MB5");
 
-        if (generatedHash.equals(vnp_SecureHash)) {
-            // Kiểm tra trạng thái giao dịch
+        if (generatedHash.equalsIgnoreCase(vnp_SecureHash)) { // So sánh không phân biệt hoa/thường
             String transactionStatus = requestParams.get("vnp_TransactionStatus");
             if ("00".equals(transactionStatus)) {
                 return ResponseEntity.ok("Giao dịch thành công! 🎉");
@@ -56,6 +132,9 @@ public class VnPayController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Chữ ký không hợp lệ! 🛑");
         }
     }
+
+
+
 
 
 //    @PostMapping("/query")
