@@ -56,11 +56,12 @@ public class OrderService {
     private final OrderStatusRepository orderStatusRepository;
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
+
     @Transactional
-    public ResponseEntity<?> createOrder(
-            OrderRequest orderRequest, HttpServletRequest request) {
+    public ResponseEntity<?> createOrder(OrderRequest orderRequest, HttpServletRequest request) {
         log.info("🛒 Bắt đầu tạo đơn hàng cho userId: {}", orderRequest.getUserId());
-        // 🛒 1️⃣ Lấy giỏ hàng của user
+
+        // 1️⃣ Lấy giỏ hàng của user
         Cart cart = cartRepository.findByUser_Id(orderRequest.getUserId())
                 .orElseThrow(() -> {
                     log.error("❌ Không tìm thấy giỏ hàng của userId: {}", orderRequest.getUserId());
@@ -73,35 +74,25 @@ public class OrderService {
             throw new RuntimeException(localizationUtils
                     .getLocalizedMessage(MessageKeys.CART_ITEM_NOT_FOUND, cart.getId()));
         }
-        log.info("✅ Tìm thấy {} sản phẩm trong giỏ hàng.", cartItems.size());
 
-        // 🏷️ 2️⃣ Tính tổng tiền sản phẩm
+        // 2️⃣ Tính tổng tiền sản phẩm
         double totalAmount = cartItems.stream()
                 .mapToDouble(item -> item.getProductVariant().getSalePrice() * item.getQuantity())
                 .sum();
-        log.info("💰 Tổng tiền sản phẩm: {}", totalAmount);
-        // 🎟️ 3️⃣ Áp dụng mã giảm giá (nếu có)
+
+        // 3️⃣ Áp dụng mã giảm giá (nếu có)
         double discount = 0.0;
         Coupon coupon = null;
-
         if (orderRequest.getCouponId() != null) {
             coupon = couponRepository.findById(orderRequest.getCouponId())
-                    .orElseThrow(() -> {
-                        log.error("❌ Mã giảm giá không hợp lệ: {}", orderRequest.getCouponId());
-                        return new RuntimeException("Mã giảm giá không hợp lệ.");
-                    });
-
+                    .orElseThrow(() -> new RuntimeException("Mã giảm giá không hợp lệ."));
             if (!coupon.getIsActive() || coupon.getExpirationDate().isBefore(LocalDateTime.now())) {
-                log.error("❌ Mã giảm giá {} đã hết hạn hoặc không hợp lệ.", orderRequest.getCouponId());
                 throw new RuntimeException("Mã giảm giá đã hết hạn hoặc không hợp lệ.");
             }
-
-            discount = coupon.getDiscountValue();
-            log.info("🎟️ Mã giảm giá hợp lệ, giảm giá: {}", discount);
+            discount = Math.min(coupon.getDiscountValue(), totalAmount);
         }
-        discount = Math.min(discount, totalAmount);
 
-        // 📍 5️⃣ Xử lý địa chỉ giao hàng
+// 📍 5️⃣ Xử lý địa chỉ giao hàng
         Address address;
         if (orderRequest.getShippingAddress() != null) {
             address = addressRepository.findById(orderRequest.getShippingAddress())
@@ -121,17 +112,12 @@ public class OrderService {
                 address.getStreet(), address.getWard(), address.getDistrict(), address.getCity());
         log.info("📍 Địa chỉ giao hàng: {}, {}, {}, {}", address.getStreet(), address.getWard(), address.getDistrict(), address.getCity());
 
-        // 🚚 6️⃣ Tính phí vận chuyển
+        // 5️⃣ Tính phí vận chuyển
         double shippingFee = ghnService.calculateShippingFee(address, cartItems);
         log.info("🚚 Phí vận chuyển: {}", shippingFee);
-
-        // 🛍 7️⃣ Tính tổng tiền đơn hàng
+        // 6️⃣ Tính tổng tiền đơn hàng
         double finalAmount = totalAmount - discount + shippingFee;
         log.info("💰 Tổng tiền đơn hàng sau khi áp dụng mã giảm giá và phí vận chuyển: {}", finalAmount);
-
-        OrderStatus orderStatus = orderStatusRepository.findByStatusName("PENDING")
-                .orElseThrow(() -> new RuntimeException("Trạng thái đơn hàng không hợp lệ."));
-
 
         ShippingMethod shippingMethod = shippingMethodRepository.findById(orderRequest.getShippingMethodId())
                 .orElseThrow(() -> {
@@ -140,12 +126,86 @@ public class OrderService {
                 });
 
 
+        // 7️⃣ Xử lý thanh toán
+        PaymentMethod paymentMethod = paymentMethodRepository.findById(orderRequest.getPaymentMethodId())
+                .orElseThrow(() -> new RuntimeException("Phương thức thanh toán không hợp lệ."));
 
-        // 📦 8️⃣ Tạo Order
+        // 🛒 Nếu là COD, tạo luôn đơn hàng
+        if ("COD".equalsIgnoreCase(paymentMethod.getMethodName())) {
+            return processCodOrder(orderRequest, cart, cartItems, coupon, finalAmount, fullShippingAddress, shippingFee,shippingMethod, paymentMethod);
+        }
+
+        // 💳 Nếu là VNPay, tạo đơn hàng trước khi tạo URL thanh toán
+        if ("VNPAY".equalsIgnoreCase(paymentMethod.getMethodName())) {
+
+            OrderStatus orderStatus = orderStatusRepository.findByStatusName("PENDING")
+                    .orElseThrow(() -> new RuntimeException("Trạng thái đơn hàng không hợp lệ."));
+
+            Order order = Order.builder()
+                    .user(User.builder().id(orderRequest.getUserId()).build())
+                    .coupon(coupon)
+                    .totalAmount(finalAmount)
+                    .orderStatus(orderStatus)
+                    .shippingAddress(fullShippingAddress)
+                    .shippingFee(shippingFee)
+                    .shippingMethod(shippingMethod)
+                    .taxAmount(0.0)
+                    .transactionId(null)
+                    .payments(new ArrayList<>())
+                    .build();
+
+            double totalPrice = finalAmount + shippingFee;
+            order.setTotalPrice(totalPrice);
+
+
+            Order savedOrder = orderRepository.save(order);
+            log.info("✅ Đơn hàng VNPay đã được tạo với ID: {}", savedOrder.getId());
+
+            List<OrderDetail> orderDetails = cartItems.stream().map(item ->
+                    OrderDetail.builder()
+                            .order(savedOrder)
+                            .product(item.getProductVariant().getProduct())
+                            .quantity(item.getQuantity())
+                            .unitPrice(item.getProductVariant().getSalePrice())
+                            .totalPrice(item.getProductVariant().getSalePrice() * item.getQuantity())
+                            .build()
+            ).collect(Collectors.toList());
+
+            orderDetailRepository.saveAll(orderDetails);
+            log.info("✅ Đã lưu {} sản phẩm vào OrderDetail.", orderDetails.size());
+            try {
+                String vnp_TxnRef = String.valueOf(savedOrder.getId());
+                long vnp_Amount = (long) (finalAmount * 100);
+                String vnp_IpAddr = request.getRemoteAddr();
+                String vnp_OrderInfo = "Thanh toan don hang " + vnp_TxnRef;
+
+                String paymentUrl = vnPayService.createPaymentUrl(vnp_Amount, vnp_OrderInfo, vnp_TxnRef, vnp_IpAddr);
+
+                log.info("💳 URL thanh toán VNPay: {}", paymentUrl);
+
+                return ResponseEntity.ok(Collections.singletonMap("paymentUrl", paymentUrl));
+            }catch (Exception e) {
+                log.error("❌ Lỗi khi tạo URL thanh toán VNPay: {}", e.getMessage());
+                throw new RuntimeException("Lỗi khi tạo URL thanh toán VNPay.");
+            }
+        }
+
+        throw new RuntimeException("Phương thức thanh toán không được hỗ trợ.");
+    }
+
+
+
+
+    // Xử lý đơn hàng khi thanh toán COD
+    private ResponseEntity<?> processCodOrder(OrderRequest orderRequest, Cart cart, List<CartItem> cartItems,
+                                              Coupon coupon, double finalAmount, String fullShippingAddress,
+                                              double shippingFee,ShippingMethod shippingMethod, PaymentMethod paymentMethod) {
+        OrderStatus orderStatus = orderStatusRepository.findByStatusName("PENDING")
+                .orElseThrow(() -> new RuntimeException("Trạng thái đơn hàng không hợp lệ."));
+
         Order order = Order.builder()
                 .user(User.builder().id(orderRequest.getUserId()).build())
                 .coupon(coupon)
-                .totalPrice(totalAmount)
                 .totalAmount(finalAmount)
                 .orderStatus(orderStatus)
                 .shippingAddress(fullShippingAddress)
@@ -154,127 +214,50 @@ public class OrderService {
                 .taxAmount(0.0)
                 .payments(new ArrayList<>())
                 .build();
-        log.info("📦 Đơn hàng được tạo nhưng chưa lưu vào database.");
+
+        double totalPrice = finalAmount + shippingFee;
+        order.setTotalPrice(totalPrice);
+        String vnp_TxnRef = String.valueOf(order.getId());
+        order.setTransactionId(vnp_TxnRef);
 
 
-        try {
-            Order savedOrder = orderRepository.save(order);
-            log.info("✅ Đơn hàng đã lưu thành công với ID: {}", savedOrder.getId());
+        Order savedOrder = orderRepository.save(order);
+        log.info("✅ Đơn hàng COD đã được tạo với ID: {}", savedOrder.getId());
 
-            // 🛒 9️⃣ Lưu OrderDetail
-            List<OrderDetail> orderDetails = cartItems.stream().map(item ->
-                    OrderDetail.builder()
-                            .order(savedOrder)
-                            .product(item.getProductVariant().getProduct())
-                            .quantity(item.getQuantity())
-                            .unitPrice(item.getProductVariant().getSalePrice())
-                            .totalPrice(item.getProductVariant().getSalePrice() * item.getQuantity())
-                            .build()).collect(Collectors.toList());
+        List<OrderDetail> orderDetails = cartItems.stream().map(item ->
+                OrderDetail.builder()
+                        .order(savedOrder)
+                        .product(item.getProductVariant().getProduct())
+                        .quantity(item.getQuantity())
+                        .unitPrice(item.getProductVariant().getSalePrice())
+                        .totalPrice(item.getProductVariant().getSalePrice() * item.getQuantity())
+                        .build()
+        ).collect(Collectors.toList());
 
-            orderDetailRepository.saveAll(orderDetails);
-            log.info("✅ Đã lưu {} sản phẩm vào OrderDetail.", orderDetails.size());
+        orderDetailRepository.saveAll(orderDetails);
+        log.info("✅ Đã lưu {} sản phẩm vào OrderDetail.", orderDetails.size());
 
-            // 💳 🔟 Xử lý thanh toán
-            PaymentMethod paymentMethod = paymentMethodRepository.findById(orderRequest.getPaymentMethodId())
-                    .orElseThrow(() -> {
-                        log.error("❌ Phương thức thanh toán không hợp lệ với ID: {}", orderRequest.getPaymentMethodId());
-                        return new RuntimeException(localizationUtils.getLocalizedMessage(MessageKeys.PAYMENT_METHOD_NOT_VALID));
-                    });
+        Payment payment = Payment.builder()
+                .order(savedOrder)
+                .paymentMethod(paymentMethod)
+                .paymentDate(new Date())
+                .amount(finalAmount)
+                .status("PENDING")
+                .transactionCode(UUID.randomUUID().toString())
+                .build();
 
-            Payment payment = Payment.builder()
-                    .order(savedOrder)
-                    .paymentMethod(paymentMethod)
-                    .paymentDate(new Date())
-                    .amount(finalAmount)
-                    .status("PENDING")
-                    .transactionCode(UUID.randomUUID().toString())
-                    .build();
+        paymentRepository.save(payment);
+        savedOrder.getPayments().add(payment);
+        orderRepository.save(savedOrder);
 
+        cartItemRepository.deleteAll(cartItems);
 
+        log.info("✅ Giỏ hàng đã được xóa sau khi đặt hàng.");
 
-            paymentRepository.save(payment);
-            if (savedOrder.getPayments() == null) {
-                savedOrder.setPayments(new ArrayList<>());
-            }
-            savedOrder.getPayments().add(payment); // Cập nhật danh sách thanh toán
-            orderRepository.save(savedOrder); // Lưu lại đơn hàng
-            log.info("✅ Đã lưu thông tin thanh toán.");
-
-            if ("COD".equalsIgnoreCase(paymentMethod.getMethodName())) {
-                log.info("🛒 Đơn hàng {} sẽ thanh toán khi nhận hàng (COD).", savedOrder.getId());
-                // 🛒 🔟 Xóa giỏ hàng sau khi đặt hàng thành công
-
-
-            } if ("VNPAY".equalsIgnoreCase(paymentMethod.getMethodName())) {
-                String vnp_TxnRef = String.valueOf(savedOrder.getId());
-                long vnp_Amount = (long) (finalAmount * 100);
-                String vnp_IpAddr = request.getRemoteAddr();
-                String vnp_OrderInfo = "Thanh toán đơn hàng " + vnp_TxnRef; // Thông tin đơn hàng
-
-                String paymentUrl = vnPayService.createPaymentUrl(vnp_Amount, vnp_OrderInfo, vnp_TxnRef, vnp_IpAddr);
-
-                log.info("💳 URL thanh toán VNPay: {}", paymentUrl);
-                return ResponseEntity.ok(Collections.singletonMap("paymentUrl", paymentUrl));
-            }
-
-            cartItemRepository.deleteAll(cartItems);
-            cartRepository.delete(cart);
-            log.info("✅ Giỏ hàng đã được xóa sau khi đặt hàng.");
-
-
-            CreateOrderResponse createOrderResponse = CreateOrderResponse.fromOrder(savedOrder);
-            log.info("✅ Đơn hàng được tạo thành công: {}", createOrderResponse);
-
-            return ResponseEntity.ok(createOrderResponse);
-
-        } catch (Exception e) {
-            log.error("🔥 Lỗi khi tạo đơn hàng: {}", e.getMessage(), e);
-
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponseUtils.errorResponse(
-                            HttpStatus.INTERNAL_SERVER_ERROR,
-                            "Có lỗi xảy ra khi tạo đơn hàng, vui lòng thử lại sau.",
-                            "order",
-                            null,
-                            e.getMessage()
-                    ));
-        }
-
-
+        return ResponseEntity.ok(CreateOrderResponse.fromOrder(savedOrder));
     }
 
 
-
-    public void updateOrderStatus(Long orderId, String status) {
-        // Tìm đơn hàng theo orderId
-        Optional<Order> orderOptional = orderRepository.findById(orderId);
-
-        if (orderOptional.isPresent()) {
-            Order order = orderOptional.get();
-
-            // Tìm trạng thái mới dựa trên Status
-            String statusName = "PENDING";
-            if ("SUCCESS".equals(status)) {
-                statusName = "DONE"; // Cập nhật trạng thái khi thanh toán thành công
-            }
-
-            // Tìm OrderStatus trong DB theo statusName
-            Optional<OrderStatus> orderStatusOptional = orderStatusRepository.findByStatusName(statusName);
-            if (orderStatusOptional.isPresent()) {
-                OrderStatus orderStatus = orderStatusOptional.get();
-                // Cập nhật trạng thái đơn hàng
-                order.setOrderStatus(OrderStatus.fromOrderStatus(orderStatus));
-            } else {
-                throw new RuntimeException("OrderStatus not found for status: " + statusName);
-            }
-
-            // Lưu lại trạng thái đã thay đổi vào cơ sở dữ liệu
-            orderRepository.save(order);
-        } else {
-            // Xử lý nếu không tìm thấy đơn hàng
-            throw new RuntimeException("Order not found for ID: " + orderId);
-        }
-    }
 
     public PreviewOrderResponse previewOrder(PreviewOrderRequest request) {
         String url = "https://dev-online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/preview";
@@ -357,3 +340,5 @@ public class OrderService {
 
 
 }
+
+
