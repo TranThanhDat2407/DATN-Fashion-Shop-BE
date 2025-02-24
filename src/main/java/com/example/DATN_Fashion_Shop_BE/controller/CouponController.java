@@ -84,7 +84,12 @@ public class CouponController {
 
 
     @PutMapping("update/{id}")
-    public ResponseEntity<ApiResponse<CouponDTO>> updateCoupon(@PathVariable Long id, @Valid @RequestBody CouponCreateRequestDTO request, BindingResult bindingResult) {
+    public ResponseEntity<ApiResponse<CouponDTO>> updateCoupon(
+            @PathVariable Long id,
+            @RequestPart("request") @Valid CouponCreateRequestDTO request,
+            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile,
+            BindingResult bindingResult) {
+
         if (bindingResult.hasErrors()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                     ApiResponseUtils.generateValidationErrorResponse(
@@ -95,12 +100,13 @@ public class CouponController {
             );
         }
 
-        CouponDTO updatedCoupon = couponService.updateCoupon(id, request);
+        CouponDTO updatedCoupon = couponService.updateCoupon(id, request, imageFile);
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.COUPON_UPDATE_SUCCESS),
                 updatedCoupon
         ));
     }
+
     @DeleteMapping("delete/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteCoupon(@PathVariable Long id) {
         couponService.deleteCoupon(id);
