@@ -206,7 +206,7 @@ public class CategoryService {
     @Transactional
     public CategoryDTO createCategoryWithImage(CategoryCreateRequestDTO request, MultipartFile imageFile) {
         // 1. Upload file và lấy URL
-        String imageUrl = fileStorageService.uploadFileAndGetName(imageFile, "categories");
+        String imageUrl = fileStorageService.uploadFileAndGetName(imageFile, "images/categories");
 
         // 2. Tạo Category
         Category category = new Category();
