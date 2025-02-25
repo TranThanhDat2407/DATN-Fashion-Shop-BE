@@ -60,7 +60,6 @@ public class Product extends BaseEntity{
 
     @ManyToOne
     @JoinColumn(name = "promotion_id", nullable = true)
-    @NotAudited
     private Promotion promotion;
 
     @ManyToOne
