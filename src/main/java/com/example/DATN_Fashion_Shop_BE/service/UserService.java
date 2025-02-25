@@ -166,9 +166,8 @@ public class UserService{
                     localizationUtils.getLocalizedMessage(MessageKeys.TOKEN_IS_EXPIRED)
             );
         }
-//        String email = jwtTokenUtil.extractEmail(token);
-        String userId = jwtTokenUtil.extractUserId(token);
-        Optional<User> user = userRepository.findById(Long.valueOf(userId));
+        String email = jwtTokenUtil.extractEmail(token);
+        Optional<User> user = userRepository.findByEmail(email);
 
         if (user.isPresent()) {
             return user.get();
