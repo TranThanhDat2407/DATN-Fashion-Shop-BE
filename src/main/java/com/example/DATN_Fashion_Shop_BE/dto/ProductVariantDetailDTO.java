@@ -14,10 +14,12 @@ import lombok.*;
 @NoArgsConstructor
 public class ProductVariantDetailDTO {
     private Long id;
+    private Long productId;
     private String variantImage;
     private String name;
     private Long colorId;
     private String color;
+    private Long sizeId;
     private String size;
     private Double basePrice;
     private Double salePrice;
@@ -48,10 +50,12 @@ public class ProductVariantDetailDTO {
 
         return ProductVariantDetailDTO.builder()
                 .id(productVariant.getId())
+                .productId(productVariant.getProduct().getId())
                 .name(product.getTranslationByLanguage(langCode).getName())
                 .variantImage(variantImage)
                 .colorId(productVariant.getColorValue().getId())
                 .color(productVariant.getColorValue().getValueName())
+                .sizeId(productVariant.getSizeValue().getId())
                 .size(productVariant.getSizeValue().getValueName())
                 .basePrice(product.getBasePrice())
                 .salePrice(salePrice)
