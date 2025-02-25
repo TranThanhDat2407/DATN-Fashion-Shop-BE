@@ -240,7 +240,6 @@ public class CartService {
 
         if (request.getQuantity() > availableStock) {
             throw new IllegalStateException("Not enough stock available for variant " + request.getProductVariantId() + ". Only " + availableStock + " left.");
-
         }
 
         CartItem cartItem = cartItemRepository.findByCart(cart).stream()
