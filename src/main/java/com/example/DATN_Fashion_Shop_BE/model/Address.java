@@ -27,7 +27,7 @@ public class Address {
     @Column(name = "city",columnDefinition = "NVARCHAR(MAX)", nullable = false)
     private String city;
 
-    @Column(name = "full_address",columnDefinition = "NVARCHAR(MAX)", length = 100)
+    @Column(name = "full_address",columnDefinition = "NVARCHAR(MAX)")
     private String fullAddress;
 
     @Column(name = "latitude")

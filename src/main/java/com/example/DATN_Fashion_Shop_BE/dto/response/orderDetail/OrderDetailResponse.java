@@ -1,12 +1,15 @@
 package com.example.DATN_Fashion_Shop_BE.dto.response.orderDetail;
 
+import com.example.DATN_Fashion_Shop_BE.dto.response.payment.PaymentMethodResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.product.CreateProductResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.product.ProductTranslationResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.product.ProductVariantResponse;
-import com.example.DATN_Fashion_Shop_BE.model.OrderDetail;
-import com.example.DATN_Fashion_Shop_BE.model.Product;
-import com.example.DATN_Fashion_Shop_BE.model.ProductVariant;
+import com.example.DATN_Fashion_Shop_BE.dto.response.userAddressResponse.UserAddressResponse;
+import com.example.DATN_Fashion_Shop_BE.model.*;
 import lombok.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Data
 @Builder
@@ -22,71 +25,59 @@ public class OrderDetailResponse {
     private Double totalPrice;
     private ProductTranslationResponse productTranslationResponse;
     private ProductVariantResponse productVariant;
-    private String imageUrl; // Hình ảnh sản phẩm
+    private String recipientName;
+    private String recipientPhone;
+    private String shippingAddress;
+    private String paymentMethod;
+    private Double tax;
+    private Double shippingFee;
+    private Double grandTotal;
+    private String imageUrl;
 
-//    public static OrderDetailResponse fromOrderDetail(OrderDetail orderDetail) {
-//        // Lấy Product từ OrderDetail
-//        Product product = orderDetail.getProduct();
-//
-//        // Tìm đúng ProductVariant bằng một tiêu chí, ví dụ: SKU hoặc màu sắc, kích thước
-//        ProductVariant variant = findMatchingVariant(product, orderDetail);
-//
-//        // Lấy hình ảnh từ ProductMedia
-//        String imageUrl = (product.getMedias() != null && !product.getMedias().isEmpty())
-//                ? product.getMedias().get(0).getMediaUrl()
-//                : null;
-//
-//        return OrderDetailResponse.builder()
-//                .orderDetailId(orderDetail.getId())
-//                .orderId(orderDetail.getOrder().getId())
-//                .quantity(orderDetail.getQuantity())
-//                .unitPrice(orderDetail.getUnitPrice())
-//                .totalPrice(orderDetail.getTotalPrice())
-//                .productTranslationResponse(ProductTranslationResponse.fromProductsTranslation(product.getTranslationByLanguage("en")))
-//                .productVariant(ProductVariantResponse.fromProductVariant(variant)) // Lấy biến thể chính xác
-//                .imageUrl(imageUrl) // Ảnh sản phẩm
-//                .build();
-//    }
-//
-//    /**
-//     * Tìm `ProductVariant` phù hợp với `OrderDetail`
-//     */
-//    private static ProductVariant findMatchingVariant(Product product, OrderDetail orderDetail) {
-//        if (product.getVariants() == null || product.getVariants().isEmpty()) {
-//            return null; // Không có biến thể nào
-//        }
-//
-//        // Giả sử `OrderDetail` có `skuCode`, tìm biến thể phù hợp
-//        return product.getVariants().stream()
-//                .filter(variant -> variant.getSizeValue().equals(orderDetail.getProduct().getVariants()))
-//                .findFirst()
-//                .orElse(product.getVariants().get(0)); // Nếu không tìm thấy, lấy biến thể đầu tiên
-//    }
-
-    public static OrderDetailResponse fromOrderDetail(OrderDetail orderDetail) {
+    public static OrderDetailResponse fromOrderDetail(OrderDetail orderDetail, List<UserAddressResponse> userAddressResponses) {
         Product product = orderDetail.getProduct();
+        Order order = orderDetail.getOrder(); // Lấy Order từ OrderDetail
 
-        // Tìm một ProductVariant phù hợp nếu có
-        ProductVariant variant = product.getVariants().isEmpty() ? null : product.getVariants().get(0);
-
-        // Lấy hình ảnh từ ProductMedia (lấy ảnh đầu tiên nếu có)
+        // Lấy ảnh đầu tiên của sản phẩm nếu có
         String imageUrl = (product.getMedias() != null && !product.getMedias().isEmpty())
                 ? product.getMedias().get(0).getMediaUrl()
                 : null;
 
+        // ✅ Lấy thông tin người nhận từ UserAddressResponse (địa chỉ mặc định hoặc lấy phần tử đầu tiên)
+        UserAddressResponse defaultAddress = userAddressResponses.stream()
+                .filter(UserAddressResponse::getIsDefault) // Ưu tiên lấy địa chỉ mặc định
+                .findFirst()
+                .orElse(userAddressResponses.isEmpty() ? null : userAddressResponses.get(0));
+
+
+        List<PaymentMethodResponse> paymentMethods = order.getPayments().stream()
+                .map(payment -> PaymentMethodResponse.fromPaymentMethod(payment.getPaymentMethod())) // ✅ Lấy phương thức thanh toán từ Payment
+                .collect(Collectors.toList());
+
+        String paymentMethodNames = paymentMethods.stream()
+                .map(PaymentMethodResponse::getMethodName)
+                .collect(Collectors.joining(", "));
+
+
         return OrderDetailResponse.builder()
                 .orderDetailId(orderDetail.getId())
-                .orderId(orderDetail.getOrder().getId())
+                .orderId(order.getId())
                 .quantity(orderDetail.getQuantity())
                 .unitPrice(orderDetail.getUnitPrice())
                 .totalPrice(orderDetail.getTotalPrice())
+                .imageUrl(imageUrl)
                 .productTranslationResponse(ProductTranslationResponse.fromProductsTranslation(
                         product.getTranslationByLanguage("en")))
-                .productVariant(ProductVariantResponse.fromProductVariant(variant)) // Biến thể lấy từ Product
-                .imageUrl(imageUrl) // Ảnh sản phẩm
+                .productVariant(ProductVariantResponse.fromProductVariant(
+                        product.getVariants().isEmpty() ? null : product.getVariants().get(0)))
+                .recipientName(defaultAddress != null ? defaultAddress.getFirstName() + " " + defaultAddress.getLastName() : null)
+                .recipientPhone(defaultAddress != null ? defaultAddress.getPhone() : null)
+                .shippingAddress(order.getShippingAddress())
+                .paymentMethod(paymentMethodNames)
+                .tax(order.getTaxAmount())
+                .shippingFee(order.getShippingFee())
+                .grandTotal(order.getTotalPrice())
                 .build();
-
-
     }
 
 }
