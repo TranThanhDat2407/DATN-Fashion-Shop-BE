@@ -15,5 +15,4 @@ public class CurrencyDTO {
     private String name;
     private String symbol;
     private Double rateToBase;
-
 }
