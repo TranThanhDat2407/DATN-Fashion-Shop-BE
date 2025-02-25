@@ -27,6 +27,8 @@ import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -216,7 +218,11 @@ public class OrderController {
 
 
 
-
+    @Operation(
+            summary = "Nhận callback từ VNPAY",
+            description = "API này nhận thông báo từ VNPAY để xác nhận giao dịch.",
+            tags = "Orders"
+    )
     @PostMapping("/return")
     public ResponseEntity<?> handleVNPayReturn(@RequestBody Map<String, String> vnpParams) {
         log.info("🔄 Nhận callback từ VNPay: {}", vnpParams);
@@ -269,6 +275,49 @@ public class OrderController {
 
         return ResponseEntity.ok(CreateOrderResponse.fromOrder(order));
     }
+
+
+
+    @Operation(
+            summary = "Lọc đơn hàng theo trạng thái",
+            description = "API này cho phép người dùng xem danh sách đơn hàng theo trạng thái",
+            tags = "Orders"
+    )
+    @GetMapping("/history/status")
+    public ResponseEntity<ApiResponse<Page<HistoryOrderResponse>>> getOrderHistoryByStatus(
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+
+        Pageable pageable = PageRequest.of(page, size); // Tạo Pageable trước
+        Page<HistoryOrderResponse> historyOrders;
+
+        // Nếu `status` rỗng hoặc null, lấy tất cả đơn hàng, ngược lại lọc theo trạng thái
+        if (status == null || status.isEmpty()) {
+            historyOrders = orderService.getAllOrders(pageable);
+        } else {
+            historyOrders = orderService.getOrdersByStatus(status,page,size);
+        }
+
+        if (historyOrders.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    ApiResponseUtils.errorResponse(
+                            HttpStatus.NOT_FOUND,
+                            localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_HISTORY_NOT_FOUND),
+                            null
+                    )
+            );
+        }
+
+
+        return ResponseEntity.ok().body(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_HISTORY_SUCCESS),
+                        historyOrders
+                )
+        );
+    }
+
 }
 
 

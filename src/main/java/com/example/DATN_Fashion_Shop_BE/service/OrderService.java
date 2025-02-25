@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -334,6 +335,21 @@ public class OrderService {
     public Page<HistoryOrderResponse> getOrderHistoryByUserId(Long userId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Order> ordersPage = orderRepository.findByUserId(userId, pageable);
+
+        return ordersPage.map(HistoryOrderResponse::fromHistoryOrder);
+    }
+
+
+    public Page<HistoryOrderResponse> getOrdersByStatus(String status, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Order> orderPage = orderRepository.findByOrderStatus_StatusName(status, pageable);
+
+        return orderPage.map(HistoryOrderResponse::fromHistoryOrder);
+    }
+
+    public Page<HistoryOrderResponse> getAllOrders(Pageable pageable) {
+
+        Page<Order> ordersPage = orderRepository.findAll(pageable);
 
         return ordersPage.map(HistoryOrderResponse::fromHistoryOrder);
     }
