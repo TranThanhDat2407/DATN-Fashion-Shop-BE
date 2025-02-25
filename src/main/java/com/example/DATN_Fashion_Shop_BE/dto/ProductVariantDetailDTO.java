@@ -14,6 +14,7 @@ import lombok.*;
 @NoArgsConstructor
 public class ProductVariantDetailDTO {
     private Long id;
+    private Long productId;
     private String variantImage;
     private String name;
     private Long colorId;
@@ -48,6 +49,7 @@ public class ProductVariantDetailDTO {
 
         return ProductVariantDetailDTO.builder()
                 .id(productVariant.getId())
+                .productId(productVariant.getProduct().getId())
                 .name(product.getTranslationByLanguage(langCode).getName())
                 .variantImage(variantImage)
                 .colorId(productVariant.getColorValue().getId())
