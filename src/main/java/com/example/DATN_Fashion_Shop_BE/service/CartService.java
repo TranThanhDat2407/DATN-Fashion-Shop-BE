@@ -239,7 +239,8 @@ public class CartService {
         int availableStock = inventoryRepository.findQuantityInStockByStoreAndVariant(storeId, request.getProductVariantId());
 
         if (request.getQuantity() > availableStock) {
-            throw new IllegalStateException("Not enough stock available. Only " + availableStock + " items left.");
+            throw new IllegalStateException("Not enough stock available for variant " + request.getProductVariantId() + ". Only " + availableStock + " left.");
+
         }
 
         CartItem cartItem = cartItemRepository.findByCart(cart).stream()
@@ -257,7 +258,7 @@ public class CartService {
 
         int newQuantity = cartItem.getQuantity() + request.getQuantity();
         if (newQuantity > availableStock) {
-            throw new IllegalStateException("Not enough stock available. Only " + availableStock + " items left.");
+            throw new IllegalStateException("Not enough stock available for variant " + request.getProductVariantId() + ". Only " + availableStock + " left.");
         }
 
         cartItem.setQuantity(newQuantity);
