@@ -23,7 +23,9 @@ public class CouponLocalizedDTO {
     private Boolean isGlobal;
     private String name;        // Tên theo ngôn ngữ
     private String description; // Mô tả theo ngôn ngữ
-    private List<Long> userIds; // Danh sách người dùng được chỉ định
+    private List<Long> userIds;
+    private String imageUrl;
+    // Danh sách người dùng được chỉ định
     public static CouponLocalizedDTO fromCoupons(Coupon coupon, CouponTranslation translation, List<Long> userIds) {
         return CouponLocalizedDTO.builder()
                 .id(coupon.getId())
@@ -36,6 +38,7 @@ public class CouponLocalizedDTO {
                 .isGlobal(coupon.getIsGlobal())
                 .name(translation != null ? translation.getName() : null)
                 .userIds(userIds)
+                .imageUrl(coupon.getImageUrl())
                 .description(translation != null ? translation.getDescription() : null)
                 .build();
     }

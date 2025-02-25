@@ -21,6 +21,7 @@ public class CouponResponse {
     private String userLimit;
     private String expirationDate;
     private Boolean isActive = true;
+    private String imageUrl;
     private String code;
 
     public static CouponResponse fromCoupon(Coupon coupon) {

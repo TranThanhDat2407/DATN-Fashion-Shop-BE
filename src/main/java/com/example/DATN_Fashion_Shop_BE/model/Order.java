@@ -51,6 +51,9 @@ public class Order extends BaseEntity {
     @Column(name = "tax_amount")
     private Double taxAmount;
 
+    @Column(name = "transaction_id")
+    private String transactionId; // Lưu vnp_TxnRef
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Payment> payments = new ArrayList<>();
 

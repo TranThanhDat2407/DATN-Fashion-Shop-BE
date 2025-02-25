@@ -22,6 +22,9 @@ public class CouponDTO {
     private Float minOrderValue;
     private LocalDateTime expirationDate;
     private Boolean isActive;
+    private String imageUrl;
+    private Boolean isGlobal;
+
 
 
     public static CouponDTO fromCoupon(Coupon coupon) {
@@ -35,7 +38,8 @@ public class CouponDTO {
                 .minOrderValue(coupon.getMinOrderValue())
                 .expirationDate(coupon.getExpirationDate())
                 .isActive(coupon.getIsActive())
-
+                .imageUrl(coupon.getImageUrl())
+                .isGlobal(coupon.getIsGlobal())
                 // Gán bản dịch (nếu có)
 
                 .build();

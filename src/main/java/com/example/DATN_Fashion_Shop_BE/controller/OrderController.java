@@ -10,16 +10,13 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.PreviewOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.order.CreateOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.order.HistoryOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.order.OrderPreviewResponse;
-import com.example.DATN_Fashion_Shop_BE.model.CartItem;
-import com.example.DATN_Fashion_Shop_BE.model.Order;
-import com.example.DATN_Fashion_Shop_BE.model.OrderStatus;
-import com.example.DATN_Fashion_Shop_BE.model.Payment;
-import com.example.DATN_Fashion_Shop_BE.repository.CartItemRepository;
-import com.example.DATN_Fashion_Shop_BE.repository.CartRepository;
-import com.example.DATN_Fashion_Shop_BE.repository.OrderRepository;
-import com.example.DATN_Fashion_Shop_BE.repository.PaymentRepository;
+import com.example.DATN_Fashion_Shop_BE.dto.response.vnpay.VnPayResponse;
+import com.example.DATN_Fashion_Shop_BE.model.*;
+import com.example.DATN_Fashion_Shop_BE.repository.*;
 import com.example.DATN_Fashion_Shop_BE.service.CartService;
+import com.example.DATN_Fashion_Shop_BE.service.GHNService;
 import com.example.DATN_Fashion_Shop_BE.service.OrderService;
+import com.example.DATN_Fashion_Shop_BE.service.VNPayService;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,6 +38,8 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -52,11 +51,15 @@ public class OrderController {
 
     private final OrderService orderService;
     private final LocalizationUtils localizationUtils;
-    private static final String HASH_SECRET = "HJF2G7EHCHPX0K446LBH17FKQUF56MB5";
+
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
+    private final VNPayService vnPayService;
+    private final PaymentMethodRepository paymentMethodRepository;
+    private final OrderStatusRepository orderStatusRepository;
     private final CartService cartService;
-    private final VnPayController vnPayController;
+
+
 
 
     private static final Logger log = LoggerFactory.getLogger(OrderController.class);
@@ -213,55 +216,59 @@ public class OrderController {
 
 
 
-    private String hashAndBuildUrl(Map<String, String> params) {
-        List<String> fieldNames = new ArrayList<>(params.keySet());
-        Collections.sort(fieldNames);
 
-        StringBuilder hashData = new StringBuilder();
-        StringBuilder query = new StringBuilder();
+    @PostMapping("/return")
+    public ResponseEntity<?> handleVNPayReturn(@RequestBody Map<String, String> vnpParams) {
+        log.info("🔄 Nhận callback từ VNPay: {}", vnpParams);
+        String transactionCode = vnpParams.get("vnp_TxnRef");
+        String vnp_ResponseCode = vnpParams.get("vnp_ResponseCode");
+        String vnp_TransactionNo = vnpParams.get("vnp_TransactionNo");
+        String vnp_TransactionStatus = vnpParams.get("vnp_TransactionStatus");
+        double amount = Double.parseDouble(vnpParams.get("vnp_Amount")) / 100;
+        log.info("📌 vnp_TxnRef nhận được từ VNPay: {}", transactionCode);
 
-        for (String fieldName : fieldNames) {
-            String value = params.get(fieldName);
-            if (value != null && !value.isEmpty()) {
-                hashData.append(fieldName).append("=").append(value).append("&");
-                query.append(URLEncoder.encode(fieldName, StandardCharsets.UTF_8))
-                        .append("=")
-                        .append(URLEncoder.encode(value, StandardCharsets.UTF_8))
-                        .append("&");
-            }
+        // ✅ Xác minh tính hợp lệ của giao dịch
+        boolean isValid = vnPayService.verifyPayment(vnpParams);
+
+        if (!isValid) {
+            log.error("❌ Thanh toán VNPay không hợp lệ hoặc bị từ chối.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Collections.singletonMap("message", "Thanh toán thất bại."));
+        }
+        // 1️⃣ Kiểm tra mã giao dịch và tìm đơn hàng
+        Order order = orderRepository.findById(Long.valueOf(transactionCode))
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với mã giao dịch: " + transactionCode));
+
+//         ✅ Kiểm tra trạng thái thanh toán VNPay
+        if ("00".equals(vnp_ResponseCode) && "00".equals(vnp_TransactionStatus)) {
+            order.setOrderStatus(orderStatusRepository.findByStatusName("PROCESSING")
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy trạng thái PROCESSING.")));
+            order.setTransactionId(vnp_TransactionNo);
+            orderRepository.save(order);
+            log.info("✅ Giao dịch thành công. Đã cập nhật trạng thái đơn hàng ID: {}", order.getId());
+        } else {
+            order.setOrderStatus(orderStatusRepository.findByStatusName("CANCELLED")
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy trạng thái CANCELLED.")));
+            log.error("❌ Giao dịch thất bại. Đã cập nhật trạng thái đơn hàng ID: {}", order.getId());
         }
 
-        if (hashData.length() > 0) hashData.setLength(hashData.length() - 1);
-        if (query.length() > 0) query.setLength(query.length() - 1);
 
-        // Tạo SecureHash đúng chuẩn
-        String secureHash = hmacSHA512(HASH_SECRET, hashData.toString());
-        query.append("&vnp_SecureHash=").append(secureHash);
+        // 6️⃣ Lưu thông tin thanh toán
+        Payment payment = Payment.builder()
+                .order(order)
+                .paymentMethod(paymentMethodRepository.findByMethodName("VNPAY")
+                        .orElseThrow(() -> new RuntimeException("Phương thức thanh toán không hợp lệ.")))
+                .paymentDate(new Date())
+                .amount(amount)
+                .status("SUCCESS")
+                .transactionCode(UUID.randomUUID().toString())
+                .build();
 
-        return query.toString();
+        paymentRepository.save(payment);
+
+
+        return ResponseEntity.ok(CreateOrderResponse.fromOrder(order));
     }
-
-
-    private String hmacSHA512(String key, String data) {
-        try {
-            Mac hmac = Mac.getInstance("HmacSHA512");
-            SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA512");
-            hmac.init(secretKey);
-            byte[] hash = hmac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
-                hexString.append(hex);
-            }
-            return hexString.toString().toUpperCase();
-        } catch (Exception e) {
-            throw new RuntimeException("Lỗi mã hóa HmacSHA512", e);
-        }
-    }
-
-
-
 }
 
 
