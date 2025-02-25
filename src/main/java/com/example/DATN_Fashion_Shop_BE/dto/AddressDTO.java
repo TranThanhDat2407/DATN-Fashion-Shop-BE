@@ -24,6 +24,7 @@ public class AddressDTO {
     private String phoneNumber;  // Thêm số điện thoại
     private String firstName;    // Thêm tên người nhận
     private String lastName;
+    private Boolean isDefault;
 
     public static AddressDTO fromAddress(Address address, UserAddress userAddress) {
         return AddressDTO.builder()
@@ -36,7 +37,8 @@ public class AddressDTO {
                 .longitude(address.getLongitude())
                 .phoneNumber(userAddress.getPhone())  // Lấy số điện thoại từ UserAddress
                 .firstName(userAddress.getFirstName())  // Lấy tên người nhận từ UserAddress
-                .lastName(userAddress.getLastName())  // Lấy họ người nhận từ UserAddress
+                .lastName(userAddress.getLastName())
+                .isDefault(userAddress.getIsDefault())// Lấy họ người nhận từ UserAddress
                 .build();
     }
 }

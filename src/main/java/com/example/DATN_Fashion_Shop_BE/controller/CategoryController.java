@@ -179,26 +179,6 @@ public class CategoryController {
     }
 
     @Operation(
-            summary = "Lấy category cha bằng id của category con",
-            description = "api đảo ngược. ",
-            tags = "Categories"
-    )
-    @GetMapping("{languageCode}/category/parent/reverse/{categoryId}")
-    public ResponseEntity<ApiResponse<CategoryDTO>> getParent(
-            @PathVariable String languageCode,
-            @PathVariable Long categoryId,
-            @RequestParam(required = false) Boolean isActive) {
-
-       CategoryDTO childCategories = categoryService.getParentCategoriesWithTranslations(languageCode,
-                categoryId, isActive);
-
-        return ResponseEntity.ok(ApiResponseUtils.successResponse(
-                localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_RETRIEVED_SUCCESSFULLY),
-                childCategories
-        ));
-    }
-
-    @Operation(
             summary = "Lấy thông tin category để admin chỉnh sửa",
             description = "API này trả về thông tin chi tiết của category với ID xác định để người dùng có thể chỉnh sửa.",
             tags = {"Categories"}

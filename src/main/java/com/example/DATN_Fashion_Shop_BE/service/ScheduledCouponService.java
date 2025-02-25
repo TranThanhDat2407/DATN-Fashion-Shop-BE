@@ -21,6 +21,8 @@ public class ScheduledCouponService {
     private final CouponService couponService;
 //    @Scheduled(cron = "0 * * * * ?")
     @Scheduled(cron = "0 0 0 * * ?")
+    // test chay sau moi phut
+//    @Scheduled(cron = "0 * * * * ?")
     @Transactional
     public void generateBirthdayCouponsForUsers() {
         LocalDate today = LocalDate.now();
