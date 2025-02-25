@@ -41,6 +41,8 @@ public class Coupon extends BaseEntity {
     @Column(name = "codes", nullable = false)
     private String code;
 
+    @Column(name = "image_url", length = 255)
+    private String imageUrl;
 
     @Column(name = "is_global")
     private Boolean isGlobal = false; // Nếu true, mọi user đều có thể sử dụng mã

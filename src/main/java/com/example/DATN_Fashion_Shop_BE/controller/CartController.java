@@ -85,6 +85,35 @@ public class CartController {
         );
     }
 
+    @PostMapping("/staff-add")
+    public ResponseEntity<ApiResponse<CartItemResponse>> staffAddToCart(
+            @RequestParam Long userId,
+            @RequestParam Long storeId,
+            @RequestBody CartRequest request) {
+        CartItemResponse response = cartService.staffAddToCart(userId, storeId, request);
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                        response
+                )
+        );
+    }
+
+    @PutMapping("/staff-update")
+    public ResponseEntity<ApiResponse<CartItemResponse>> staffUpdateCart(
+            @RequestParam Long userId,
+            @RequestParam Long storeId,
+            @RequestBody CartRequest request) {
+        CartItemResponse response = cartService.staffUpdateCart(userId, storeId, request);
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                        response
+                )
+        );
+    }
+
+
     @DeleteMapping("/item/{cartItemId}")
     public ResponseEntity<ApiResponse<Void>> removeFromCart(
             @RequestParam(required = false) Long userId,

@@ -1,6 +1,7 @@
 package com.example.DATN_Fashion_Shop_BE.repository;
 
 import com.example.DATN_Fashion_Shop_BE.model.Product;
+import com.example.DATN_Fashion_Shop_BE.model.Promotion;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -104,5 +105,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             @Param("promotionId") Long promotionId,
             Pageable pageable
     );
+
+    List<Product> findByPromotion(Promotion promotion);
 
 }

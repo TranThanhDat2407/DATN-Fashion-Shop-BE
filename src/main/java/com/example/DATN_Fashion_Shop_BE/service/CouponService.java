@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -30,6 +31,9 @@ public class CouponService {
     private final UserRepository userRepository;
     private final CouponUserRestrictionRepository couponUserRestrictionRepository;
     private final EmailService emailService;
+    private final FileStorageService fileStorageService;
+
+
     public boolean applyCoupon(Long userId, String couponCode) {
         Optional<Coupon> couponOpt = couponRepository.findByCode(couponCode);
         if (couponOpt.isEmpty()) {
@@ -58,7 +62,14 @@ public class CouponService {
         return true;
     }
     @Transactional
-    public CouponDTO createCoupon(CouponCreateRequestDTO request) {
+    public CouponDTO createCoupon(CouponCreateRequestDTO request, MultipartFile imageFile) {
+        String imageUrl = null;
+
+        // Kiểm tra nếu có ảnh thì upload
+        if (imageFile != null && !imageFile.isEmpty()) {
+            imageUrl = fileStorageService.uploadFileAndGetName(imageFile, "coupons");
+        }
+
         // 1️⃣ Tạo Coupon
         Coupon coupon = Coupon.builder()
                 .code(request.getCode())
@@ -68,11 +79,12 @@ public class CouponService {
                 .expirationDate(request.getExpirationDate())
                 .isActive(true)
                 .isGlobal(request.getIsGlobal()) // Set isGlobal
+                .imageUrl(imageUrl) // Lưu đường dẫn ảnh vào DB
                 .build();
 
         coupon = couponRepository.save(coupon);
 
-
+        // 2️⃣ Nếu không phải global, tạo ràng buộc với user
         if (!request.getIsGlobal() && request.getUserIds() != null && !request.getUserIds().isEmpty()) {
             List<User> users = userRepository.findAllById(request.getUserIds());
             Coupon finalCoupon = coupon;
@@ -84,6 +96,69 @@ public class CouponService {
                     .collect(Collectors.toList());
             couponUserRestrictionRepository.saveAll(restrictions);
         }
+
+        // 3️⃣ Lưu bản dịch coupon
+        Coupon finalCoupon1 = coupon;
+        List<CouponTranslation> translations = request.getTranslations().stream()
+                .map(translationDTO -> {
+                    Language language = languageRepository.findByCode(translationDTO.getLanguageCode())
+                            .orElseThrow(() -> new RuntimeException("Language not found for code: " + translationDTO.getLanguageCode()));
+
+                    return CouponTranslation.builder()
+                            .name(translationDTO.getName())
+                            .description(translationDTO.getDescription())
+                            .coupon(finalCoupon1)
+                            .language(language)
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        couponTranslationRepository.saveAll(translations);
+
+        // 4️⃣ Trả về CouponDTO đã có ảnh
+        return CouponDTO.builder()
+                .id(coupon.getId())
+                .code(coupon.getCode())
+                .discountType(coupon.getDiscountType())
+                .discountValue(coupon.getDiscountValue())
+                .minOrderValue(coupon.getMinOrderValue())
+                .expirationDate(coupon.getExpirationDate())
+                .isActive(coupon.getIsActive())
+                .isGlobal(coupon.getIsGlobal())
+                .imageUrl(coupon.getImageUrl()) // Trả về đường dẫn ảnh
+                .build();
+    }
+
+    @Transactional
+    public CouponDTO updateCoupon(Long id, CouponCreateRequestDTO request, MultipartFile imageFile) {
+        // 1️⃣ Lấy coupon cần cập nhật
+        Coupon coupon = couponRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Coupon not found"));
+
+        // 2️⃣ Nếu có ảnh mới thì xử lý upload
+        if (imageFile != null && !imageFile.isEmpty()) {
+            String oldImageUrl = coupon.getImageUrl();
+            if (oldImageUrl != null) {
+                fileStorageService.backupAndDeleteFile(oldImageUrl, "coupons"); // Xóa ảnh cũ nếu có
+            }
+            String newImageUrl = fileStorageService.uploadFileAndGetName(imageFile, "/images/coupons");
+            coupon.setImageUrl(newImageUrl);
+        }
+
+        // 3️⃣ Cập nhật thông tin coupon
+        coupon.setCode(request.getCode());
+        coupon.setDiscountType(request.getDiscountType());
+        coupon.setDiscountValue(request.getDiscountValue());
+        coupon.setMinOrderValue(request.getMinOrderValue());
+        coupon.setExpirationDate(request.getExpirationDate());
+
+
+
+        coupon = couponRepository.save(coupon);
+
+        // 5️⃣ Xóa bản dịch cũ và thêm bản dịch mới
+        couponTranslationRepository.deleteByCouponId(id);
+
         Coupon finalCoupon = coupon;
         List<CouponTranslation> translations = request.getTranslations().stream()
                 .map(translationDTO -> {
@@ -100,56 +175,40 @@ public class CouponService {
                 .collect(Collectors.toList());
 
         couponTranslationRepository.saveAll(translations);
-        return CouponDTO.fromCoupon(coupon);
-    }
 
-    @Transactional
-    public CouponDTO updateCoupon(Long id, CouponCreateRequestDTO request) {
-        // 1️. Lấy coupon cần cập nhật
-        Coupon coupon = couponRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Coupon not found"));
-
-        // 2️. Cập nhật thông tin coupon
-        coupon.setCode(request.getCode());
-        coupon.setDiscountType(request.getDiscountType());
-        coupon.setDiscountValue(request.getDiscountValue());
-        coupon.setMinOrderValue(request.getMinOrderValue());
-        coupon.setExpirationDate(request.getExpirationDate());
-
-        coupon = couponRepository.save(coupon);
-
-        // 3️. Xóa bản dịch cũ và thêm bản dịch mới
-        couponTranslationRepository.deleteByCouponId(id); // Xóa bản dịch cũ
-
-        Coupon finalCoupon = coupon;
-        List<CouponTranslation> translations = request.getTranslations().stream()
-                .map(translationDTO -> {
-                    Language language = languageRepository.findByCode(translationDTO.getLanguageCode())
-                            .orElseThrow(() -> new RuntimeException("Language not found for code: " + translationDTO.getLanguageCode()));
-
-                    return CouponTranslation.builder()
-                            .name(translationDTO.getName())
-                            .description(translationDTO.getDescription())
-                            .coupon(finalCoupon) // Gán lại coupon sau khi cập nhật
-                            .language(language)
-                            .build();
-                })
-                .collect(Collectors.toList());
-
-        couponTranslationRepository.saveAll(translations);
-
-        return CouponDTO.fromCoupon(coupon);
+        // 6️⃣ Trả về CouponDTO đã có thông tin ảnh
+        return CouponDTO.builder()
+                .id(coupon.getId())
+                .code(coupon.getCode())
+                .discountType(coupon.getDiscountType())
+                .discountValue(coupon.getDiscountValue())
+                .minOrderValue(coupon.getMinOrderValue())
+                .expirationDate(coupon.getExpirationDate())
+                .isActive(coupon.getIsActive())
+                .isGlobal(coupon.getIsGlobal())
+                .imageUrl(coupon.getImageUrl()) // Trả về đường dẫn ảnh mới
+                .build();
     }
 
     @Transactional
     public void deleteCoupon(Long id) {
-        if (!couponRepository.existsById(id)) {
-            throw new RuntimeException("Coupon not found");
+        // 1️⃣ Kiểm tra coupon có tồn tại không
+        Coupon coupon = couponRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Coupon not found"));
+
+        // 2️⃣ Xóa ảnh nếu có
+        String imageUrl = coupon.getImageUrl();
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            fileStorageService.backupAndDeleteFile(imageUrl, "coupons");
         }
 
-        couponTranslationRepository.deleteByCouponId(id); // Xóa bản dịch trước
-        couponRepository.deleteById(id); // Xóa coupon
+        // 3️⃣ Xóa bản dịch trước
+        couponTranslationRepository.deleteByCouponId(id);
+
+        // 4️⃣ Xóa coupon
+        couponRepository.deleteById(id);
     }
+
 
 
 
@@ -227,18 +286,17 @@ public class CouponService {
         });
     }
     public void generateBirthdayCoupons(List<User> usersWithBirthday) {
-
         LocalDateTime today = LocalDateTime.now();
-
+        String birthdayImageUrl = "/images/coupons/5625ad39-d0cb-4b36-a582-3bcf288260a2_pc_1720432249113_2117241469.jpg";
         for (User user : usersWithBirthday) {
             String couponCode = "BDAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-
             Coupon coupon = Coupon.builder()
                     .code(couponCode)
                     .discountType("PERCENTAGE")
                     .discountValue(10.0f)
                     .minOrderValue(100.0f)
                     .expirationDate(today.plusDays(7))
+                    .imageUrl(birthdayImageUrl)
                     .isActive(true)
                     .isGlobal(false)
                     .build();

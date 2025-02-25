@@ -32,6 +32,14 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
                                                  @Param("sizeId") Long sizeId,
                                                  @Param("storeId") Long storeId);
 
+    @Query("""
+        SELECT i.quantityInStock 
+        FROM Inventory i 
+        WHERE i.productVariant.id = :productVariantId 
+          AND i.store.id = :storeId
+    """)
+    Integer findQuantityInStockByStoreAndVariant(@Param("storeId") Long storeId,
+                                                 @Param("productVariantId") Long productVariantId);
 
     Page<Inventory> findByStoreIdAndProductVariant_Product_Translations_LanguageCodeAndProductVariant_Product_Translations_NameContainingIgnoreCaseAndProductVariant_Product_Categories_IdIn(
             Long storeId, String languageCode, String productName, List<Long> categoryIds, Pageable pageable);

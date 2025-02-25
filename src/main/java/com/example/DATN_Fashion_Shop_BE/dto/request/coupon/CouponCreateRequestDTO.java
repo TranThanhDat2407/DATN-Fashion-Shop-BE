@@ -29,6 +29,9 @@ public class CouponCreateRequestDTO {
     @Min(value = 0, message = MessageKeys.MIN_ORDER_VALUE_INVALID)
     private Float minOrderValue;
 
+    private String imageUrl;
+
+
     @FutureOrPresent(message = MessageKeys.EXPIRATION_DATE_INVALID)
     private LocalDateTime expirationDate;
     private Boolean isGlobal; // Nếu true, không cần userIds

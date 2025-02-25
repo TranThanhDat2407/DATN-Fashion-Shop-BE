@@ -148,13 +148,15 @@ public class CartService {
     }
 
     public TotalCartResponse getTotalCartItems(Long userId, String sessionId) {
+        Cart cart = getOrCreateCart(userId, sessionId);
         if (userId != null) {
             return TotalCartResponse.builder()
-                    .totalCart(cartRepository.countByUserId(userId))
+                    .totalCart(cartItemRepository.sumQuantityByCart(cart))
                     .build();
         } else if (sessionId != null) {
+//            Cart cart = cartRepository.findBySessionId(sessionId).orElse(null);
             return TotalCartResponse.builder()
-                    .totalCart(cartRepository.countBySessionId(sessionId))
+                    .totalCart(cartItemRepository.sumQuantityByCart(cart))
                     .build();
         }
         return TotalCartResponse.builder()
@@ -226,8 +228,72 @@ public class CartService {
         // Xóa cart item của sessionId sau khi merge
         cartItemRepository.deleteAll(sessionCart.getCartItems());
     }
-    
 
 
+    @Transactional
+    public CartItemResponse staffAddToCart(Long userId, Long storeId, CartRequest request) {
+        Cart cart = getOrCreateCartForUser(userId); // Tạo giỏ hàng nếu chưa có
+        ProductVariant productVariant = getProductVariant(request.getProductVariantId());
 
+        // Kiểm tra tồn kho tại cửa hàng
+        int availableStock = inventoryRepository.findQuantityInStockByStoreAndVariant(storeId, request.getProductVariantId());
+
+        if (request.getQuantity() > availableStock) {
+            throw new IllegalStateException("Not enough stock available. Only " + availableStock + " items left.");
+        }
+
+        CartItem cartItem = cartItemRepository.findByCart(cart).stream()
+                .filter(item -> item.getProductVariant().getId().equals(request.getProductVariantId()))
+                .findFirst()
+                .orElseGet(() -> {
+                    CartItem newItem = CartItem.builder()
+                            .cart(cart)
+                            .productVariant(productVariant)
+                            .quantity(0)
+                            .build();
+                    return cartItemRepository.save(newItem);
+                });
+
+
+        int newQuantity = cartItem.getQuantity() + request.getQuantity();
+        if (newQuantity > availableStock) {
+            throw new IllegalStateException("Not enough stock available. Only " + availableStock + " items left.");
+        }
+
+        cartItem.setQuantity(newQuantity);
+        return CartItemResponse.fromCartItem(cartItemRepository.save(cartItem));
+    }
+
+    @Transactional
+    public CartItemResponse staffUpdateCart(Long userId, Long storeId, CartRequest request) {
+        Cart cart = getOrCreateCartForUser(userId);
+
+        CartItem cartItem = cartItemRepository.findByCart(cart).stream()
+                .filter(item -> item.getProductVariant().getId().equals(request.getProductVariantId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Product not found in cart"));
+
+        int availableStock = inventoryRepository.findQuantityInStockByStoreAndVariant(storeId, request.getProductVariantId());
+
+        if (request.getQuantity() > availableStock) {
+            throw new IllegalStateException("Not enough stock available. Only " + availableStock + " items left.");
+        }
+
+        cartItem.setQuantity(request.getQuantity());
+        return CartItemResponse.fromCartItem(cartItemRepository.save(cartItem));
+    }
+
+
+    private Cart getOrCreateCartForUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        return cartRepository.findByUser(user)
+                .orElseGet(() -> cartRepository.save(Cart.builder()
+                        .user(user)
+                        .sessionId(null)  // User đã đăng nhập, không cần sessionId
+                        .cartItems(new ArrayList<>())
+                        .build())
+                );
+    }
 }

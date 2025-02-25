@@ -116,16 +116,31 @@ public class PromotionService {
     }
 
     @Transactional
-    @Scheduled(cron = "0 0 0 * * ?")  // Chạy mỗi phút
-    public void activatePromotions() {
+    //@Scheduled(cron = "0 * * * * ?")
+    @Scheduled(cron = "0 0 0 * * ?")  // Chạy mỗi ngày lúc 00:00
+    public void updatePromotions() {
         LocalDateTime now = LocalDateTime.now();
-        List<Promotion> promotionsToActivate = promotionRepository.findByStartDate(now);
 
+        // Kích hoạt khuyến mãi nếu đến ngày bắt đầu
+        List<Promotion> promotionsToActivate = promotionRepository.findByStartDateBeforeAndEndDateAfter(now,now);
         for (Promotion promo : promotionsToActivate) {
             promo.setIsActive(true);
         }
-
         promotionRepository.saveAll(promotionsToActivate);
+
+        // Vô hiệu hóa và xóa sản phẩm trong khuyến mãi nếu đến ngày kết thúc
+        List<Promotion> promotionsToDeactivate = promotionRepository.findByEndDateBefore(now);
+        for (Promotion promo : promotionsToDeactivate) {
+            promo.setIsActive(false);
+
+            // Cập nhật isActive của sản phẩm
+            List<Product> products = productRepository.findByPromotion(promo);
+            for (Product product : products) {
+                product.setPromotion(null);
+            }
+            productRepository.saveAll(products);
+        }
+        promotionRepository.saveAll(promotionsToDeactivate);
     }
 
     @Transactional

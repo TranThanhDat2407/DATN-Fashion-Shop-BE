@@ -24,4 +24,7 @@ public interface PromotionRepository extends JpaRepository<Promotion, Long> {
 
     @Query("SELECT p FROM Promotion p WHERE p.startDate <= :now AND p.isActive = false")
     List<Promotion> findByStartDate(@Param("now") LocalDateTime now);
+
+    List<Promotion> findByStartDateBeforeAndEndDateAfter(LocalDateTime startDate, LocalDateTime endDate);
+    List<Promotion> findByEndDateBefore(LocalDateTime endDate);
 }

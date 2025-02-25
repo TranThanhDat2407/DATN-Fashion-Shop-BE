@@ -149,4 +149,5 @@ vnpay:
     scheduling:
       enabled: true
 
-
+agent:
+  authtoken: 2tDeafp1n325wPOEx1eV5QMt2Ye_3NQ2RAbEKmKyeRxos6QQy
