@@ -3,6 +3,8 @@ package com.example.DATN_Fashion_Shop_BE.controller;
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.*;
 import com.example.DATN_Fashion_Shop_BE.dto.response.*;
+import com.example.DATN_Fashion_Shop_BE.dto.response.order.TotalOrderCancelTodayResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.user.CustomerCreateTodayResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.user.UserAdminResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.user.UserResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
@@ -636,6 +638,26 @@ public class UserController {
                 )
         );
     }
+
+    @GetMapping("cutomerCreate/today")
+    public ResponseEntity<ApiResponse<CustomerCreateTodayResponse>> getCreateCustomerToday() {
+        CustomerCreateTodayResponse userTotal = userService.getCreateCustomerToday();
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy được getTotalOrderCancelToday",
+                userTotal
+        ));
+    }
+
+    @GetMapping("cutomerCreate/yesterday")
+    public ResponseEntity<ApiResponse<Integer>> getCreateCustomerTodayYesterday() {
+        Integer userYesterday = userService.getCreateCustomerTodayYesterday();
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy được getTotalOrderCancelYesterday ",
+                userYesterday
+        ));
+    }
+
+
 
 
 }

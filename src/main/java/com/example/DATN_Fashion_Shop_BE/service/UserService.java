@@ -5,6 +5,9 @@ import com.example.DATN_Fashion_Shop_BE.component.JwtTokenUtil;
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.UpdateUserDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.UserDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.order.TotalOrderCancelTodayResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.user.CustomerCreateTodayResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.user.UserAdminResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.exception.ExpiredTokenException;
@@ -12,6 +15,7 @@ import com.example.DATN_Fashion_Shop_BE.exception.InvalidPasswordException;
 import com.example.DATN_Fashion_Shop_BE.exception.PermissionDenyException;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
+import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
@@ -19,11 +23,13 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -352,4 +358,27 @@ public class UserService{
     public Boolean isUserValid (Long userId){
         return userRepository.existsByIdAndIsActiveTrue(userId);
     }
+
+    public CustomerCreateTodayResponse getCreateCustomerToday() {
+        List<User> totalUser = userRepository.getCreateCustomerToday();
+        Integer count = totalUser.size();
+        CustomerCreateTodayResponse response = new CustomerCreateTodayResponse();
+
+        response.setTotalCustomerCreateToday(count);
+        if (!totalUser.isEmpty()) {
+            response.setCustomerCreateTodayDate(totalUser.get(0).getCreatedAt());
+        }
+
+        return response;
+    }
+    public Integer getCreateCustomerTodayYesterday() {
+        List<User> totalUser = userRepository.getCreateCustomerTodayYesterday();
+        Integer count = totalUser.size();
+
+        return count;
+    }
+
+
+
+
 }
