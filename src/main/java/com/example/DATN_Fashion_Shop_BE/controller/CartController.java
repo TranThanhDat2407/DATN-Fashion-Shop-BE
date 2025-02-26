@@ -163,11 +163,6 @@ public class CartController {
         if (sessionId == null) {
             sessionId = sessionService.getSessionIdFromRequest(request);
         }
-        log.info("🛒 Xóa giỏ hàng với userId: {}, sessionId: {}", userId, sessionId);
-        if (userId == null && sessionId == null) {
-            log.error("❌ Cả userId và sessionId đều null!");
-        }
-
 
         cartService.clearCart(userId, sessionId);
         return ResponseEntity.ok(
