@@ -3,6 +3,8 @@ package com.example.DATN_Fashion_Shop_BE.controller;
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.*;
 import com.example.DATN_Fashion_Shop_BE.dto.response.*;
+import com.example.DATN_Fashion_Shop_BE.dto.response.order.TotalOrderCancelTodayResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.user.CustomerCreateTodayResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.user.UserAdminResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.user.UserResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
@@ -471,6 +473,47 @@ public class UserController {
     }
 
     @Operation(
+            summary = "Đặt lại mật khẩu người dùng",
+            description = "API này cho phép người dùng thay đổi mật khẩu của mình.",
+            tags = {"User"}
+    )
+    @PostMapping("/{email}/reset-password-email")
+    public ResponseEntity<ApiResponse<?>> resetPassword(
+            @PathVariable String email,
+            @RequestParam String newPassword
+    ) {
+        try {
+            userService.resetPassword(email, newPassword);
+            return ResponseEntity.ok(
+                    ApiResponseUtils.successResponse(
+                            localizationUtils.getLocalizedMessage(MessageKeys.RESET_PASSWORD_SUCCESSFULLY),
+                            null
+                    )
+            );
+        } catch (DataNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    ApiResponseUtils.errorResponse(
+                            HttpStatus.NOT_FOUND,
+                            localizationUtils.getLocalizedMessage(MessageKeys.USER_NOT_FOUND),
+                            null,
+                            null,
+                            e.getMessage()
+                    )
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    ApiResponseUtils.errorResponse(
+                            HttpStatus.INTERNAL_SERVER_ERROR,
+                            e.getMessage(),
+                            null,
+                            null,
+                            localizationUtils.getLocalizedMessage(MessageKeys.RESET_PASSWORD_FAILED)
+                    )
+            );
+        }
+    }
+
+    @Operation(
             summary = "Khóa hoặc mở khóa người dùng",
             description = "API này cho phép khóa hoặc mở khóa tài khoản người dùng.",
             tags = {"User"}
@@ -578,6 +621,26 @@ public class UserController {
                     )
             );
         }
+    }
+
+
+
+    @GetMapping("cutomerCreate/today")
+    public ResponseEntity<ApiResponse<CustomerCreateTodayResponse>> getCreateCustomerToday() {
+        CustomerCreateTodayResponse userTotal = userService.getCreateCustomerToday();
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy được getTotalOrderCancelToday",
+                userTotal
+        ));
+    }
+
+    @GetMapping("cutomerCreate/yesterday")
+    public ResponseEntity<ApiResponse<Integer>> getCreateCustomerTodayYesterday() {
+        Integer userYesterday = userService.getCreateCustomerTodayYesterday();
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy được getTotalOrderCancelYesterday ",
+                userYesterday
+        ));
     }
 
 

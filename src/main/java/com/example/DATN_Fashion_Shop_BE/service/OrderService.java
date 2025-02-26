@@ -6,9 +6,13 @@ import com.example.DATN_Fashion_Shop_BE.dto.request.Ghn.PreviewOrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.order.OrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.GhnPreviewResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.PreviewOrderResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.TotalOrderTodayResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.order.CreateOrderResponse;
 
 import com.example.DATN_Fashion_Shop_BE.dto.response.order.HistoryOrderResponse;
+
+import com.example.DATN_Fashion_Shop_BE.dto.response.order.TotalOrderCancelTodayResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.order.TotalRevenueTodayResponse;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
@@ -16,6 +20,7 @@ import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
+import org.aspectj.weaver.ast.Or;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +42,7 @@ import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
-public class OrderService {
+public class    OrderService {
 
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
@@ -354,6 +359,71 @@ public class OrderService {
         return ordersPage.map(HistoryOrderResponse::fromHistoryOrder);
     }
 
+
+
+    public TotalRevenueTodayResponse getTotalRevenueToday() {
+        List<Order> totalRevenue = orderRepository.getTotalRevenueToday();
+        TotalRevenueTodayResponse response = new TotalRevenueTodayResponse();
+        Double total = 0.0;
+        for (Order order : totalRevenue) {
+            total += order.getTotalAmount();
+        }
+        response.setTotalRevenueToday(total);
+        if (!totalRevenue.isEmpty()) {
+            response.setRevenueTodayDate(totalRevenue.get(0).getCreatedAt());
+        }
+
+        return response;
+    }
+
+    public Double getTotalRevenueYesterday() {
+        List<Order> totalRevenue = orderRepository.getTotalRevenueYesterday();
+        Double total = 0.0;
+       for (Order order : totalRevenue) {
+           total += order.getTotalAmount();
+       }
+
+       return total;
+    }
+
+    public TotalOrderTodayResponse getTotalOrderToday() {
+        List<Order> totalOrder = orderRepository.getTotalOrderCompleteToday();
+        Integer count = totalOrder.size();
+        TotalOrderTodayResponse response = new TotalOrderTodayResponse();
+
+        response.setTotalOrder(count);
+        if (!totalOrder.isEmpty()) {
+            response.setRevenueTodayDate(totalOrder.get(0).getCreatedAt());
+        }
+
+        return response;
+    }
+
+    public Integer getTotalOrderYesterday() {
+        List<Order> totalOrder = orderRepository.getTotalOrderYesterday();
+        Integer count = totalOrder.size();
+
+        return count;
+    }
+
+    public TotalOrderCancelTodayResponse getTotalOrderCancelToday() {
+        List<Order> totalOrder = orderRepository.getTotalOrderCancelToday();
+        Integer count = totalOrder.size();
+        TotalOrderCancelTodayResponse response = new TotalOrderCancelTodayResponse();
+
+        response.setTotalOrderCancel(count);
+        if (!totalOrder.isEmpty()) {
+            response.setOrderCancelDate(totalOrder.get(0).getCreatedAt());
+        }
+
+        return response;
+    }
+    public Integer getTotalOrderCancelYesterday() {
+        List<Order> totalOrder = orderRepository.getTotalOrderCancelYesterday();
+        Integer count = totalOrder.size();
+
+        return count;
+    }
 
 }
 
