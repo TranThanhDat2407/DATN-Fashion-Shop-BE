@@ -50,8 +50,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE CAST(u.dateOfBirth AS DATE) = :today")
     List<User> findByDateOfBirth(@Param("today") LocalDate today);
 
-
-
-
+    boolean existsByIdAndIsActiveTrue(Long id);
 
 }

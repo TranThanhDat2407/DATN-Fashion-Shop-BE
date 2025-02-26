@@ -27,6 +27,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.function.EntityResponse;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -43,8 +44,8 @@ public class UserController {
     @Operation(
             summary = "Đăng ký tài khoản người dùng",
             description = """
-        API này được sử dụng để đăng ký một tài khoản người dùng mới.
-    """,
+                        API này được sử dụng để đăng ký một tài khoản người dùng mới.
+                    """,
             tags = {"User"}
     )
     @PostMapping("/register")
@@ -98,8 +99,8 @@ public class UserController {
     @Operation(
             summary = "Đăng nhập ",
             description = """
-        API này được sử dụng để đăng nhập.
-    """,
+                        API này được sử dụng để đăng nhập.
+                    """,
             tags = {"User"}
     )
     @PostMapping("/login")
@@ -182,6 +183,7 @@ public class UserController {
             );
         }
     }
+
     private boolean isMobileDevice(String userAgent) {
         // Kiểm tra User-Agent header để xác định thiết bị di động
         // Ví dụ đơn giản:
@@ -190,13 +192,13 @@ public class UserController {
 
 
     @PostMapping("/details")
-    @Operation( summary = "Lấy thông tin chi tiết người dùng",
+    @Operation(summary = "Lấy thông tin chi tiết người dùng",
             description = """
-        API này được sử dụng để lấy thông tin chi tiết của người dùng từ token Bearer.
-
-    """,
+                        API này được sử dụng để lấy thông tin chi tiết của người dùng từ token Bearer.
+                    
+                    """,
             tags = {"User"},
-            security = { @SecurityRequirement(name = "bearer-key") })
+            security = {@SecurityRequirement(name = "bearer-key")})
     public ResponseEntity<ApiResponse<UserResponse>> getUserDetails(
             @RequestHeader("Authorization") String authorizationHeader
     ) {
@@ -328,15 +330,15 @@ public class UserController {
     @Operation(
             summary = "Lấy danh sách tất cả người dùng",
             description = """
-        API này được sử dụng để lấy danh sách tất cả người dùng từ hệ thống. 
-        Chỉ có người dùng với vai trò `ROLE_ADMIN` mới có quyền truy cập API này.
-        
-        **Yêu cầu:** Người dùng phải có vai trò `ROLE_ADMIN` và truyền token Bearer hợp lệ trong header `Authorization`.
-        
-        **Phản hồi:**
-        - `message`: Thông báo trạng thái API.
-        - `data`: Danh sách thông tin người dùng (nếu thành công).
-    """,
+                        API này được sử dụng để lấy danh sách tất cả người dùng từ hệ thống. 
+                        Chỉ có người dùng với vai trò `ROLE_ADMIN` mới có quyền truy cập API này.
+                    
+                        **Yêu cầu:** Người dùng phải có vai trò `ROLE_ADMIN` và truyền token Bearer hợp lệ trong header `Authorization`.
+                    
+                        **Phản hồi:**
+                        - `message`: Thông báo trạng thái API.
+                        - `data`: Danh sách thông tin người dùng (nếu thành công).
+                    """,
             tags = {"User"},
             security = {@SecurityRequirement(name = "bearer-key")}
     )
@@ -475,7 +477,7 @@ public class UserController {
             description = "API này cho phép người dùng thay đổi mật khẩu của mình.",
             tags = {"User"}
     )
-    @PostMapping("/{email}/reset-password-email")
+    @PostMapping("/reset-password-email/{email}")
     public ResponseEntity<ApiResponse<?>> resetPassword(
             @PathVariable String email,
             @RequestParam String newPassword
@@ -621,7 +623,19 @@ public class UserController {
         }
     }
 
-
+    @Operation(
+            summary = "Kiểm tra User có isActive=true và có trong database hay không",
+            tags = {"User"}
+    )
+    @GetMapping("/valid/{userId}")
+    public ResponseEntity<ApiResponse<Boolean>> checkIsValidUserId (@PathVariable Long userId) {
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PASSWORD_CHANGED_SUCCESSFULLY),
+                        userService.isUserValid(userId)
+                )
+        );
+    }
 
 
 }

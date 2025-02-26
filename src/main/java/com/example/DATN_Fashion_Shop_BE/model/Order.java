@@ -25,7 +25,7 @@ public class Order extends BaseEntity {
     private User user;
 
     @ManyToOne
-    @JoinColumn(name = "coupon_id", nullable = true)
+    @JoinColumn(name = "coupon_id")
     private Coupon coupon;
 
     @Column(name = "total_price", nullable = false)
@@ -42,7 +42,7 @@ public class Order extends BaseEntity {
     private String shippingAddress;
 
     @ManyToOne
-    @JoinColumn(name = "shipping_method",columnDefinition = "NVARCHAR(255)", nullable = false)
+    @JoinColumn(name = "shipping_method_id", nullable = false)
     private ShippingMethod shippingMethod;
 
     @Column(name = "shipping_fee", nullable = false)
@@ -57,4 +57,10 @@ public class Order extends BaseEntity {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Payment> payments = new ArrayList<>();
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "store_id")
+    private Store store;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderDetail> orderDetails = new ArrayList<>();
 }
