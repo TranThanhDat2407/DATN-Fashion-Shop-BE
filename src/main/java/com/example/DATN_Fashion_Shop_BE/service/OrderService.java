@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
-public class    OrderService {
+public class OrderService {
 
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
@@ -170,7 +170,7 @@ public class    OrderService {
             List<OrderDetail> orderDetails = cartItems.stream().map(item ->
                     OrderDetail.builder()
                             .order(savedOrder)
-                            .product(item.getProductVariant().getProduct())
+                            .productVariant(item.getProductVariant())
                             .quantity(item.getQuantity())
                             .unitPrice(item.getProductVariant().getSalePrice())
                             .totalPrice(item.getProductVariant().getSalePrice() * item.getQuantity())
@@ -233,7 +233,7 @@ public class    OrderService {
         List<OrderDetail> orderDetails = cartItems.stream().map(item ->
                 OrderDetail.builder()
                         .order(savedOrder)
-                        .product(item.getProductVariant().getProduct())
+                        .productVariant(item.getProductVariant())
                         .quantity(item.getQuantity())
                         .unitPrice(item.getProductVariant().getSalePrice())
                         .totalPrice(item.getProductVariant().getSalePrice() * item.getQuantity())

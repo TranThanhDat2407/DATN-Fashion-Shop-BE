@@ -355,6 +355,9 @@ public class UserService{
         return period.getYears();
     }
 
+    public Boolean isUserValid (Long userId){
+        return userRepository.existsByIdAndIsActiveTrue(userId);
+    }
 
     public CustomerCreateTodayResponse getCreateCustomerToday() {
         List<User> totalUser = userRepository.getCreateCustomerToday();

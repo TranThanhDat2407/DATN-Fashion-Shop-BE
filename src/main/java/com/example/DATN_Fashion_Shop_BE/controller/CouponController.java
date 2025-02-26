@@ -178,4 +178,15 @@ public class CouponController {
         ));
     }
 
+    @GetMapping("/code/{code}")
+    public ResponseEntity<ApiResponse<CouponDetailResponse>> getCouponById(
+            @PathVariable String code
+    ) throws DataNotFoundException {
+        CouponDetailResponse response = couponService.getCouponByCode(code);
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.USER_DETAILS_RETRIEVED_SUCCESSFULLY),
+                response
+        ));
+    }
+
 }
