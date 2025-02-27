@@ -236,7 +236,12 @@ public class CartService {
         ProductVariant productVariant = getProductVariant(request.getProductVariantId());
 
         // Kiểm tra tồn kho tại cửa hàng
-        int availableStock = inventoryRepository.findQuantityInStockByStoreAndVariant(storeId, request.getProductVariantId());
+        Integer availableStock = inventoryRepository
+                .findQuantityInStockByStoreAndVariant(storeId, request.getProductVariantId());
+
+        if (availableStock == null) {
+            throw new IllegalStateException("The requested product variant does not exist in the selected store.");
+        }
 
         if (request.getQuantity() > availableStock) {
             throw new IllegalStateException("Not enough stock available for variant " + request.getProductVariantId() + ". Only " + availableStock + " left.");

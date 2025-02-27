@@ -2,6 +2,7 @@ package com.example.DATN_Fashion_Shop_BE.dto.response.store;
 import com.example.DATN_Fashion_Shop_BE.dto.PromotionDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.response.BaseResponse;
 import com.example.DATN_Fashion_Shop_BE.model.*;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -24,6 +25,7 @@ public class StoreStockResponse extends BaseResponse {
    private Double salePrice;
    private PromotionDTO promotion;
    private Integer quantityInStock;
+   @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss", shape = JsonFormat.Shape.STRING)
    private LocalDateTime variantUpdateDate;
 
    public static StoreStockResponse fromInventory(Inventory inventory, String languageCode) {

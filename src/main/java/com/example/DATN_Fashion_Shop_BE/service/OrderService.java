@@ -4,6 +4,7 @@ import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.config.GHNConfig;
 import com.example.DATN_Fashion_Shop_BE.dto.request.Ghn.PreviewOrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.order.OrderRequest;
+import com.example.DATN_Fashion_Shop_BE.dto.request.store.StorePaymentRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.GhnPreviewResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.PreviewOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.TotalOrderTodayResponse;
@@ -13,6 +14,8 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.order.HistoryOrderResponse;
 
 import com.example.DATN_Fashion_Shop_BE.dto.response.order.TotalOrderCancelTodayResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.order.TotalRevenueTodayResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.StorePaymentResponse;
+import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
@@ -61,6 +64,10 @@ public class OrderService {
     private final AddressRepository addressRepository;
     private final OrderStatusRepository orderStatusRepository;
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
+    private final UserRepository userRepository;
+    private final StoreRepository storeRepository;
+    private final InventoryRepository inventoryRepository;
+    private final CouponUserRestrictionRepository couponUserRestrictionRepository;
 
 
     @Transactional
@@ -423,6 +430,100 @@ public class OrderService {
         Integer count = totalOrder.size();
 
         return count;
+    }
+
+    @Transactional
+    public StorePaymentResponse createStoreOrder(Long staffId, StorePaymentRequest request)
+            throws DataNotFoundException {
+        // Kiểm tra nhân viên có tồn tại không
+        User staff = userRepository.findById(staffId)
+                .orElseThrow(() -> new DataNotFoundException("Staff not found with ID: " + staffId));
+
+        // Nếu có userId, lấy User từ DB, nếu không thì để null
+        User user = (request.getUserId() != null) ?
+                userRepository.findById(request.getUserId()).orElse(null) : null;
+
+        // Lấy giỏ hàng của nhân viên (staffId)
+        Cart cart = cartRepository.findByUser_Id(staffId)
+                .orElseThrow(() -> new DataNotFoundException("Cart not found for Staff ID: " + staffId));
+
+        Store store = storeRepository.findById(request.getStoreId())
+                .orElseThrow(() -> new DataNotFoundException("store not found for Staff ID: " + (request.getStoreId())));
+
+        if (cart.getCartItems().isEmpty()) {
+            throw new IllegalStateException("Cart is empty, cannot create order.");
+        }
+
+        // Lấy Coupon nếu có
+        Coupon coupon = (request.getCouponId() != null) ?
+                couponRepository.findById(request.getCouponId()).orElse(null) : null;
+
+        PaymentMethod paymentMethod = paymentMethodRepository.findById(request.getPaymentMethodId())
+                .orElseThrow(() -> new DataNotFoundException("Payment method not found"));
+
+        // Tạo đơn hàng mới
+        Order order = Order.builder()
+                .user(user)
+                .store(store)
+                .coupon(coupon)
+                .totalPrice(request.getTotalPrice())
+                .totalAmount(request.getTotalAmount())
+                .shippingFee(0D)
+                .taxAmount(request.getTaxAmount())
+                .shippingAddress(store.getAddress().getFullAddress())
+                .orderStatus(orderStatusRepository.findByStatusName("DONE").orElseThrow(null))
+                .build();
+
+        // Lưu đơn hàng
+        order = orderRepository.save(order);
+
+        // Thêm các sản phẩm vào OrderDetail
+        List<OrderDetail> orderDetails = new ArrayList<>();
+        for (CartItem cartItem : cart.getCartItems()) {
+            OrderDetail orderDetail = OrderDetail.builder()
+                    .order(order)
+                    .productVariant(cartItem.getProductVariant())
+                    .quantity(cartItem.getQuantity())
+                    .unitPrice(cartItem.getProductVariant().getAdjustedPrice())
+                    .totalPrice(cartItem.getProductVariant().getAdjustedPrice() * cartItem.getQuantity())
+                    .build();
+            orderDetails.add(orderDetail);
+        }
+        orderDetailRepository.saveAll(orderDetails);
+
+        // Lưu thanh toán
+        Payment payment = Payment.builder()
+                .order(order)
+                .paymentMethod(paymentMethod)
+                .paymentDate(new Date())
+                .amount(order.getTotalPrice())
+                .status("COMPLETED") // Giả sử thanh toán tại cửa hàng luôn hoàn tất
+                .transactionCode(request.getTransactionCode() != null ?
+                        request.getTransactionCode() : UUID.randomUUID().toString())
+                .build();
+        paymentRepository.save(payment);
+
+        for (OrderDetail orderDetail : orderDetails) {
+            Inventory inventory = inventoryRepository
+                    .findByStoreIdAndProductVariantId(store.getId(), orderDetail.getProductVariant().getId())
+                    .orElseThrow(() -> new DataNotFoundException(
+                            "Inventory not found for Product Variant ID: " + orderDetail.getProductVariant().getId()
+                                    + " in Store ID: " + store.getId()));
+
+            if (inventory.getQuantityInStock() < orderDetail.getQuantity()) {
+                throw new IllegalStateException("Not enough stock available for Product Variant ID: "
+                        + orderDetail.getProductVariant().getId());
+            }
+
+            inventory.setQuantityInStock(inventory.getQuantityInStock() - orderDetail.getQuantity());
+            inventoryRepository.save(inventory);
+        }
+
+        if(user != null && coupon != null) {
+        couponUserRestrictionRepository.deleteByCouponIdAndUserId(user.getId(), coupon.getId());
+        }
+
+        return StorePaymentResponse.fromOrder(order);
     }
 
 }
