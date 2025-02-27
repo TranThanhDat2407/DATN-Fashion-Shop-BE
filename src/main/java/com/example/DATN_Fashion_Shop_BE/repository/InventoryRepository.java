@@ -52,4 +52,6 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
 
     Page<Inventory> findByStoreIdAndProductVariant_Product_Translations_LanguageCode(
             Long storeId, String languageCode, Pageable pageable);
+
+    Optional<Inventory> findByStoreIdAndProductVariantId(Long storeId, Long productVariantId);
 }
