@@ -126,12 +126,15 @@ public class CouponController {
         ));
     }
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<CouponLocalizedDTO>> getCouponsForUser(
+    public ResponseEntity<ApiResponse<List<CouponLocalizedDTO>>> getCouponsForUser(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "en") String lang) {
 
         List<CouponLocalizedDTO> coupons = couponService.getCouponsForUser(userId, lang);
-        return ResponseEntity.ok(coupons);
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.COUPON_GETALL_SUCCESS),
+                coupons
+        ));
     }
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<Page<CouponLocalizedDTO>>> searchCoupons(

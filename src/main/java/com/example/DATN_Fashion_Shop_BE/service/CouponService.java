@@ -37,11 +37,10 @@ public class CouponService {
 
 
     public boolean applyCoupon(Long userId, String couponCode) {
-        Optional<Coupon> couponOpt = couponRepository.findByCode(couponCode);
+        Optional<Coupon> couponOpt = couponRepository.findFirstByCode(couponCode);
         if (couponOpt.isEmpty()) {
             throw new RuntimeException("Mã giảm giá không tồn tại.");
         }
-
         Coupon coupon = couponOpt.get();
         if (!coupon.getIsActive()) {
             throw new RuntimeException("Mã giảm giá không còn hiệu lực.");
@@ -60,7 +59,6 @@ public class CouponService {
                 .used(true)
                 .build();
         userCouponUsageRepository.save(usage);
-
         return true;
     }
     @Transactional
