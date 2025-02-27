@@ -324,7 +324,7 @@ public class CouponService {
     }
 
     public CouponDetailResponse getCouponByCode(String code) throws DataNotFoundException {
-        Coupon coupon = couponRepository.findByCode(code).orElseThrow(
+        Coupon coupon = couponRepository.findFirstByCode(code).orElseThrow(
                 () -> new DataNotFoundException("Coupon not found")
         );
         return CouponDetailResponse.fromCoupon(coupon);
