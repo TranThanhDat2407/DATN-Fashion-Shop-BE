@@ -1,5 +1,6 @@
 package com.example.DATN_Fashion_Shop_BE.repository;
 
+import com.example.DATN_Fashion_Shop_BE.model.Order;
 import com.example.DATN_Fashion_Shop_BE.model.User;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
@@ -51,7 +52,20 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByDateOfBirth(@Param("today") LocalDate today);
 
 
+    // danh sách customer mới tạo hôm nay
+    @Query("SELECT u  FROM User u " +
+            "WHERE CAST(u.createdAt AS DATE) = CAST(GETDATE() AS DATE)  AND u.role.id = 2 ")
+    List<User> getCreateCustomerToday();
+
+    // danh sách customer tạo hôm qua
+    @Query(value = "SELECT * FROM users u " +
+            "WHERE CAST(u.created_at AS DATE) = CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) " +
+            "AND u.role_id = 2 ",
+            nativeQuery = true)
+    List<User> getCreateCustomerTodayYesterday();
 
 
+
+    boolean existsByIdAndIsActiveTrue(Long id);
 
 }

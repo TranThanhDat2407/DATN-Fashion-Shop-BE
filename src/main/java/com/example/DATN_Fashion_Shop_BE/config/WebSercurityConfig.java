@@ -53,6 +53,7 @@ public class WebSercurityConfig {
                                     String.format("%s/users/forgot-password", apiPrefix),
                                     String.format("%s/users/verify-otp", apiPrefix),
                                     String.format("%s/users/reset-password", apiPrefix),
+                                    String.format("%s/users/reset-password-email/**", apiPrefix),
                                     String.format("%s/cart/**", apiPrefix),
                                     String.format("%s/reviews/**", apiPrefix),
                                     String.format("%s/cart/**", apiPrefix),
@@ -72,6 +73,7 @@ public class WebSercurityConfig {
                                     String.format("%s/store/**", apiPrefix),
                                     String.format("%s/vnpay/**", apiPrefix),
                                     String.format("%s/order-details/**", apiPrefix),
+                                    String.format("%s/payment/vnpay_ipn/**", apiPrefix),
                                   "/uploads/**",
 
                                     String.format("%s/inventory-transfers/**", apiPrefix),

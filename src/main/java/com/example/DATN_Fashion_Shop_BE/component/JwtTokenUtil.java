@@ -101,6 +101,7 @@ public class JwtTokenUtil {
     public String extractEmail(String token) {
         return extractClaim(token, Claims::getSubject);
     }
+
     //Xác minh JWT có hợp lệ không.
     public boolean validateToken(String token, UserDetails userDetails) {
         String email = extractEmail(token);

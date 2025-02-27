@@ -3,6 +3,8 @@ package com.example.DATN_Fashion_Shop_BE.controller;
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.*;
 import com.example.DATN_Fashion_Shop_BE.dto.response.*;
+import com.example.DATN_Fashion_Shop_BE.dto.response.order.TotalOrderCancelTodayResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.user.CustomerCreateTodayResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.user.UserAdminResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.user.UserResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
@@ -27,6 +29,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.function.EntityResponse;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -43,8 +46,8 @@ public class UserController {
     @Operation(
             summary = "Đăng ký tài khoản người dùng",
             description = """
-        API này được sử dụng để đăng ký một tài khoản người dùng mới.
-    """,
+                        API này được sử dụng để đăng ký một tài khoản người dùng mới.
+                    """,
             tags = {"User"}
     )
     @PostMapping("/register")
@@ -98,8 +101,8 @@ public class UserController {
     @Operation(
             summary = "Đăng nhập ",
             description = """
-        API này được sử dụng để đăng nhập.
-    """,
+                        API này được sử dụng để đăng nhập.
+                    """,
             tags = {"User"}
     )
     @PostMapping("/login")
@@ -182,6 +185,7 @@ public class UserController {
             );
         }
     }
+
     private boolean isMobileDevice(String userAgent) {
         // Kiểm tra User-Agent header để xác định thiết bị di động
         // Ví dụ đơn giản:
@@ -190,13 +194,13 @@ public class UserController {
 
 
     @PostMapping("/details")
-    @Operation( summary = "Lấy thông tin chi tiết người dùng",
+    @Operation(summary = "Lấy thông tin chi tiết người dùng",
             description = """
-        API này được sử dụng để lấy thông tin chi tiết của người dùng từ token Bearer.
-
-    """,
+                        API này được sử dụng để lấy thông tin chi tiết của người dùng từ token Bearer.
+                    
+                    """,
             tags = {"User"},
-            security = { @SecurityRequirement(name = "bearer-key") })
+            security = {@SecurityRequirement(name = "bearer-key")})
     public ResponseEntity<ApiResponse<UserResponse>> getUserDetails(
             @RequestHeader("Authorization") String authorizationHeader
     ) {
@@ -328,15 +332,15 @@ public class UserController {
     @Operation(
             summary = "Lấy danh sách tất cả người dùng",
             description = """
-        API này được sử dụng để lấy danh sách tất cả người dùng từ hệ thống. 
-        Chỉ có người dùng với vai trò `ROLE_ADMIN` mới có quyền truy cập API này.
-        
-        **Yêu cầu:** Người dùng phải có vai trò `ROLE_ADMIN` và truyền token Bearer hợp lệ trong header `Authorization`.
-        
-        **Phản hồi:**
-        - `message`: Thông báo trạng thái API.
-        - `data`: Danh sách thông tin người dùng (nếu thành công).
-    """,
+                        API này được sử dụng để lấy danh sách tất cả người dùng từ hệ thống. 
+                        Chỉ có người dùng với vai trò `ROLE_ADMIN` mới có quyền truy cập API này.
+                    
+                        **Yêu cầu:** Người dùng phải có vai trò `ROLE_ADMIN` và truyền token Bearer hợp lệ trong header `Authorization`.
+                    
+                        **Phản hồi:**
+                        - `message`: Thông báo trạng thái API.
+                        - `data`: Danh sách thông tin người dùng (nếu thành công).
+                    """,
             tags = {"User"},
             security = {@SecurityRequirement(name = "bearer-key")}
     )
@@ -445,6 +449,47 @@ public class UserController {
                             null,
                             null,
                             e.getMessage()
+                    )
+            );
+        } catch (DataNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    ApiResponseUtils.errorResponse(
+                            HttpStatus.NOT_FOUND,
+                            localizationUtils.getLocalizedMessage(MessageKeys.USER_NOT_FOUND),
+                            null,
+                            null,
+                            e.getMessage()
+                    )
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    ApiResponseUtils.errorResponse(
+                            HttpStatus.INTERNAL_SERVER_ERROR,
+                            e.getMessage(),
+                            null,
+                            null,
+                            localizationUtils.getLocalizedMessage(MessageKeys.RESET_PASSWORD_FAILED)
+                    )
+            );
+        }
+    }
+
+    @Operation(
+            summary = "Đặt lại mật khẩu người dùng",
+            description = "API này cho phép người dùng thay đổi mật khẩu của mình.",
+            tags = {"User"}
+    )
+    @PostMapping("/reset-password-email/{email}")
+    public ResponseEntity<ApiResponse<?>> resetPassword(
+            @PathVariable String email,
+            @RequestParam String newPassword
+    ) {
+        try {
+            userService.resetPassword(email, newPassword);
+            return ResponseEntity.ok(
+                    ApiResponseUtils.successResponse(
+                            localizationUtils.getLocalizedMessage(MessageKeys.RESET_PASSWORD_SUCCESSFULLY),
+                            null
                     )
             );
         } catch (DataNotFoundException e) {
@@ -580,7 +625,37 @@ public class UserController {
         }
     }
 
+    @Operation(
+            summary = "Kiểm tra User có isActive=true và có trong database hay không",
+            tags = {"User"}
+    )
+    @GetMapping("/valid/{userId}")
+    public ResponseEntity<ApiResponse<Boolean>> checkIsValidUserId (@PathVariable Long userId) {
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PASSWORD_CHANGED_SUCCESSFULLY),
+                        userService.isUserValid(userId)
+                )
+        );
+    }
 
+    @GetMapping("cutomerCreate/today")
+    public ResponseEntity<ApiResponse<CustomerCreateTodayResponse>> getCreateCustomerToday() {
+        CustomerCreateTodayResponse userTotal = userService.getCreateCustomerToday();
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy được getTotalOrderCancelToday",
+                userTotal
+        ));
+    }
+
+    @GetMapping("cutomerCreate/yesterday")
+    public ResponseEntity<ApiResponse<Integer>> getCreateCustomerTodayYesterday() {
+        Integer userYesterday = userService.getCreateCustomerTodayYesterday();
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy được getTotalOrderCancelYesterday ",
+                userYesterday
+        ));
+    }
 
 
 }

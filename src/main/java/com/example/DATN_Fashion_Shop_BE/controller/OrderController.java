@@ -7,19 +7,15 @@ import com.example.DATN_Fashion_Shop_BE.dto.request.order.OrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.GhnCreateOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.PreviewOrderResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.order.CreateOrderResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.order.HistoryOrderResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.order.OrderPreviewResponse;
-import com.example.DATN_Fashion_Shop_BE.model.CartItem;
-import com.example.DATN_Fashion_Shop_BE.model.Order;
-import com.example.DATN_Fashion_Shop_BE.model.OrderStatus;
-import com.example.DATN_Fashion_Shop_BE.model.Payment;
-import com.example.DATN_Fashion_Shop_BE.repository.CartItemRepository;
-import com.example.DATN_Fashion_Shop_BE.repository.CartRepository;
-import com.example.DATN_Fashion_Shop_BE.repository.OrderRepository;
-import com.example.DATN_Fashion_Shop_BE.repository.PaymentRepository;
+import com.example.DATN_Fashion_Shop_BE.dto.response.TotalOrderTodayResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.order.*;
+import com.example.DATN_Fashion_Shop_BE.dto.response.vnpay.VnPayResponse;
+import com.example.DATN_Fashion_Shop_BE.model.*;
+import com.example.DATN_Fashion_Shop_BE.repository.*;
 import com.example.DATN_Fashion_Shop_BE.service.CartService;
+import com.example.DATN_Fashion_Shop_BE.service.GHNService;
 import com.example.DATN_Fashion_Shop_BE.service.OrderService;
+import com.example.DATN_Fashion_Shop_BE.service.VNPayService;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,9 +23,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.apache.kafka.shaded.com.google.protobuf.Api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +40,9 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -52,11 +54,15 @@ public class OrderController {
 
     private final OrderService orderService;
     private final LocalizationUtils localizationUtils;
-    private static final String HASH_SECRET = "HJF2G7EHCHPX0K446LBH17FKQUF56MB5";
+
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
+    private final VNPayService vnPayService;
+    private final PaymentMethodRepository paymentMethodRepository;
+    private final OrderStatusRepository orderStatusRepository;
     private final CartService cartService;
-    private final VnPayController vnPayController;
+
+
 
 
     private static final Logger log = LoggerFactory.getLogger(OrderController.class);
@@ -213,55 +219,165 @@ public class OrderController {
 
 
 
-    private String hashAndBuildUrl(Map<String, String> params) {
-        List<String> fieldNames = new ArrayList<>(params.keySet());
-        Collections.sort(fieldNames);
+    @Operation(
+            summary = "Nhận callback từ VNPAY",
+            description = "API này nhận thông báo từ VNPAY để xác nhận giao dịch.",
+            tags = "Orders"
+    )
+    @PostMapping("/return")
+    public ResponseEntity<?> handleVNPayReturn(@RequestBody Map<String, String> vnpParams) {
+        log.info("🔄 Nhận callback từ VNPay: {}", vnpParams);
+        String transactionCode = vnpParams.get("vnp_TxnRef");
+        String vnp_ResponseCode = vnpParams.get("vnp_ResponseCode");
+        String vnp_TransactionNo = vnpParams.get("vnp_TransactionNo");
+        String vnp_TransactionStatus = vnpParams.get("vnp_TransactionStatus");
+        double amount = Double.parseDouble(vnpParams.get("vnp_Amount")) / 100;
+        log.info("📌 vnp_TxnRef nhận được từ VNPay: {}", transactionCode);
 
-        StringBuilder hashData = new StringBuilder();
-        StringBuilder query = new StringBuilder();
+        // ✅ Xác minh tính hợp lệ của giao dịch
+        boolean isValid = vnPayService.verifyPayment(vnpParams);
 
-        for (String fieldName : fieldNames) {
-            String value = params.get(fieldName);
-            if (value != null && !value.isEmpty()) {
-                hashData.append(fieldName).append("=").append(value).append("&");
-                query.append(URLEncoder.encode(fieldName, StandardCharsets.UTF_8))
-                        .append("=")
-                        .append(URLEncoder.encode(value, StandardCharsets.UTF_8))
-                        .append("&");
-            }
+        if (!isValid) {
+            log.error("❌ Thanh toán VNPay không hợp lệ hoặc bị từ chối.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Collections.singletonMap("message", "Thanh toán thất bại."));
+        }
+        // 1️⃣ Kiểm tra mã giao dịch và tìm đơn hàng
+        Order order = orderRepository.findById(Long.valueOf(transactionCode))
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với mã giao dịch: " + transactionCode));
+
+//         ✅ Kiểm tra trạng thái thanh toán VNPay
+        if ("00".equals(vnp_ResponseCode) && "00".equals(vnp_TransactionStatus)) {
+            order.setOrderStatus(orderStatusRepository.findByStatusName("PROCESSING")
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy trạng thái PROCESSING.")));
+            order.setTransactionId(vnp_TransactionNo);
+            orderRepository.save(order);
+            log.info("✅ Giao dịch thành công. Đã cập nhật trạng thái đơn hàng ID: {}", order.getId());
+        } else {
+            order.setOrderStatus(orderStatusRepository.findByStatusName("CANCELLED")
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy trạng thái CANCELLED.")));
+            log.error("❌ Giao dịch thất bại. Đã cập nhật trạng thái đơn hàng ID: {}", order.getId());
         }
 
-        if (hashData.length() > 0) hashData.setLength(hashData.length() - 1);
-        if (query.length() > 0) query.setLength(query.length() - 1);
 
-        // Tạo SecureHash đúng chuẩn
-        String secureHash = hmacSHA512(HASH_SECRET, hashData.toString());
-        query.append("&vnp_SecureHash=").append(secureHash);
+        // 6️⃣ Lưu thông tin thanh toán
+        Payment payment = Payment.builder()
+                .order(order)
+                .paymentMethod(paymentMethodRepository.findByMethodName("VNPAY")
+                        .orElseThrow(() -> new RuntimeException("Phương thức thanh toán không hợp lệ.")))
+                .paymentDate(new Date())
+                .amount(amount)
+                .status("SUCCESS")
+                .transactionCode(UUID.randomUUID().toString())
+                .build();
 
-        return query.toString();
+        paymentRepository.save(payment);
+
+
+        return ResponseEntity.ok(CreateOrderResponse.fromOrder(order));
     }
 
 
-    private String hmacSHA512(String key, String data) {
-        try {
-            Mac hmac = Mac.getInstance("HmacSHA512");
-            SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA512");
-            hmac.init(secretKey);
-            byte[] hash = hmac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
-                hexString.append(hex);
-            }
-            return hexString.toString().toUpperCase();
-        } catch (Exception e) {
-            throw new RuntimeException("Lỗi mã hóa HmacSHA512", e);
+
+
+
+    @Operation(
+            summary = "Lọc đơn hàng theo trạng thái",
+            description = "API này cho phép người dùng xem danh sách đơn hàng theo trạng thái",
+            tags = "Orders"
+    )
+    @GetMapping("/history/status")
+    public ResponseEntity<ApiResponse<Page<HistoryOrderResponse>>> getOrderHistoryByStatus(
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+
+        Pageable pageable = PageRequest.of(page, size); // Tạo Pageable trước
+        Page<HistoryOrderResponse> historyOrders;
+
+        // Nếu `status` rỗng hoặc null, lấy tất cả đơn hàng, ngược lại lọc theo trạng thái
+        if (status == null || status.isEmpty()) {
+            historyOrders = orderService.getAllOrders(pageable);
+        } else {
+            historyOrders = orderService.getOrdersByStatus(status,page,size);
         }
+
+        if (historyOrders.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    ApiResponseUtils.errorResponse(
+                            HttpStatus.NOT_FOUND,
+                            localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_HISTORY_NOT_FOUND),
+                            null
+                    )
+            );
+        }
+
+
+        return ResponseEntity.ok().body(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_HISTORY_SUCCESS),
+                        historyOrders
+                )
+        );
+    }
+
+    @GetMapping("revenue/today")
+    public ResponseEntity<ApiResponse<TotalRevenueTodayResponse>> getRevenueToday() {
+        TotalRevenueTodayResponse revenueToday = orderService.getTotalRevenueToday();
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy được doanh thu",
+                revenueToday
+        ));
+
+    }
+
+    @GetMapping("revenue/yesterday")
+    public ResponseEntity<ApiResponse<Double>> getRevenueYesterday() {
+        Double revenueYesterday = orderService.getTotalRevenueYesterday();
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy được doanh thu hom qua",
+                revenueYesterday
+        ));
+
     }
 
 
+    @GetMapping("orderTotal/today")
+    public ResponseEntity<ApiResponse<TotalOrderTodayResponse>> getTotalOrderToday() {
+        TotalOrderTodayResponse orderToday = orderService.getTotalOrderToday();
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy đượcTotalOrderToday ",
+                orderToday
+        ));
+    }
+    @GetMapping("orderTotal/yesterday")
+    public ResponseEntity<ApiResponse<Integer>> getTotalOrderYesterday() {
+        Integer orderYesterday = orderService.getTotalOrderYesterday();
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy được getTotalOrderYesterday ",
+                orderYesterday
+        ));
+    }
 
+    @GetMapping("orderCancelTotal/today")
+    public ResponseEntity<ApiResponse<TotalOrderCancelTodayResponse>> getTotalOrderCancelToday() {
+        TotalOrderCancelTodayResponse orderCancelToday = orderService.getTotalOrderCancelToday();
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy được getTotalOrderCancelToday",
+                orderCancelToday
+        ));
+    }
+
+    @GetMapping("orderCancelTotal/yesterday")
+    public ResponseEntity<ApiResponse<Integer>> getTotalOrderCancelYesterday() {
+        Integer ordercancelYesterday = orderService.getTotalOrderCancelYesterday();
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy được getTotalOrderCancelYesterday ",
+                ordercancelYesterday
+        ));
+    }
 }
 
 

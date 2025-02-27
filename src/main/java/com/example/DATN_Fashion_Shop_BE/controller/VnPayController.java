@@ -1,22 +1,24 @@
 package com.example.DATN_Fashion_Shop_BE.controller;
 
+import com.example.DATN_Fashion_Shop_BE.dto.response.vnpay.VnPayResponse;
+import com.example.DATN_Fashion_Shop_BE.service.OrderService;
 import com.example.DATN_Fashion_Shop_BE.service.VNPayService;
 
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
-
-
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.*;
 
 
 @RestController
@@ -24,117 +26,54 @@ import java.util.TreeMap;
 @AllArgsConstructor
 public class VnPayController {
     private final VNPayService vnPayService;
-
+    private static final Logger log = LoggerFactory.getLogger(VnPayController.class);
     @GetMapping("/create-payment")
-    public String createPayment(@RequestParam long amount, @RequestParam String orderInfo, @RequestParam String txnRef) {
-        String paymentUrl = VNPayService.createPaymentUrl(amount, orderInfo, txnRef, "127.0.0.1");
+    public String createPayment(@RequestParam long amount, @RequestParam String orderInfo, @RequestParam String transactionId ) {
+        String paymentUrl = VNPayService.createPaymentUrl(amount, orderInfo, transactionId, "127.0.0.1");
         return paymentUrl;
     }
 
+    @PostMapping("/verify")
+    public ResponseEntity<?> verifyPayment(@RequestParam Map<String, String> vnpParams)  {
+        log.info("📥 Dữ liệu nhận từ frontend: {}", vnpParams);
 
 
-    @GetMapping("/vnpay_ipn")
-    public ResponseEntity<String> vnPayIPN(HttpServletRequest request) {
-        Map<String, String[]> paramMap = request.getParameterMap();
-        Map<String, String> vnpParams = new HashMap<>();
+        boolean isValid = vnPayService.verifyPayment(vnpParams);
 
-        for (Map.Entry<String, String[]> entry : paramMap.entrySet()) {
-            vnpParams.put(entry.getKey(), entry.getValue()[0]);
-        }
+        if (isValid) {
 
-        // Lấy giá trị vnp_SecureHash để kiểm tra chữ ký
-        String vnpSecureHash = vnpParams.get("vnp_SecureHash");
-        vnpParams.remove("vnp_SecureHash");
-
-        // Sắp xếp các tham số theo thứ tự bảng chữ cái và tạo chuỗi để ký
-        String signData = vnpParams.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .map(e -> e.getKey() + "=" + e.getValue())
-                .reduce((a, b) -> a + "&" + b)
-                .orElse("");
-
-        // Kiểm tra chữ ký hợp lệ
-        String expectedHash = VNPayService.hmacSHA512(signData, "HJF2G7EHCHPX0K446LBH17FKQUF56MB5");
-
-        if (!expectedHash.equals(vnpSecureHash)) {
-            return ResponseEntity.badRequest().body("Invalid signature");
-        }
-
-        // Kiểm tra trạng thái giao dịch
-        String transactionStatus = vnpParams.get("vnp_TransactionStatus");
-        if ("00".equals(transactionStatus)) {
-            // ✅ Thanh toán thành công -> Cập nhật trạng thái đơn hàng trong DB
-            return ResponseEntity.ok("Payment success");
+                log.info("✅ Giao dịch hợp lệ, cập nhật đơn hàng: ");
+            return ResponseEntity.ok(Collections.singletonMap("valid", isValid));
         } else {
-            // ❌ Thanh toán thất bại hoặc bị huỷ
-            return ResponseEntity.ok("Payment failed");
+            log.warn("⚠ Giao dịch không hợp lệ: {}", vnpParams);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("message", "Giao dịch không hợp lệ"));
+
         }
     }
 
-//    @PostMapping("/verify")
-//    public ResponseEntity<?> verifyPayment(@RequestBody Map<String, String> requestParams) {
-//        String vnp_SecureHash = requestParams.remove("vnp_SecureHash"); // Lấy chữ ký từ VNPay
-//        SortedMap<String, String> sortedParams = new TreeMap<>(requestParams); // Sắp xếp tham số
+//    @GetMapping("/vnpay_ipn")
+//    public ResponseEntity<?> vnpayIPN(@RequestBody VnPayResponse vnPayResponse){
+//        log.info("📌 VNPay IPN nhận được: " + vnPayResponse);
 //
-//        // Tạo lại chuỗi dữ liệu cần ký
-//        StringBuilder hashData = new StringBuilder();
-//        for (Map.Entry<String, String> entry : sortedParams.entrySet()) {
-//            if (hashData.length() > 0) hashData.append("&");
-//            hashData.append(entry.getKey()).append("=").append(URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
-//        }
+//        boolean isValid = vnPayService.verifyPayment(vnPayResponse);
 //
-//        // Tạo lại chữ ký
-//        String generatedHash = vnPayService.hmacSHA512(hashData.toString(), vnp_SecureHash);
+//        if (isValid) {
+//            String orderId = vnPayResponse.get("vnp_TxnRef");
+//            String transactionStatus = vnPayResponse.get("vnp_TransactionStatus");
 //
-//        if (generatedHash.equals(vnp_SecureHash)) {
-//            // Kiểm tra trạng thái giao dịch
-//            String transactionStatus = requestParams.get("vnp_TransactionStatus");
 //            if ("00".equals(transactionStatus)) {
-//                return ResponseEntity.ok("Giao dịch thành công! 🎉");
+//                System.out.println("✅ Đơn hàng " + orderId + " thanh toán thành công.");
 //            } else {
-//                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Giao dịch thất bại! ❌");
+//                System.out.println("❌ Đơn hàng " + orderId + " thất bại.");
 //            }
+//            return ResponseEntity.ok("Giao dịch hợp lệ");
 //        } else {
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Chữ ký không hợp lệ! 🛑");
+//            System.out.println("⚠ Giao dịch không hợp lệ!");
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Giao dịch không hợp lệ");
 //        }
 //    }
-
-
-    @PostMapping("/verify")
-    public ResponseEntity<?> verifyPayment(@RequestBody Map<String, String> requestParams) {
-        String vnp_SecureHash = requestParams.get("vnp_SecureHash"); // Lấy chữ ký từ VNPay
-        if (vnp_SecureHash == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Lỗi: Không tìm thấy vnp_SecureHash! ❌");
-        }
-
-        // Loại bỏ vnp_SecureHash khỏi params để tạo chữ ký mới
-        Map<String, String> sortedParams = new TreeMap<>(requestParams);
-        sortedParams.remove("vnp_SecureHash");
-
-        // Tạo lại chuỗi dữ liệu cần ký
-        StringBuilder hashData = new StringBuilder();
-        for (Map.Entry<String, String> entry : sortedParams.entrySet()) {
-            if (hashData.length() > 0) hashData.append("&");
-            hashData.append(entry.getKey()).append("=").append(URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
-        }
-
-        // 🔥 Dùng secretKey của VNPay để tạo lại chữ ký
-        String generatedHash = vnPayService.hmacSHA512(hashData.toString(), "HJF2G7EHCHPX0K446LBH17FKQUF56MB5");
-
-        if (generatedHash.equalsIgnoreCase(vnp_SecureHash)) { // So sánh không phân biệt hoa/thường
-            String transactionStatus = requestParams.get("vnp_TransactionStatus");
-            if ("00".equals(transactionStatus)) {
-                return ResponseEntity.ok("Giao dịch thành công! 🎉");
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Giao dịch thất bại! ❌");
-            }
-        } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Chữ ký không hợp lệ! 🛑");
-        }
-    }
-
-
-
 
 
 //    @PostMapping("/query")

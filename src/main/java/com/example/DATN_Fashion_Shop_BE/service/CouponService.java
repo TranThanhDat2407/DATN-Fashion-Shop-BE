@@ -4,6 +4,8 @@ import com.example.DATN_Fashion_Shop_BE.dto.CouponDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.CouponLocalizedDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.CouponTranslationDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.request.coupon.CouponCreateRequestDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.response.coupon.CouponDetailResponse;
+import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
 import com.example.DATN_Fashion_Shop_BE.specification.CouponSpecification;
@@ -314,5 +316,18 @@ public class CouponService {
         }
     }
 
+    public CouponDetailResponse getCouponById(Long couponId) throws DataNotFoundException {
+        Coupon coupon = couponRepository.findById(couponId).orElseThrow(
+                () -> new DataNotFoundException("Coupon not found")
+        );
+        return CouponDetailResponse.fromCoupon(coupon);
+    }
+
+    public CouponDetailResponse getCouponByCode(String code) throws DataNotFoundException {
+        Coupon coupon = couponRepository.findByCode(code).orElseThrow(
+                () -> new DataNotFoundException("Coupon not found")
+        );
+        return CouponDetailResponse.fromCoupon(coupon);
+    }
 
 }

@@ -21,11 +21,11 @@ public class Order extends BaseEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private User user;
 
     @ManyToOne
-    @JoinColumn(name = "coupon_id", nullable = true)
+    @JoinColumn(name = "coupon_id")
     private Coupon coupon;
 
     @Column(name = "total_price", nullable = false)
@@ -42,16 +42,25 @@ public class Order extends BaseEntity {
     private String shippingAddress;
 
     @ManyToOne
-    @JoinColumn(name = "shipping_method",columnDefinition = "NVARCHAR(255)", nullable = false)
+    @JoinColumn(name = "shipping_method_id")
     private ShippingMethod shippingMethod;
 
-    @Column(name = "shipping_fee", nullable = false)
+    @Column(name = "shipping_fee")
     private Double shippingFee;
 
     @Column(name = "tax_amount")
     private Double taxAmount;
 
+    @Column(name = "transaction_id")
+    private String transactionId; // Lưu vnp_TxnRef
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Payment> payments = new ArrayList<>();
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "store_id")
+    private Store store;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderDetail> orderDetails = new ArrayList<>();
 }

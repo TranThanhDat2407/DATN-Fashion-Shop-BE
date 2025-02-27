@@ -8,6 +8,8 @@ import com.example.DATN_Fashion_Shop_BE.dto.CouponTranslationDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.request.coupon.CouponCreateRequestDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.request.coupon.CouponRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.coupon.CouponDetailResponse;
+import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.model.User;
 import com.example.DATN_Fashion_Shop_BE.repository.UserRepository;
 import com.example.DATN_Fashion_Shop_BE.service.CouponService;
@@ -168,5 +170,26 @@ public class CouponController {
 //        return ResponseEntity.ok(Map.of("message", "🎉 Đã tạo mã giảm giá sinh nhật thành công!", "userCount", usersWithBirthday.size()));
 //    }
 
+    @GetMapping("/{couponId}")
+    public ResponseEntity<ApiResponse<CouponDetailResponse>> getCouponById(
+            @PathVariable Long couponId
+    ) throws DataNotFoundException {
+        CouponDetailResponse response = couponService.getCouponById(couponId);
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.USER_DETAILS_RETRIEVED_SUCCESSFULLY),
+                response
+        ));
+    }
+
+    @GetMapping("/code/{code}")
+    public ResponseEntity<ApiResponse<CouponDetailResponse>> getCouponById(
+            @PathVariable String code
+    ) throws DataNotFoundException {
+        CouponDetailResponse response = couponService.getCouponByCode(code);
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.USER_DETAILS_RETRIEVED_SUCCESSFULLY),
+                response
+        ));
+    }
 
 }

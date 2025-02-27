@@ -2,6 +2,7 @@ package com.example.DATN_Fashion_Shop_BE.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.envers.Audited;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -14,6 +15,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Audited
 public class Promotion extends BaseEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
