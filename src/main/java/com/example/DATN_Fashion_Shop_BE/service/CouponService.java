@@ -192,20 +192,19 @@ public class CouponService {
 
     @Transactional
     public void deleteCoupon(Long id) {
-        // 1️⃣ Kiểm tra coupon có tồn tại không
+        // 1️ Kiểm tra coupon có tồn tại không
         Coupon coupon = couponRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Coupon not found"));
-
-        // 2️⃣ Xóa ảnh nếu có
+        userCouponUsageRepository.deleteByCouponId(id);
         String imageUrl = coupon.getImageUrl();
         if (imageUrl != null && !imageUrl.isEmpty()) {
             fileStorageService.backupAndDeleteFile(imageUrl, "coupons");
         }
 
-        // 3️⃣ Xóa bản dịch trước
+        // 3️ Xóa bản dịch trước
         couponTranslationRepository.deleteByCouponId(id);
 
-        // 4️⃣ Xóa coupon
+        // 4⃣ Xóa coupon
         couponRepository.deleteById(id);
     }
 
