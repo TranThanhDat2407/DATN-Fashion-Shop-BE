@@ -187,6 +187,8 @@ public class CartController {
             sessionId = sessionService.getSessionIdFromRequest(request);
         }
 
+
+
         // Nếu vẫn không có sessionId và userId cũng null → Tạo sessionId mới
         if (sessionId == null && (userId == null || userId == 0)) {
             sessionId = sessionService.generateNewSessionId();

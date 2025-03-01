@@ -24,24 +24,24 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Page<Order> findByOrderStatus_StatusName(String statusName, Pageable pageable);
 
     @Query("SELECT o FROM Order o " +
-            "WHERE CAST(o.createdAt AS DATE) = CAST(GETDATE() AS DATE)  AND o.orderStatus.id= 4")
+            "WHERE CAST(o.createdAt AS DATE) = CAST(GETDATE() AS DATE)  AND o.orderStatus.id= 6")
     List<Order> getTotalRevenueToday();
 
     @Query(value = "SELECT * FROM orders o " +
             "WHERE CAST(o.created_at AS DATE) = CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) " +
-            "AND o.status_id = 4",
+            "AND o.status_id = 6",
             nativeQuery = true)
     List<Order> getTotalRevenueYesterday();
 
 
 
     @Query("SELECT o  FROM Order o " +
-            "WHERE CAST(o.createdAt AS DATE) = CAST(GETDATE() AS DATE)  AND o.orderStatus.id = 4")
+            "WHERE CAST(o.createdAt AS DATE) = CAST(GETDATE() AS DATE)  AND o.orderStatus.id = 6")
     List<Order> getTotalOrderCompleteToday();
 
     @Query(value = "SELECT * FROM orders o " +
             "WHERE CAST(o.created_at AS DATE) = CAST(DATEADD(DAY, -1, GETDATE()) AS DATE) " +
-            "AND o.status_id = 4",
+            "AND o.status_id = 6",
             nativeQuery = true)
     List<Order> getTotalOrderYesterday();
 
