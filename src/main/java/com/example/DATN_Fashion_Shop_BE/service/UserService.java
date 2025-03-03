@@ -51,6 +51,7 @@ public class UserService{
     private final JwtTokenUtil jwtTokenUtil;
     private final AuthenticationManager authenticationManager;
     private final LocalizationUtils localizationUtils;
+    private final CouponService couponService;
 
     public User createUser(UserDTO userDTO) throws Exception {
         // Lấy thông tin email và phone
@@ -125,6 +126,15 @@ public class UserService{
             staffRepository.save(staff);
         }
 
+        Coupon welcomeCoupon = couponService.createCouponForUser(
+                "WELCOME",
+                "fixed",
+                50000f, // Giảm 50.000 VND
+                200000f, // Đơn hàng tối thiểu 200.000 VND
+                14,
+                savedUser,
+                "/uploads/coupons/welcomeCoupon.png"
+        );
         return savedUser;
     }
 

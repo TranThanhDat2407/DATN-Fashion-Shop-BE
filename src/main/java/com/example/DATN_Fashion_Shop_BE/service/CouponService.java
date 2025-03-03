@@ -284,36 +284,7 @@ public class CouponService {
             return CouponLocalizedDTO.fromCoupons(coupon, translation, userIds);
         });
     }
-    public void generateBirthdayCoupons(List<User> usersWithBirthday) {
-        LocalDateTime today = LocalDateTime.now();
-        String birthdayImageUrl = "/images/coupons/5625ad39-d0cb-4b36-a582-3bcf288260a2_pc_1720432249113_2117241469.jpg";
-        for (User user : usersWithBirthday) {
-            String couponCode = "BDAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-            Coupon coupon = Coupon.builder()
-                    .code(couponCode)
-                    .discountType("PERCENTAGE")
-                    .discountValue(10.0f)
-                    .minOrderValue(100.0f)
-                    .expirationDate(today.plusDays(7))
-                    .imageUrl(birthdayImageUrl)
-                    .isActive(true)
-                    .isGlobal(false)
-                    .build();
-            // ✅ Lưu coupon trước
-            coupon = couponRepository.save(coupon);
 
-            CouponUserRestriction restriction = CouponUserRestriction.builder()
-                    .user(user)
-                    .coupon(coupon)
-                    .build();
-
-            // ✅ Lưu restriction vào DB
-            couponUserRestrictionRepository.save(restriction);
-
-            // 📨 Gửi email thông báo cho user
-            emailService.sendBirthdayCoupon(user.getEmail(), couponCode);
-        }
-    }
 
     public CouponDetailResponse getCouponById(Long couponId) throws DataNotFoundException {
         Coupon coupon = couponRepository.findById(couponId).orElseThrow(
@@ -328,5 +299,66 @@ public class CouponService {
         );
         return CouponDetailResponse.fromCoupon(coupon);
     }
+
+
+    private String generateRandomCode(String prefix) {
+        return prefix + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+    }
+
+    public Coupon createCouponForUser(String prefix, String discountType, Float discountValue,
+                                      Float minOrderValue, int expirationDays, User user,String imageUrl) {
+        // Sinh mã giảm giá ngẫu nhiên
+        String code = generateRandomCode(prefix);
+
+        // Tạo đối tượng Coupon
+        Coupon coupon = Coupon.builder()
+                .discountType(discountType)
+                .discountValue(discountValue)
+                .minOrderValue(minOrderValue)
+                .expirationDate(LocalDateTime.now().plusDays(expirationDays))
+                .code(code)
+                .imageUrl(imageUrl)
+                .isGlobal(false) // Mã này chỉ dành riêng cho user
+                .userRestrictions(new ArrayList<>()) // ✅ Đảm bảo danh sách không bị null
+                .build();
+
+        // Áp dụng coupon cho user
+        CouponUserRestriction restriction = new CouponUserRestriction();
+        restriction.setUser(user);
+        restriction.setCoupon(coupon);
+
+        // ✅ Kiểm tra và thêm restriction vào danh sách
+        if (coupon.getUserRestrictions() == null) {
+            coupon.setUserRestrictions(new ArrayList<>());
+        }
+        coupon.getUserRestrictions().add(restriction);
+
+        // Lưu coupon vào database
+        return couponRepository.save(coupon);
+    }
+
+
+    public Coupon createCouponForAllUser(String prefix, String discountType, Float discountValue,
+                                         Float minOrderValue, int expirationDays, boolean isGlobal, String imageUrl) {
+        // Sinh mã giảm giá ngẫu nhiên
+        String code = generateRandomCode(prefix);
+
+        // Tạo đối tượng Coupon
+        Coupon coupon = Coupon.builder()
+                .discountType(discountType)
+                .discountValue(discountValue)
+                .minOrderValue(minOrderValue)
+                .expirationDate(LocalDateTime.now().plusDays(expirationDays))
+                .code(code)
+                .imageUrl(imageUrl)
+                .isGlobal(true) // Đánh dấu là mã áp dụng cho toàn bộ người dùng
+                .userRestrictions(new ArrayList<>()) // Tránh lỗi null list
+                .build();
+
+        // Lưu coupon vào database
+        return couponRepository.save(coupon);
+    }
+
+
 
 }
