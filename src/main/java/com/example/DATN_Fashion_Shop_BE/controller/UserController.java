@@ -475,7 +475,7 @@ public class UserController {
             description = "API này cho phép người dùng thay đổi mật khẩu của mình.",
             tags = {"User"}
     )
-    @PostMapping("/{email}/reset-password-email")
+    @PostMapping("/reset-password-email/{email}")
     public ResponseEntity<ApiResponse<?>> resetPassword(
             @PathVariable String email,
             @RequestParam String newPassword
