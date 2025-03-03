@@ -4,13 +4,15 @@ import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.request.Ghn.GhnCreateOrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.Ghn.PreviewOrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.order.OrderRequest;
+import com.example.DATN_Fashion_Shop_BE.dto.request.store.StorePaymentRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.GhnCreateOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.PreviewOrderResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.order.CreateOrderResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.order.HistoryOrderResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.order.OrderPreviewResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.TotalOrderTodayResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.order.*;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.StorePaymentResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.vnpay.VnPayResponse;
+import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
 import com.example.DATN_Fashion_Shop_BE.service.CartService;
@@ -24,6 +26,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.apache.kafka.shaded.com.google.protobuf.Api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -42,6 +45,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -278,6 +282,8 @@ public class OrderController {
 
 
 
+
+
     @Operation(
             summary = "Lọc đơn hàng theo trạng thái",
             description = "API này cho phép người dùng xem danh sách đơn hàng theo trạng thái",
@@ -318,6 +324,78 @@ public class OrderController {
         );
     }
 
+    @GetMapping("revenue/today")
+    public ResponseEntity<ApiResponse<TotalRevenueTodayResponse>> getRevenueToday() {
+        TotalRevenueTodayResponse revenueToday = orderService.getTotalRevenueToday();
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy được doanh thu",
+                revenueToday
+        ));
+
+    }
+
+    @GetMapping("revenue/yesterday")
+    public ResponseEntity<ApiResponse<Double>> getRevenueYesterday() {
+        Double revenueYesterday = orderService.getTotalRevenueYesterday();
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy được doanh thu hom qua",
+                revenueYesterday
+        ));
+
+    }
+
+
+    @GetMapping("orderTotal/today")
+    public ResponseEntity<ApiResponse<TotalOrderTodayResponse>> getTotalOrderToday() {
+        TotalOrderTodayResponse orderToday = orderService.getTotalOrderToday();
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy đượcTotalOrderToday ",
+                orderToday
+        ));
+    }
+    @GetMapping("orderTotal/yesterday")
+    public ResponseEntity<ApiResponse<Integer>> getTotalOrderYesterday() {
+        Integer orderYesterday = orderService.getTotalOrderYesterday();
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy được getTotalOrderYesterday ",
+                orderYesterday
+        ));
+    }
+
+    @GetMapping("orderCancelTotal/today")
+    public ResponseEntity<ApiResponse<TotalOrderCancelTodayResponse>> getTotalOrderCancelToday() {
+        TotalOrderCancelTodayResponse orderCancelToday = orderService.getTotalOrderCancelToday();
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy được getTotalOrderCancelToday",
+                orderCancelToday
+        ));
+    }
+
+    @GetMapping("orderCancelTotal/yesterday")
+    public ResponseEntity<ApiResponse<Integer>> getTotalOrderCancelYesterday() {
+        Integer ordercancelYesterday = orderService.getTotalOrderCancelYesterday();
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy được getTotalOrderCancelYesterday ",
+                ordercancelYesterday
+        ));
+    }
+
+    @PostMapping("/checkout-store/{staffId}")
+    public ResponseEntity<ApiResponse<StorePaymentResponse>> createStoreOrder(
+            @PathVariable Long staffId,
+            @Valid @RequestBody StorePaymentRequest request) throws DataNotFoundException {
+
+        StorePaymentResponse response = orderService.createStoreOrder(staffId, request);
+
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        MessageKeys.ORDERS_SUCCESSFULLY,
+                        response
+                )
+        );
+    }
 }
 
 

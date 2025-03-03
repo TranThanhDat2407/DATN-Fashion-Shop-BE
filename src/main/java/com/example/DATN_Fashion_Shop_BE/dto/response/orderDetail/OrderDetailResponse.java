@@ -23,7 +23,6 @@ public class OrderDetailResponse {
     private Integer quantity;
     private Double unitPrice;
     private Double totalPrice;
-    private ProductTranslationResponse productTranslationResponse;
     private ProductVariantResponse productVariant;
     private String recipientName;
     private String recipientPhone;
@@ -35,7 +34,7 @@ public class OrderDetailResponse {
     private String imageUrl;
 
     public static OrderDetailResponse fromOrderDetail(OrderDetail orderDetail, List<UserAddressResponse> userAddressResponses) {
-        Product product = orderDetail.getProduct();
+        Product product = orderDetail.getProductVariant().getProduct();
         Order order = orderDetail.getOrder(); // Lấy Order từ OrderDetail
 
         // Lấy ảnh đầu tiên của sản phẩm nếu có
@@ -43,19 +42,23 @@ public class OrderDetailResponse {
                 ? product.getMedias().get(0).getMediaUrl()
                 : null;
 
-        // ✅ Lấy thông tin người nhận từ UserAddressResponse (địa chỉ mặc định hoặc lấy phần tử đầu tiên)
-        UserAddressResponse defaultAddress = userAddressResponses.stream()
-                .filter(UserAddressResponse::getIsDefault) // Ưu tiên lấy địa chỉ mặc định
+        UserAddressResponse defaultAddress = (userAddressResponses != null && !userAddressResponses.isEmpty())
+                ? userAddressResponses.stream()
+                .filter(UserAddressResponse::getIsDefault)
                 .findFirst()
-                .orElse(userAddressResponses.isEmpty() ? null : userAddressResponses.get(0));
+                .orElse(userAddressResponses.get(0))
+                : null;
 
 
-        List<PaymentMethodResponse> paymentMethods = order.getPayments().stream()
-                .map(payment -> PaymentMethodResponse.fromPaymentMethod(payment.getPaymentMethod())) // ✅ Lấy phương thức thanh toán từ Payment
-                .collect(Collectors.toList());
+        List<PaymentMethodResponse> paymentMethods = (order.getPayments() != null)
+                ? order.getPayments().stream()
+                .map(payment -> PaymentMethodResponse.fromPaymentMethod(payment.getPaymentMethod()))
+                .collect(Collectors.toList())
+                : List.of();
 
-        String paymentMethodNames = paymentMethods.stream()
-                .map(PaymentMethodResponse::getMethodName)
+
+        String paymentMethodNames = paymentMethods.isEmpty() ? "N/A"
+                : paymentMethods.stream().map(PaymentMethodResponse::getMethodName)
                 .collect(Collectors.joining(", "));
 
 
@@ -66,10 +69,7 @@ public class OrderDetailResponse {
                 .unitPrice(orderDetail.getUnitPrice())
                 .totalPrice(orderDetail.getTotalPrice())
                 .imageUrl(imageUrl)
-                .productTranslationResponse(ProductTranslationResponse.fromProductsTranslation(
-                        product.getTranslationByLanguage("en")))
-                .productVariant(ProductVariantResponse.fromProductVariant(
-                        product.getVariants().isEmpty() ? null : product.getVariants().get(0)))
+                .productVariant(ProductVariantResponse.fromProductVariant(orderDetail.getProductVariant()))
                 .recipientName(defaultAddress != null ? defaultAddress.getFirstName() + " " + defaultAddress.getLastName() : null)
                 .recipientPhone(defaultAddress != null ? defaultAddress.getPhone() : null)
                 .shippingAddress(order.getShippingAddress())

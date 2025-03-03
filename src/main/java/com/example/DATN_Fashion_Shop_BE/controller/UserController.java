@@ -3,6 +3,8 @@ package com.example.DATN_Fashion_Shop_BE.controller;
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.*;
 import com.example.DATN_Fashion_Shop_BE.dto.response.*;
+import com.example.DATN_Fashion_Shop_BE.dto.response.order.TotalOrderCancelTodayResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.user.CustomerCreateTodayResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.user.UserAdminResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.user.UserResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
@@ -43,8 +45,8 @@ public class UserController {
     @Operation(
             summary = "Đăng ký tài khoản người dùng",
             description = """
-        API này được sử dụng để đăng ký một tài khoản người dùng mới.
-    """,
+                        API này được sử dụng để đăng ký một tài khoản người dùng mới.
+                    """,
             tags = {"User"}
     )
     @PostMapping("/register")
@@ -98,8 +100,8 @@ public class UserController {
     @Operation(
             summary = "Đăng nhập ",
             description = """
-        API này được sử dụng để đăng nhập.
-    """,
+                        API này được sử dụng để đăng nhập.
+                    """,
             tags = {"User"}
     )
     @PostMapping("/login")
@@ -190,11 +192,11 @@ public class UserController {
 
 
     @PostMapping("/details")
-    @Operation( summary = "Lấy thông tin chi tiết người dùng",
+    @Operation(summary = "Lấy thông tin chi tiết người dùng",
             description = """
-        API này được sử dụng để lấy thông tin chi tiết của người dùng từ token Bearer.
-
-    """,
+                        API này được sử dụng để lấy thông tin chi tiết của người dùng từ token Bearer.
+                    
+                    """,
             tags = {"User"},
             security = { @SecurityRequirement(name = "bearer-key") })
     public ResponseEntity<ApiResponse<UserResponse>> getUserDetails(
@@ -328,15 +330,15 @@ public class UserController {
     @Operation(
             summary = "Lấy danh sách tất cả người dùng",
             description = """
-        API này được sử dụng để lấy danh sách tất cả người dùng từ hệ thống. 
-        Chỉ có người dùng với vai trò `ROLE_ADMIN` mới có quyền truy cập API này.
-        
-        **Yêu cầu:** Người dùng phải có vai trò `ROLE_ADMIN` và truyền token Bearer hợp lệ trong header `Authorization`.
-        
-        **Phản hồi:**
-        - `message`: Thông báo trạng thái API.
-        - `data`: Danh sách thông tin người dùng (nếu thành công).
-    """,
+                        API này được sử dụng để lấy danh sách tất cả người dùng từ hệ thống. 
+                        Chỉ có người dùng với vai trò `ROLE_ADMIN` mới có quyền truy cập API này.
+                    
+                        **Yêu cầu:** Người dùng phải có vai trò `ROLE_ADMIN` và truyền token Bearer hợp lệ trong header `Authorization`.
+                    
+                        **Phản hồi:**
+                        - `message`: Thông báo trạng thái API.
+                        - `data`: Danh sách thông tin người dùng (nếu thành công).
+                    """,
             tags = {"User"},
             security = {@SecurityRequirement(name = "bearer-key")}
     )
@@ -621,7 +623,37 @@ public class UserController {
         }
     }
 
+    @Operation(
+            summary = "Kiểm tra User có isActive=true và có trong database hay không",
+            tags = {"User"}
+    )
+    @GetMapping("/valid/{userId}")
+    public ResponseEntity<ApiResponse<Boolean>> checkIsValidUserId (@PathVariable Long userId) {
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PASSWORD_CHANGED_SUCCESSFULLY),
+                        userService.isUserValid(userId)
+                )
+        );
+    }
 
+    @GetMapping("cutomerCreate/today")
+    public ResponseEntity<ApiResponse<CustomerCreateTodayResponse>> getCreateCustomerToday() {
+        CustomerCreateTodayResponse userTotal = userService.getCreateCustomerToday();
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy được getTotalOrderCancelToday",
+                userTotal
+        ));
+    }
+
+    @GetMapping("cutomerCreate/yesterday")
+    public ResponseEntity<ApiResponse<Integer>> getCreateCustomerTodayYesterday() {
+        Integer userYesterday = userService.getCreateCustomerTodayYesterday();
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Đã lấy được getTotalOrderCancelYesterday ",
+                userYesterday
+        ));
+    }
 
 
 }

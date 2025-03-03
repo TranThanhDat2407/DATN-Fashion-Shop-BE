@@ -111,6 +111,7 @@ public class CouponController {
 
     @DeleteMapping("delete/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteCoupon(@PathVariable Long id) {
+
         couponService.deleteCoupon(id);
         return ResponseEntity.noContent().build();
     }
@@ -126,12 +127,15 @@ public class CouponController {
         ));
     }
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<CouponLocalizedDTO>> getCouponsForUser(
+    public ResponseEntity<ApiResponse<List<CouponLocalizedDTO>>> getCouponsForUser(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "en") String lang) {
 
         List<CouponLocalizedDTO> coupons = couponService.getCouponsForUser(userId, lang);
-        return ResponseEntity.ok(coupons);
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.COUPON_GETALL_SUCCESS),
+                coupons
+        ));
     }
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<Page<CouponLocalizedDTO>>> searchCoupons(
@@ -172,6 +176,17 @@ public class CouponController {
             @PathVariable Long couponId
     ) throws DataNotFoundException {
         CouponDetailResponse response = couponService.getCouponById(couponId);
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.USER_DETAILS_RETRIEVED_SUCCESSFULLY),
+                response
+        ));
+    }
+
+    @GetMapping("/code/{code}")
+    public ResponseEntity<ApiResponse<CouponDetailResponse>> getCouponById(
+            @PathVariable String code
+    ) throws DataNotFoundException {
+        CouponDetailResponse response = couponService.getCouponByCode(code);
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.USER_DETAILS_RETRIEVED_SUCCESSFULLY),
                 response

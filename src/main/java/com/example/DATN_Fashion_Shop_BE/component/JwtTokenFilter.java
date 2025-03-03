@@ -125,6 +125,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/users/forgot-password", apiPrefix), "POST"),
                 Pair.of(String.format("%s/users/verify-otp", apiPrefix), "POST"),
                 Pair.of(String.format("%s/users/reset-password", apiPrefix), "POST"),
+                Pair.of(String.format("%s/users/reset-password-email/**", apiPrefix), "POST"),
                 Pair.of(String.format("%s/users/refreshToken", apiPrefix), "POST"),
                 Pair.of(String.format("%s/users/reset-password-email/**", apiPrefix), "POST"),
 
@@ -149,7 +150,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/currencies**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/attribute_values/**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/attribute_values/**", apiPrefix), "POST"),
-                Pair.of(String.format("%s/orders/**", apiPrefix), "POST"),
+//                Pair.of(String.format("%s/orders/**", apiPrefix), "POST"),
                 Pair.of(String.format("%s/orders/**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/orders/**", apiPrefix), "PUT"),
                 Pair.of(String.format("%s/orders/**", apiPrefix), "PATCH"),

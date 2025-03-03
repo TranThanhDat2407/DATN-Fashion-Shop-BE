@@ -26,11 +26,14 @@ public class CorsFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
         //Cho phép các yêu cầu từ mọi nguồn (domain).
-        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Origin", "http://localhost:4200");
         //Xác định các phương thức HTTP được phép khi truy cập tài nguyên.
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
         //request có thể được lưu trong 1 giờ (3600 giây).
         response.setHeader("Access-Control-Max-Age", "3600");
+        response.setHeader("Access-Control-Max-Age", "3600");
+
+        response.setHeader("Access-Control-Allow-Credentials", "true");
         //Xác định các header mà client được phép gửi kèm trong yêu cầu.
         //Đảm bảo các header như authorization và content-type được chấp nhận bởi server.
         response.setHeader("Access-Control-Allow-Headers", "authorization, content-type, xsrf-token");

@@ -19,9 +19,10 @@ public class CouponSpecification {
 
             // 🔹 Tìm kiếm theo mã giảm giá (LIKE)
             if (code != null && !code.isEmpty()) {
-                predicates.add(criteriaBuilder.like(root.get("code"), "%" + code + "%"));
+                predicates.add(criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("code")), "%" + code.toLowerCase() + "%"
+                ));
             }
-
             // 🔹 Tìm kiếm theo ngày hết hạn
             if (expirationDate != null) {
                 predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("expirationDate"), expirationDate));
@@ -42,7 +43,6 @@ public class CouponSpecification {
                 Join<Coupon, CouponTranslation> translationJoin = root.join("translations"); // Join với bảng dịch
                 predicates.add(criteriaBuilder.equal(translationJoin.get("language").get("code"), languageCode));
             }
-
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
     }

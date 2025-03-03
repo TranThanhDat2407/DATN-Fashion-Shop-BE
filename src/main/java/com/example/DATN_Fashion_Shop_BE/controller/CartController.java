@@ -40,6 +40,7 @@ public class CartController {
     private final CartService cartService;
     private final SessionService sessionService;
     private static final Logger log = LoggerFactory.getLogger(CartController.class);
+
     @GetMapping
     public ResponseEntity<ApiResponse<CartResponse>> getCart(
             @RequestParam(value = "userId", required = false) Long userId,
@@ -51,12 +52,15 @@ public class CartController {
             sessionId = sessionService.getSessionIdFromRequest(request);
         }
 
-        if (sessionId == null && userId == null) {
+        // Nếu vẫn không có sessionId và userId cũng null → Tạo sessionId mới
+        if (sessionId == null && (userId == null || userId == 0)) {
             sessionId = sessionService.generateNewSessionId();
             sessionService.setSessionIdInCookie(response, sessionId);
         }
 
-        Cart cart = cartService.getOrCreateCart(userId, sessionId);
+        Long safeUserId = (userId != null && userId > 0) ? userId : null;
+
+        Cart cart = cartService.getOrCreateCart(safeUserId, sessionId);
         return ResponseEntity.ok(
                 ApiResponseUtils.successResponse(
                         localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
@@ -183,16 +187,20 @@ public class CartController {
             sessionId = sessionService.getSessionIdFromRequest(request);
         }
 
+
+
         // Nếu vẫn không có sessionId và userId cũng null → Tạo sessionId mới
-        if (sessionId == null && userId == null) {
+        if (sessionId == null && (userId == null || userId == 0)) {
             sessionId = sessionService.generateNewSessionId();
             sessionService.setSessionIdInCookie(response, sessionId);
         }
 
+        Long safeUserId = (userId != null && userId > 0) ? userId : null;
+
         return ResponseEntity.ok(
                 ApiResponseUtils.successResponse(
                         localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
-                        cartService.getTotalCartItems(userId, sessionId)
+                        cartService.getTotalCartItems(safeUserId, sessionId)
                 )
         );
     }

@@ -37,11 +37,10 @@ public class CouponService {
 
 
     public boolean applyCoupon(Long userId, String couponCode) {
-        Optional<Coupon> couponOpt = couponRepository.findByCode(couponCode);
+        Optional<Coupon> couponOpt = couponRepository.findFirstByCode(couponCode);
         if (couponOpt.isEmpty()) {
             throw new RuntimeException("Mã giảm giá không tồn tại.");
         }
-
         Coupon coupon = couponOpt.get();
         if (!coupon.getIsActive()) {
             throw new RuntimeException("Mã giảm giá không còn hiệu lực.");
@@ -60,7 +59,6 @@ public class CouponService {
                 .used(true)
                 .build();
         userCouponUsageRepository.save(usage);
-
         return true;
     }
     @Transactional
@@ -194,20 +192,19 @@ public class CouponService {
 
     @Transactional
     public void deleteCoupon(Long id) {
-        // 1️⃣ Kiểm tra coupon có tồn tại không
+        // 1️ Kiểm tra coupon có tồn tại không
         Coupon coupon = couponRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Coupon not found"));
-
-        // 2️⃣ Xóa ảnh nếu có
+        userCouponUsageRepository.deleteByCouponId(id);
         String imageUrl = coupon.getImageUrl();
         if (imageUrl != null && !imageUrl.isEmpty()) {
             fileStorageService.backupAndDeleteFile(imageUrl, "coupons");
         }
 
-        // 3️⃣ Xóa bản dịch trước
+        // 3️ Xóa bản dịch trước
         couponTranslationRepository.deleteByCouponId(id);
 
-        // 4️⃣ Xóa coupon
+        // 4⃣ Xóa coupon
         couponRepository.deleteById(id);
     }
 
@@ -326,7 +323,7 @@ public class CouponService {
     }
 
     public CouponDetailResponse getCouponByCode(String code) throws DataNotFoundException {
-        Coupon coupon = couponRepository.findByCode(code).orElseThrow(
+        Coupon coupon = couponRepository.findFirstByCode(code).orElseThrow(
                 () -> new DataNotFoundException("Coupon not found")
         );
         return CouponDetailResponse.fromCoupon(coupon);
