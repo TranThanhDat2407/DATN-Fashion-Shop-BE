@@ -31,7 +31,8 @@ public class SessionService {
 
     public void setSessionIdInCookie(HttpServletResponse response, String sessionId) {
         Cookie sessionCookie = new Cookie("SESSION_ID", sessionId);
-        //sessionCookie.setHttpOnly(true);
+//        sessionCookie.setHttpOnly(true);
+//        sessionCookie.setSecure(true);
         sessionCookie.setMaxAge(60 * 60 * 24);  // 1 day expiration
         sessionCookie.setPath("/");
         response.addCookie(sessionCookie);
