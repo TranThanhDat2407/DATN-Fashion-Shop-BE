@@ -38,6 +38,7 @@ public class CartService {
     private final LocalizationUtils localizationUtils;
 
 
+
     @Transactional
     public CartItemResponse addToCart(Long userId, String sessionId, CartRequest request) {
         Cart cart = getOrCreateCart(userId, sessionId);
@@ -147,6 +148,7 @@ public class CartService {
                 .sum();
     }
 
+    @Transactional
     public TotalCartResponse getTotalCartItems(Long userId, String sessionId) {
         Cart cart = getOrCreateCart(userId, sessionId);
         if (userId != null) {

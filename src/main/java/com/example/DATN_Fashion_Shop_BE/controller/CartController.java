@@ -53,10 +53,10 @@ public class CartController {
         }
 
         // Nếu vẫn không có sessionId và userId cũng null → Tạo sessionId mới
-        if (sessionId == null && (userId == null || userId == 0)) {
-            sessionId = sessionService.generateNewSessionId();
-            sessionService.setSessionIdInCookie(response, sessionId);
-        }
+//        if (sessionId == null && (userId == null || userId == 0)) {
+//            sessionId = sessionService.generateNewSessionId();
+//            sessionService.setSessionIdInCookie(response, sessionId);
+//        }
 
         Long safeUserId = (userId != null && userId > 0) ? userId : null;
 
@@ -190,10 +190,10 @@ public class CartController {
 
 
         // Nếu vẫn không có sessionId và userId cũng null → Tạo sessionId mới
-        if (sessionId == null && (userId == null || userId == 0)) {
-            sessionId = sessionService.generateNewSessionId();
-            sessionService.setSessionIdInCookie(response, sessionId);
-        }
+//        if (sessionId == null && (userId == null || userId == 0)) {
+//            sessionId = sessionService.generateNewSessionId();
+//            sessionService.setSessionIdInCookie(response, sessionId);
+//        }
 
         Long safeUserId = (userId != null && userId > 0) ? userId : null;
 
