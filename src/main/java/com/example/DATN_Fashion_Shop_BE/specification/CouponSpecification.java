@@ -23,8 +23,6 @@ public class CouponSpecification {
                         criteriaBuilder.lower(root.get("code")), "%" + code.toLowerCase() + "%"
                 ));
             }
-
-
             // 🔹 Tìm kiếm theo ngày hết hạn
             if (expirationDate != null) {
                 predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("expirationDate"), expirationDate));
@@ -45,7 +43,6 @@ public class CouponSpecification {
                 Join<Coupon, CouponTranslation> translationJoin = root.join("translations"); // Join với bảng dịch
                 predicates.add(criteriaBuilder.equal(translationJoin.get("language").get("code"), languageCode));
             }
-
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
     }

@@ -14,4 +14,6 @@ public interface UserCouponUsageRepository extends JpaRepository<UserCouponUsage
 
     @Query("SELECT u.coupon.id FROM UserCouponUsage u WHERE u.user.id = :userId")
     List<Long> findUsedCouponIdsByUserId(@Param("userId") Long userId);
+
+    void deleteByCouponId(Long id);
 }

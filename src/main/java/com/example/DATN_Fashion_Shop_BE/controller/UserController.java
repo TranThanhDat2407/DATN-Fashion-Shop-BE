@@ -29,7 +29,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.function.EntityResponse;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -185,7 +184,6 @@ public class UserController {
             );
         }
     }
-
     private boolean isMobileDevice(String userAgent) {
         // Kiểm tra User-Agent header để xác định thiết bị di động
         // Ví dụ đơn giản:
@@ -200,7 +198,7 @@ public class UserController {
                     
                     """,
             tags = {"User"},
-            security = {@SecurityRequirement(name = "bearer-key")})
+            security = { @SecurityRequirement(name = "bearer-key") })
     public ResponseEntity<ApiResponse<UserResponse>> getUserDetails(
             @RequestHeader("Authorization") String authorizationHeader
     ) {
@@ -479,7 +477,7 @@ public class UserController {
             description = "API này cho phép người dùng thay đổi mật khẩu của mình.",
             tags = {"User"}
     )
-    @PostMapping("/reset-password-email/{email}")
+    @PostMapping("/{email}/reset-password-email")
     public ResponseEntity<ApiResponse<?>> resetPassword(
             @PathVariable String email,
             @RequestParam String newPassword

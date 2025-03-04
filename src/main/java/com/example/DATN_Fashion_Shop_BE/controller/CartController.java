@@ -45,8 +45,7 @@ public class CartController {
     public ResponseEntity<ApiResponse<CartResponse>> getCart(
             @RequestParam(value = "userId", required = false) Long userId,
             @RequestParam(value = "sessionId", required = false) String sessionId,
-            HttpServletRequest httpRequest
-          ) {
+            HttpServletRequest httpRequest) {
 
         if (sessionId == null) {
             sessionId = sessionService.getSessionIdFromRequest(httpRequest);
