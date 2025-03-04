@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,7 @@ public class CartService {
     private final InventoryRepository inventoryRepository;
     private final FileStorageService fileStorageService;
     private final LocalizationUtils localizationUtils;
+
 
 
     @Transactional
@@ -101,30 +103,44 @@ public class CartService {
     @Transactional
     public Cart getOrCreateCart(Long userId, String sessionId) {
         if (userId != null) {
-            // Nếu có userId, tìm cart theo user
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-            return cartRepository.findByUser(user)
-                    .orElseGet(() -> cartRepository.save(Cart.builder()
-                            .user(user)
-                            .sessionId(null)  // User đã đăng nhập, không cần sessionId
-                            .cartItems(new ArrayList<>())
-                            .build())
-            );
-        } else if (sessionId != null) {
-            // Nếu không có userId, tìm cart theo sessionId
+            Optional<Cart> existingCart = cartRepository.findByUser(user);
+            if (existingCart.isPresent()) {
+                if (sessionId != null) {
+                    Optional<Cart> sessionCart = cartRepository.findBySessionId(sessionId);
+                    sessionCart.ifPresent(cartRepository::delete);
+                }
+                return existingCart.get();
+            }
+
+            // 🔹 Kiểm tra lại trước khi tạo mới
+            if (cartRepository.existsByUser(user)) {
+                return cartRepository.findByUser(user).get();
+            }
+
+            Cart newCart = Cart.builder()
+                    .user(user)
+                    .sessionId(null)
+                    .cartItems(new ArrayList<>())
+                    .build();
+            return cartRepository.save(newCart);
+        }
+
+        if (sessionId != null) {
             return cartRepository.findBySessionId(sessionId)
                     .orElseGet(() -> cartRepository.save(Cart.builder()
-                            .user(null)  // Không có user
+                            .user(null)
                             .sessionId(sessionId)
                             .cartItems(new ArrayList<>())
-                            .build())
-                    );
-        } else {
-            throw new IllegalArgumentException("Both userId and sessionId are null");
+                            .build()));
         }
+
+        throw new IllegalArgumentException("Both userId and sessionId are null");
     }
+
+
 
     // Lấy ProductVariant theo ID
     private ProductVariant getProductVariant(Long productVariantId) {
@@ -147,6 +163,7 @@ public class CartService {
                 .sum();
     }
 
+    @Transactional
     public TotalCartResponse getTotalCartItems(Long userId, String sessionId) {
         Cart cart = getOrCreateCart(userId, sessionId);
         if (userId != null) {
@@ -236,7 +253,12 @@ public class CartService {
         ProductVariant productVariant = getProductVariant(request.getProductVariantId());
 
         // Kiểm tra tồn kho tại cửa hàng
-        int availableStock = inventoryRepository.findQuantityInStockByStoreAndVariant(storeId, request.getProductVariantId());
+        Integer availableStock = inventoryRepository
+                .findQuantityInStockByStoreAndVariant(storeId, request.getProductVariantId());
+
+        if (availableStock == null) {
+            throw new IllegalStateException("The requested product variant does not exist in the selected store.");
+        }
 
         if (request.getQuantity() > availableStock) {
             throw new IllegalStateException("Not enough stock available for variant " + request.getProductVariantId() + ". Only " + availableStock + " left.");

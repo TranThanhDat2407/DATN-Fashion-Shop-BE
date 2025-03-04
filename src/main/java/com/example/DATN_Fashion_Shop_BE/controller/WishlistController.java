@@ -12,6 +12,8 @@ import com.example.DATN_Fashion_Shop_BE.service.WishlistService;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,7 +26,7 @@ import java.util.List;
 public class WishlistController {
     private final WishlistService wishlistService;
     private final LocalizationUtils localizationUtils;
-
+    private static final Logger log = LoggerFactory.getLogger(WishlistController.class);
     // Lấy danh sách wishlist của user
     @GetMapping("/{userId}")
     public ResponseEntity<ApiResponse<List<WishlistItemResponse>>> getWishlist(@PathVariable Long userId) {
@@ -59,6 +61,7 @@ public class WishlistController {
     // tổng so luong wishlist
     @GetMapping("/total/{userId}")
     public ResponseEntity<ApiResponse<TotalWishlistResponse>> getWishlistCount(@PathVariable Long userId) {
+
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
                 wishlistService.getWishlistCount(userId)

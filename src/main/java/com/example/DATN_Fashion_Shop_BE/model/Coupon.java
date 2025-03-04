@@ -54,9 +54,6 @@ public class Coupon extends BaseEntity {
     @OneToMany(mappedBy = "coupon", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<CouponUserRestriction> userRestrictions;
 
-
-
-
     public CouponTranslation getCouponTranslationByLanguage(String langCode) {
         CouponTranslation translation = translations.stream()
                 .filter(t -> t.getLanguage().getCode().equals(langCode)

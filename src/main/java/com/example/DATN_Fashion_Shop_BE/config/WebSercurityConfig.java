@@ -47,6 +47,7 @@ public class WebSercurityConfig {
 
                             .requestMatchers(
                                     String.format("%s/users/register", apiPrefix),
+                                    String.format("%s/users/register/verify**", apiPrefix),
                                     String.format("%s/users/login", apiPrefix),
                                     String.format("%s/users/check-phone", apiPrefix),
                                     String.format("%s/users/check-email", apiPrefix),
@@ -75,8 +76,12 @@ public class WebSercurityConfig {
                                     String.format("%s/order-details/**", apiPrefix),
                                     String.format("%s/payment/vnpay_ipn/**", apiPrefix),
                                     String.format("%s/ghn/**", apiPrefix),
+                                    String.format("%s/users/**", apiPrefix),
+                                    String.format("%s/users/reset-password-email/**", apiPrefix),
+
                                   "/uploads/**",
 
+                                    String.format("%s/inventory/**", apiPrefix),
                                     String.format("%s/inventory-transfers/**", apiPrefix),
                                     String.format("%s/audit/**", apiPrefix),
                                     String.format("%s/promotions/**", apiPrefix),

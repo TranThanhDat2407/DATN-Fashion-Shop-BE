@@ -4,12 +4,15 @@ import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.request.Ghn.GhnCreateOrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.Ghn.PreviewOrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.order.OrderRequest;
+import com.example.DATN_Fashion_Shop_BE.dto.request.store.StorePaymentRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.GhnCreateOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.PreviewOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.TotalOrderTodayResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.order.*;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.StorePaymentResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.vnpay.VnPayResponse;
+import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
 import com.example.DATN_Fashion_Shop_BE.service.CartService;
@@ -377,6 +380,21 @@ public class OrderController {
                 "Đã lấy được getTotalOrderCancelYesterday ",
                 ordercancelYesterday
         ));
+    }
+
+    @PostMapping("/checkout-store/{staffId}")
+    public ResponseEntity<ApiResponse<StorePaymentResponse>> createStoreOrder(
+            @PathVariable Long staffId,
+            @Valid @RequestBody StorePaymentRequest request) throws DataNotFoundException {
+
+        StorePaymentResponse response = orderService.createStoreOrder(staffId, request);
+
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        MessageKeys.ORDERS_SUCCESSFULLY,
+                        response
+                )
+        );
     }
 }
 

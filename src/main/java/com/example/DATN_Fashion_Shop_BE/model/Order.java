@@ -42,10 +42,10 @@ public class Order extends BaseEntity {
     private String shippingAddress;
 
     @ManyToOne
-    @JoinColumn(name = "shipping_method_id", nullable = false)
+    @JoinColumn(name = "shipping_method_id")
     private ShippingMethod shippingMethod;
 
-    @Column(name = "shipping_fee", nullable = false)
+    @Column(name = "shipping_fee")
     private Double shippingFee;
 
     @Column(name = "tax_amount")

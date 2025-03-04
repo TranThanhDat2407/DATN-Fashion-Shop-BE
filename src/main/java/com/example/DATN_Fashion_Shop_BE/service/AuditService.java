@@ -4,10 +4,7 @@ import com.example.DATN_Fashion_Shop_BE.dto.AuditRecord;
 import com.example.DATN_Fashion_Shop_BE.dto.response.audit.CategoryAudResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.audit.CategoryTranslationAudResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.category.CategoryEditResponseDTO;
-import com.example.DATN_Fashion_Shop_BE.model.CategoriesTranslation;
-import com.example.DATN_Fashion_Shop_BE.model.Category;
-import com.example.DATN_Fashion_Shop_BE.model.Product;
-import com.example.DATN_Fashion_Shop_BE.model.User;
+import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.CategoryRepository;
 import com.example.DATN_Fashion_Shop_BE.repository.CategoryTranslationRepository;
 import com.example.DATN_Fashion_Shop_BE.repository.UserRepository;
@@ -56,6 +53,7 @@ public class AuditService {
     private AuditReader getAuditReader() {
         return AuditReaderFactory.get(entityManager);
     }
+
     public Page<CategoryAudResponse> searchCategoryAuditHistory(Pageable pageable,
                                                                 Long id,
                                                                 Long updatedBy,

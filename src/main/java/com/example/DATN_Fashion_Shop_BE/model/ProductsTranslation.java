@@ -17,7 +17,7 @@ public class ProductsTranslation extends BaseEntity{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name", columnDefinition = "NVARCHAR(255)", nullable = false)
+    @Column(name = "name", columnDefinition = "NVARCHAR(MAX)", nullable = false)
     private String name;
 
     @Column(name = "description", columnDefinition = "NVARCHAR(MAX)")

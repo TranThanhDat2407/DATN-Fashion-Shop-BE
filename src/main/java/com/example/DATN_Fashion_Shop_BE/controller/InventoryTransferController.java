@@ -96,4 +96,15 @@ public class InventoryTransferController {
         ));
     }
 
+    @GetMapping("/store/{storeId}")
+    public List<InventoryTransfer> getAllTransfersByStore(@PathVariable Long storeId) {
+        return inventoryTransferService.getAllTransfersByStore(storeId);
+    }
+
+    // Lấy lịch sử thay đổi số lượng của tất cả bản ghi liên quan đến store_id
+    @GetMapping("/store/{storeId}/history")
+    public List<Object[]> getInventoryTransferHistoryByStore(@PathVariable Long storeId) {
+        return inventoryTransferService.getInventoryTransferHistoryByStore(storeId);
+    }
+
 }

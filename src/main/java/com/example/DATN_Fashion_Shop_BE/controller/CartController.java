@@ -40,20 +40,15 @@ public class CartController {
     private final CartService cartService;
     private final SessionService sessionService;
     private static final Logger log = LoggerFactory.getLogger(CartController.class);
+
     @GetMapping
     public ResponseEntity<ApiResponse<CartResponse>> getCart(
             @RequestParam(value = "userId", required = false) Long userId,
             @RequestParam(value = "sessionId", required = false) String sessionId,
-            HttpServletRequest request,
-            HttpServletResponse response) {
+            HttpServletRequest httpRequest) {
 
         if (sessionId == null) {
-            sessionId = sessionService.getSessionIdFromRequest(request);
-        }
-
-        if (sessionId == null && userId == null) {
-            sessionId = sessionService.generateNewSessionId();
-            sessionService.setSessionIdInCookie(response, sessionId);
+            sessionId = sessionService.getSessionIdFromRequest(httpRequest);
         }
 
         Cart cart = cartService.getOrCreateCart(userId, sessionId);
@@ -178,17 +173,20 @@ public class CartController {
             HttpServletRequest request,
             HttpServletResponse response) {
 
-        // Nếu sessionId không được gửi lên, lấy từ cookie
-        if (sessionId == null) {
+        if (userId != null && userId <= 0) {
+            userId = null;
+        }
+
+        if ((sessionId == null || sessionId.isEmpty()) && userId == null) {
             sessionId = sessionService.getSessionIdFromRequest(request);
         }
+//
+//        if ((sessionId == null || sessionId.trim().isEmpty()) && userId == null) {
+//            sessionId = sessionService.generateNewSessionId();
+//            sessionService.setSessionIdInCookie(response, sessionId);
+//        }
 
-        // Nếu vẫn không có sessionId và userId cũng null → Tạo sessionId mới
-        if (sessionId == null && userId == null) {
-            sessionId = sessionService.generateNewSessionId();
-            sessionService.setSessionIdInCookie(response, sessionId);
-        }
-
+        log.info(" Request nhận được - userId: {}, sessionId: {}", userId, sessionId);
         return ResponseEntity.ok(
                 ApiResponseUtils.successResponse(
                         localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
@@ -196,6 +194,8 @@ public class CartController {
                 )
         );
     }
+
+
 
     @PostMapping("/merge")
     public ResponseEntity<ApiResponse<String>> mergeCart(

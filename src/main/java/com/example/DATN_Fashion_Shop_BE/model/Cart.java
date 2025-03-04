@@ -18,11 +18,11 @@ public class Cart extends BaseEntity {
     @GeneratedValue (strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name= "session_id", length = 255)
+    @Column(name= "session_id", length = 255, unique = true)
     private String sessionId;
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", unique = true)
     private User user;
 
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
