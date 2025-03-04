@@ -32,14 +32,9 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
                                                  @Param("sizeId") Long sizeId,
                                                  @Param("storeId") Long storeId);
 
-    @Query("""
-        SELECT i.quantityInStock 
-        FROM Inventory i 
-        WHERE i.productVariant.id = :productVariantId 
-          AND i.store.id = :storeId
-    """)
-    Integer findQuantityInStockByStoreAndVariant(@Param("storeId") Long storeId,
-                                                 @Param("productVariantId") Long productVariantId);
+    @Query("SELECT COALESCE(SUM(i.quantityInStock), 0) FROM Inventory i WHERE i.store.id = :storeId AND i.productVariant.id = :variantId")
+    Integer findQuantityInStockByStoreAndVariant(@Param("storeId") Long storeId, @Param("variantId") Long variantId);
+
 
     Page<Inventory> findByStoreIdAndProductVariant_Product_Translations_LanguageCodeAndProductVariant_Product_Translations_NameContainingIgnoreCaseAndProductVariant_Product_Categories_IdIn(
             Long storeId, String languageCode, String productName, List<Long> categoryIds, Pageable pageable);
@@ -54,4 +49,6 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
             Long storeId, String languageCode, Pageable pageable);
 
     Optional<Inventory> findByStoreIdAndProductVariantId(Long storeId, Long productVariantId);
+
+    List<Inventory> findByStoreId(Long storeId);
 }

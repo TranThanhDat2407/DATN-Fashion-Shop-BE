@@ -18,4 +18,6 @@ public interface CouponRepository extends JpaRepository<Coupon,Long>,JpaSpecific
 
     @Query("SELECT c FROM Coupon c JOIN c.userRestrictions cur WHERE cur.user.id = :userId")
     List<Coupon> findCouponsByUserId(@Param("userId") Long userId);
+
+    Optional<Coupon> findByCode(String code);
 }

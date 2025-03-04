@@ -80,6 +80,7 @@ public class WebSercurityConfig {
 
                                   "/uploads/**",
 
+                                    String.format("%s/inventory/**", apiPrefix),
                                     String.format("%s/inventory-transfers/**", apiPrefix),
                                     String.format("%s/audit/**", apiPrefix),
                                     String.format("%s/promotions/**", apiPrefix),

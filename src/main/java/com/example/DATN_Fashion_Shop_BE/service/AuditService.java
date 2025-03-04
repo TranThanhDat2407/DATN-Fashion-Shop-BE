@@ -56,6 +56,7 @@ public class AuditService {
     private AuditReader getAuditReader() {
         return AuditReaderFactory.get(entityManager);
     }
+
     public Page<CategoryAudResponse> searchCategoryAuditHistory(Pageable pageable,
                                                                 Long id,
                                                                 Long updatedBy,

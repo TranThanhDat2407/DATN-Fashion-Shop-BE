@@ -45,22 +45,13 @@ public class CartController {
     public ResponseEntity<ApiResponse<CartResponse>> getCart(
             @RequestParam(value = "userId", required = false) Long userId,
             @RequestParam(value = "sessionId", required = false) String sessionId,
-            HttpServletRequest request,
-            HttpServletResponse response) {
+            HttpServletRequest httpRequest) {
 
         if (sessionId == null) {
-            sessionId = sessionService.getSessionIdFromRequest(request);
+            sessionId = sessionService.getSessionIdFromRequest(httpRequest);
         }
 
-        // Nếu vẫn không có sessionId và userId cũng null → Tạo sessionId mới
-        if (sessionId == null && (userId == null || userId == 0)) {
-            sessionId = sessionService.generateNewSessionId();
-            sessionService.setSessionIdInCookie(response, sessionId);
-        }
-
-        Long safeUserId = (userId != null && userId > 0) ? userId : null;
-
-        Cart cart = cartService.getOrCreateCart(safeUserId, sessionId);
+        Cart cart = cartService.getOrCreateCart(userId, sessionId);
         return ResponseEntity.ok(
                 ApiResponseUtils.successResponse(
                         localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
@@ -182,28 +173,29 @@ public class CartController {
             HttpServletRequest request,
             HttpServletResponse response) {
 
-        // Nếu sessionId không được gửi lên, lấy từ cookie
-        if (sessionId == null) {
+        if (userId != null && userId <= 0) {
+            userId = null;
+        }
+
+        if ((sessionId == null || sessionId.isEmpty()) && userId == null) {
             sessionId = sessionService.getSessionIdFromRequest(request);
         }
+//
+//        if ((sessionId == null || sessionId.trim().isEmpty()) && userId == null) {
+//            sessionId = sessionService.generateNewSessionId();
+//            sessionService.setSessionIdInCookie(response, sessionId);
+//        }
 
-
-
-        // Nếu vẫn không có sessionId và userId cũng null → Tạo sessionId mới
-        if (sessionId == null && (userId == null || userId == 0)) {
-            sessionId = sessionService.generateNewSessionId();
-            sessionService.setSessionIdInCookie(response, sessionId);
-        }
-
-        Long safeUserId = (userId != null && userId > 0) ? userId : null;
-
+        log.info(" Request nhận được - userId: {}, sessionId: {}", userId, sessionId);
         return ResponseEntity.ok(
                 ApiResponseUtils.successResponse(
                         localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
-                        cartService.getTotalCartItems(safeUserId, sessionId)
+                        cartService.getTotalCartItems(userId, sessionId)
                 )
         );
     }
+
+
 
     @PostMapping("/merge")
     public ResponseEntity<ApiResponse<String>> mergeCart(

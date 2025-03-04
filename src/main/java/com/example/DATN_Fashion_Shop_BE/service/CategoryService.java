@@ -400,4 +400,16 @@ public class CategoryService {
         categoryRepository.delete(category);
     }
 
+    public List<Long> getAllChildCategoryIds(Long parentId) {
+        List<Long> categoryIds = new ArrayList<>();
+        categoryIds.add(parentId);
+
+        List<Long> childIds = categoryRepository.findChildCategoryIds(parentId);
+        for (Long childId : childIds) {
+            categoryIds.addAll(getAllChildCategoryIds(childId)); // Gọi đệ quy
+        }
+
+        return categoryIds;
+    }
+
 }

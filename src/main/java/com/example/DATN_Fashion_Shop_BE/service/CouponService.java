@@ -208,9 +208,6 @@ public class CouponService {
         couponRepository.deleteById(id);
     }
 
-
-
-
     public List<CouponLocalizedDTO> getAllCoupons(String languageCode) {
         List<Coupon> coupons = couponRepository.findAll();
 
@@ -327,6 +324,21 @@ public class CouponService {
                 () -> new DataNotFoundException("Coupon not found")
         );
         return CouponDetailResponse.fromCoupon(coupon);
+    }
+
+    public Boolean canUserUseCoupon (Long userId, Long couponId){
+        Optional<Coupon> couponOpt = couponRepository.findById(couponId);
+        if (couponOpt.isEmpty()) {
+            return false;
+        }
+
+        Coupon coupon = couponOpt.get();
+
+        if (!coupon.getIsActive() || coupon.getExpirationDate().isBefore(LocalDateTime.now())) {
+            return false;
+        }
+
+        return couponUserRestrictionRepository.findByUserIdAndCouponId(userId, couponId).isPresent();
     }
 
 }

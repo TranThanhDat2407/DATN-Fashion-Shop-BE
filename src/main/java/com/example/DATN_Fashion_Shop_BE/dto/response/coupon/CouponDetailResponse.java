@@ -18,6 +18,7 @@ public class CouponDetailResponse extends BaseResponse {
     private Long id;
     private Float discountValue;
     private Float minOrderValue;
+    private String discountType;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime expirationDate;
     private String code;
@@ -27,6 +28,7 @@ public class CouponDetailResponse extends BaseResponse {
                 .id(coupon.getId())
                 .code(coupon.getCode())
                 .minOrderValue(coupon.getMinOrderValue())
+                .discountType(coupon.getDiscountType())
                 .discountValue(coupon.getDiscountValue())
                 .expirationDate(coupon.getExpirationDate())
                 .build();
