@@ -11,8 +11,7 @@ import java.util.List;
 import java.util.Optional;
 @Repository
 public interface CouponRepository extends JpaRepository<Coupon,Long>,JpaSpecificationExecutor<Coupon> {
-    Optional<Coupon> findFirstByCode(String code);
-    Optional<Coupon> findByCode(String code);
+    Optional<Coupon> findFirstByCode(String code);;
 
     List<Coupon> findByIsGlobalTrueAndIsActiveTrue();
 

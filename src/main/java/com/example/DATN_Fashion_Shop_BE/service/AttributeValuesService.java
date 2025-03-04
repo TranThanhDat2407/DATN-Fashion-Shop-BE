@@ -110,7 +110,7 @@ public class AttributeValuesService {
         // Nếu có file mới, xóa file cũ và upload file mới
         if (colorImage != null) {
             fileStorageService.deleteFile(color.getValueImg(), "colors");
-            String newFileName = fileStorageService.uploadFileAndGetName(colorImage, "images/colors");
+            String newFileName = fileStorageService.uploadFileAndGetName(colorImage, "images/products/colors");
             color.setValueImg(newFileName);
         }
 
