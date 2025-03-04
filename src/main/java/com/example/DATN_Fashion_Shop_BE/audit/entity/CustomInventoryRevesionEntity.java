@@ -13,7 +13,7 @@ import java.time.Instant;
 @Getter
 @Setter
 @Entity
-@RevisionEntity(CustomAuditListener.class)
+//@RevisionEntity(CustomAuditListener.class)
 @Table(name = "inventories_aud")  //inventories_aud
 public class CustomInventoryRevesionEntity extends DefaultRevisionEntity {
 
