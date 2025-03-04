@@ -57,6 +57,14 @@ public class User extends BaseEntity implements UserDetails{
     @Column(name = "one_time_password", length = 10)
     private String oneTimePassword;
 
+    @Column(name = "verify")
+    private Boolean verify;
+
+
+    @OneToMany(mappedBy = "user")
+    @NotAudited
+    Set<SecureToken> token;
+
     @ManyToOne
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;

@@ -8,6 +8,7 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.user.CustomerCreateTodayRes
 import com.example.DATN_Fashion_Shop_BE.dto.response.user.UserAdminResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.user.UserResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
+import com.example.DATN_Fashion_Shop_BE.exception.ExpiredTokenException;
 import com.example.DATN_Fashion_Shop_BE.exception.InvalidPasswordException;
 import com.example.DATN_Fashion_Shop_BE.model.Token;
 import com.example.DATN_Fashion_Shop_BE.model.User;
@@ -29,6 +30,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -98,6 +100,57 @@ public class UserController {
     }
 
     @Operation(
+            summary = "Xác thực tài khoản người dùng",
+            description = "API này được sử dụng để xác thực tài khoản người dùng thông qua token đăng ký.",
+            tags = {"User"}
+    )
+    @GetMapping("/register/verify")
+    public ResponseEntity<ApiResponse<?>> verifyUser(@RequestParam(required = false) String token) {
+        if (token == null || token.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(
+                    ApiResponseUtils.errorResponse(
+                            HttpStatus.BAD_REQUEST,
+                            localizationUtils.getLocalizedMessage(MessageKeys.TOKEN_IS_EXPIRED),
+                            null,
+                            null,
+                            localizationUtils.getLocalizedMessage(MessageKeys.TOKEN_IS_EXPIRED)
+                    )
+            );
+        }
+
+        try {
+            userService.verifyUser(token);
+            return ResponseEntity.ok(
+                    ApiResponseUtils.successResponse(
+                            localizationUtils.getLocalizedMessage(MessageKeys.REGISTER_SUCCESSFULLY),
+                            null
+                    )
+            );
+        } catch (ExpiredTokenException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    ApiResponseUtils.errorResponse(
+                            HttpStatus.BAD_REQUEST,
+                            localizationUtils.getLocalizedMessage(MessageKeys.TOKEN_IS_EXPIRED),
+                            null,
+                            null,
+                            localizationUtils.getLocalizedMessage(MessageKeys.TOKEN_IS_EXPIRED)
+                    )
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    ApiResponseUtils.errorResponse(
+                            HttpStatus.INTERNAL_SERVER_ERROR,
+                            localizationUtils.getLocalizedMessage(MessageKeys.REGISTER_FAILED),
+                            null,
+                            null,
+                            localizationUtils.getLocalizedMessage(MessageKeys.REGISTER_FAILED)
+                    )
+            );
+        }
+    }
+
+
+    @Operation(
             summary = "Đăng nhập ",
             description = """
                         API này được sử dụng để đăng nhập.
@@ -129,6 +182,17 @@ public class UserController {
 
             String userAgent = request.getHeader("User-Agent");
             User userDetail = userService.getUserDetailsFromToken(token);
+
+            if (!userDetail.getVerify()) {
+                return ResponseEntity.badRequest().body(
+                        ApiResponseUtils.generateValidationErrorResponse(
+                                result,
+                                localizationUtils.getLocalizedMessage(MessageKeys.LOGIN_FAILED),
+                                localizationUtils
+                        )
+                );
+            }
+
             Token jwtToken = tokenService.addToken(userDetail, token, isMobileDevice(userAgent));
 
             LoginResponse loginResponse = LoginResponse.builder()

@@ -13,10 +13,13 @@ import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.exception.ExpiredTokenException;
 import com.example.DATN_Fashion_Shop_BE.exception.InvalidPasswordException;
 import com.example.DATN_Fashion_Shop_BE.exception.PermissionDenyException;
+import com.example.DATN_Fashion_Shop_BE.mailing.AccountVerificationEmailContext;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -36,7 +39,10 @@ import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RequiredArgsConstructor
 @Service
@@ -51,8 +57,11 @@ public class UserService{
     private final JwtTokenUtil jwtTokenUtil;
     private final AuthenticationManager authenticationManager;
     private final LocalizationUtils localizationUtils;
+    private final SecureTokenService secureTokenService;
+
 
     public User createUser(UserDTO userDTO) throws Exception {
+
         // Lấy thông tin email và phone
         String email = userDTO.getEmail();
         String phone = userDTO.getPhone();
@@ -89,6 +98,7 @@ public class UserService{
                 .dateOfBirth(userDTO.getDateOfBirth())
                 .googleAccountId(userDTO.getGoogleAccountId())
                 .isActive(true)
+                .verify(false)
                 .build();
 
         // Thiết lập vai trò
@@ -103,6 +113,7 @@ public class UserService{
 
         // Lưu thông tin người dùng vào database
         User savedUser = userRepository.save(newUser);
+
 
         // Nếu vai trò là Staff hoặc Store Manager, xử lý thêm thông tin Store
         if (role.getName().equalsIgnoreCase(Role.STORE_STAFF) ||
@@ -125,7 +136,46 @@ public class UserService{
             staffRepository.save(staff);
         }
 
+        System.out.println("Id user: " + savedUser.getId());
+
+        sendRegistrationConfirmationEmail(savedUser);
+
         return savedUser;
+    }
+
+    public void sendRegistrationConfirmationEmail(User user) throws MessagingException {
+
+        SecureToken secureToken = secureTokenService.generateSecureToken(user);
+        secureToken.setUser(user);
+        secureTokenService.saveSecureToken(secureToken);
+
+        AccountVerificationEmailContext context = new AccountVerificationEmailContext();
+        context.init(user);
+        context.setToken(secureToken.getToken());
+        context.buildVerificationUrl("http://localhost:4200/client/vnd/vi" + "/verify-email", secureToken.getToken());
+
+        String verificationUrl = context.getVerificationUrl(); // Lấy URL xác nhận từ context
+
+        emailService.sendVerificationEmail(user.getEmail(), user.getFirstName(), verificationUrl);
+
+    }
+
+    public boolean verifyUser(String token) throws ExpiredTokenException {
+        SecureToken secureToken = secureTokenService.findByToken(token);
+        if (Objects.isNull(token) || !StringUtils.equals(token, secureToken.getToken()) || secureToken.isExpired()) {
+            throw new ExpiredTokenException("Token is not valid");
+        }
+
+        User user = userRepository.getById(secureToken.getUser().getId());
+        if (Objects.isNull(user)) {
+            return false;
+        }
+
+        user.setVerify(true);
+        userRepository.save(user);
+
+        secureTokenService.removeToken(secureToken);
+        return true;
     }
 
 
