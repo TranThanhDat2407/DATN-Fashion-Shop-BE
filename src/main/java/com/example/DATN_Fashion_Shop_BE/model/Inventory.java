@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.envers.Audited;
-import org.hibernate.envers.NotAudited;
 import org.hibernate.envers.RelationTargetAuditMode;
 
 @Entity
@@ -38,4 +37,22 @@ public class Inventory extends BaseEntity{
 
     @Column(name = "quantity_in_stock", nullable = false)
     private Integer quantityInStock;
+
+    @Column(name = "delta_quantity")
+    private Integer deltaQuantity;
+
+    @Transient
+    private Integer previousQuantity;
+
+    @PostLoad
+    public void storePreviousQuantity() {
+        this.previousQuantity = this.quantityInStock;
+    }
+
+    @PreUpdate
+    public void preDeltaUpdate() {
+        if (previousQuantity != null) {
+            this.deltaQuantity = this.quantityInStock - previousQuantity;
+        }
+    }
 }
