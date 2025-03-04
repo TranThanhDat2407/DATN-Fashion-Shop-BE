@@ -29,4 +29,18 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
 
     @Query("SELECT pv FROM ProductVariant pv WHERE pv.product.id = :productId AND pv.colorValue.id = :colorId")
     List<ProductVariant> findByProductAndColor(@Param("productId") Long productId, @Param("colorId") Long colorId);
+
+    @Query("SELECT DISTINCT pv.id FROM ProductVariant pv " +
+            "JOIN pv.product p " +
+            "JOIN p.categories c " +
+            "WHERE c.id IN :categoryIds")
+    List<Long> findProductVariantIdsByCategoryIds(@Param("categoryIds") List<Long> categoryIds);
+
+    @Query("SELECT pv.id FROM ProductVariant pv " +
+            "JOIN pv.product p " +
+            "JOIN p.translations t " +
+            "WHERE LOWER(t.name) LIKE LOWER(CONCAT('%', :productName, '%')) " +
+            "AND t.language.code = :languageCode")
+    List<Long> findProductVariantIdsByProductName(@Param("productName") String productName,
+                                                  @Param("languageCode") String languageCode);
 }

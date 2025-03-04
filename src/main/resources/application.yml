@@ -33,6 +33,10 @@ spring:
       dialect: org.hibernate.dialect.MySQL8Dialect
       format_sql: true
       org.hibernate.envers.audit_table_suffix: _AUD
+      org.hibernate.envers.global_with_modified_flag: false
+      org.hibernate.envers.revision_on_collection_change: false
+      org.hibernate.envers.do_not_audit_optimistic_locking_field: true
+      org.hibernate.envers.global_relation_mapping: false
       org:
         hibernate:
           envers:
