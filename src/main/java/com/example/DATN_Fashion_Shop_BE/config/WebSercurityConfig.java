@@ -74,6 +74,7 @@ public class WebSercurityConfig {
                                     String.format("%s/vnpay/**", apiPrefix),
                                     String.format("%s/order-details/**", apiPrefix),
                                     String.format("%s/payment/vnpay_ipn/**", apiPrefix),
+                                    String.format("%s/ghn/**", apiPrefix),
                                   "/uploads/**",
 
                                     String.format("%s/inventory-transfers/**", apiPrefix),

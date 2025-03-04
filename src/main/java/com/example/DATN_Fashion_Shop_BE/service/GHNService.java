@@ -102,6 +102,10 @@ public class GHNService {
         log.debug("✅ Lấy thành công District ID: {}, Ward Code: {}", districtId, wardCode);
 
         int totalWeight = cartItems.stream().mapToInt(item -> item.getQuantity() * 300).sum();
+        if (totalWeight == 0) {
+            log.warn("⚠ Tổng trọng lượng sản phẩm bằng 0, đặt giá trị mặc định là 300g.");
+            totalWeight = 300;
+        }
 
         // Chuẩn bị dữ liệu gửi đến GHN
         Map<String, Object> requestBody = new HashMap<>();
