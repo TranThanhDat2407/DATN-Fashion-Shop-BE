@@ -49,7 +49,6 @@ public class EmailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
             helper.setTo(to);
             helper.setSubject("🎁 Nhận ngay mã giảm giá từ Fashion Shop!");
             helper.setText(buildEmailContent(couponCode, imageUrl, daysValid, messageType), true);

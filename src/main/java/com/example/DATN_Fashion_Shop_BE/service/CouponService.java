@@ -22,7 +22,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
-
 @Service
 @RequiredArgsConstructor
 public class CouponService {
@@ -305,45 +304,55 @@ public class CouponService {
         return prefix + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
     }
 
+    @Transactional
     public Coupon createCouponForUser(String prefix, String discountType, Float discountValue,
-                                      Float minOrderValue, int expirationDays, User user,String imageUrl) {
-        // Sinh mã giảm giá ngẫu nhiên
-        String code = generateRandomCode(prefix);
+                                      Float minOrderValue, int expirationDays, User user,
+                                      String imageUrl, List<CouponTranslationDTO> translationDTOs) {
+        try {
+            // ✅ Sinh mã giảm giá ngẫu nhiên
+            String code = generateRandomCode(prefix);
 
-        // Tạo đối tượng Coupon
-        Coupon coupon = Coupon.builder()
-                .discountType(discountType)
-                .discountValue(discountValue)
-                .minOrderValue(minOrderValue)
-                .expirationDate(LocalDateTime.now().plusDays(expirationDays))
-                .code(code)
-                .imageUrl(imageUrl)
-                .isGlobal(false) // Mã này chỉ dành riêng cho user
-                .userRestrictions(new ArrayList<>()) // ✅ Đảm bảo danh sách không bị null
-                .build();
+            // ✅ Tạo đối tượng Coupon
+            Coupon coupon = Coupon.builder()
+                    .code(code)
+                    .discountType(discountType)
+                    .discountValue(discountValue)
+                    .minOrderValue(minOrderValue)
+                    .expirationDate(LocalDateTime.now().plusDays(expirationDays))
+                    .imageUrl(imageUrl)
+                    .isGlobal(false)
+                    .isActive(true)
+                    .build();
 
-        // Áp dụng coupon cho user
-        CouponUserRestriction restriction = new CouponUserRestriction();
-        restriction.setUser(user);
-        restriction.setCoupon(coupon);
+            // ✅ Lưu coupon vào database
+            coupon = couponRepository.save(coupon);
 
-        // ✅ Kiểm tra và thêm restriction vào danh sách
-        if (coupon.getUserRestrictions() == null) {
-            coupon.setUserRestrictions(new ArrayList<>());
+            // ✅ Áp dụng coupon cho user
+            CouponUserRestriction restriction = CouponUserRestriction.builder()
+                    .user(user)
+                    .coupon(coupon)
+                    .build();
+            couponUserRestrictionRepository.save(restriction);
+
+            // ✅ Thêm bản dịch
+            saveCouponTranslations(coupon, translationDTOs);
+
+            return coupon;
+
+        } catch (Exception e) {
+            throw new RuntimeException("❌ Error creating coupon: " + e.getMessage(), e);
         }
-        coupon.getUserRestrictions().add(restriction);
-
-        // Lưu coupon vào database
-        return couponRepository.save(coupon);
     }
 
 
+    @Transactional
     public Coupon createCouponForAllUser(String prefix, String discountType, Float discountValue,
-                                         Float minOrderValue, int expirationDays, boolean isGlobal, String imageUrl) {
-        // Sinh mã giảm giá ngẫu nhiên
+                                         Float minOrderValue, int expirationDays, boolean isGlobal,
+                                         String imageUrl, List<CouponTranslationDTO> translationDTOs) {
+        // ✅ Sinh mã giảm giá ngẫu nhiên
         String code = generateRandomCode(prefix);
 
-        // Tạo đối tượng Coupon
+        // ✅ Tạo đối tượng Coupon
         Coupon coupon = Coupon.builder()
                 .discountType(discountType)
                 .discountValue(discountValue)
@@ -351,14 +360,39 @@ public class CouponService {
                 .expirationDate(LocalDateTime.now().plusDays(expirationDays))
                 .code(code)
                 .imageUrl(imageUrl)
-                .isGlobal(true) // Đánh dấu là mã áp dụng cho toàn bộ người dùng
+                .isGlobal(true)
                 .userRestrictions(new ArrayList<>()) // Tránh lỗi null list
                 .build();
 
-        // Lưu coupon vào database
-        return couponRepository.save(coupon);
+        // ✅ Lưu coupon vào database
+        coupon = couponRepository.save(coupon);
+
+        // ✅ Thêm bản dịch
+        saveCouponTranslations(coupon, translationDTOs);
+
+        return coupon;
     }
 
+
+    private void saveCouponTranslations(Coupon coupon, List<CouponTranslationDTO> translationDTOs) {
+        if (translationDTOs != null && !translationDTOs.isEmpty()) {
+            List<CouponTranslation> translations = translationDTOs.stream()
+                    .map(dto -> {
+                        Language language = languageRepository.findByCode(dto.getLanguageCode())
+                                .orElseThrow(() -> new RuntimeException("Language not found for code: " + dto.getLanguageCode()));
+
+                        return CouponTranslation.builder()
+                                .name(dto.getName())
+                                .description(dto.getDescription())
+                                .coupon(coupon)
+                                .language(language)
+                                .build();
+                    })
+                    .collect(Collectors.toList());
+
+            couponTranslationRepository.saveAll(translations);
+        }
+    }
 
 
 }

@@ -38,6 +38,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import static com.example.DATN_Fashion_Shop_BE.service.ScheduledCouponService.COUPON_TRANSLATIONS;
+
+
 @RequiredArgsConstructor
 @Service
 public class UserService{
@@ -128,12 +131,15 @@ public class UserService{
 
         Coupon welcomeCoupon = couponService.createCouponForUser(
                 "WELCOME",
-                "fixed",
+                "FIXED",
                 50000f, // Giảm 50.000 VND
                 200000f, // Đơn hàng tối thiểu 200.000 VND
                 14,
                 savedUser,
-                "/uploads/coupons/welcomeCoupon.png"
+                "/uploads/coupons/welcomeCoupon.png",
+                COUPON_TRANSLATIONS.get("BIRTHDAY")
+
+
         );
         return savedUser;
     }

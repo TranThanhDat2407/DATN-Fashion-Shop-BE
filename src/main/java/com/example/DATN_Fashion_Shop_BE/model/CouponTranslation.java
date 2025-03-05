@@ -13,6 +13,7 @@ import org.hibernate.envers.Audited;
 @Builder
 @Audited
 public class CouponTranslation extends BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -31,4 +32,7 @@ public class CouponTranslation extends BaseEntity {
     @JoinColumn(name = "language_id", nullable = false)
     @Audited(targetAuditMode = org.hibernate.envers.RelationTargetAuditMode.NOT_AUDITED)
     private Language language;
+
+    public CouponTranslation(String mãGiảmGiáSinhNhật, String s, Coupon coupon, Language vi) {
+    }
 }
