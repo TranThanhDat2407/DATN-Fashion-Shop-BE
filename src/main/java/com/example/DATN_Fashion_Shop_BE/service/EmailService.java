@@ -14,8 +14,6 @@ import java.io.File;
 @RequiredArgsConstructor
 public class EmailService {
     private final JavaMailSender mailSender;
-
-
     public void sendEmail(String to, String subject, String text) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -26,10 +24,8 @@ public class EmailService {
 
         mailSender.send(message);
     }
-
     public void sendVerificationEmail(String to, String firstName, String verificationUrl) throws MessagingException {
         String subject = "🔐 Email Verification";
-
         String message = "<html><head>"
                 + "<style>"
                 + "body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }"
