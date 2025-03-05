@@ -16,6 +16,8 @@ import org.hibernate.envers.DefaultRevisionEntity;
 import org.hibernate.envers.RevisionType;
 import org.hibernate.envers.query.AuditEntity;
 import org.hibernate.envers.query.AuditQuery;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -34,7 +36,7 @@ public class InventoryService {
     private final ProductVariantRepository productVariantRepository;
     private final CategoryService categoryService; // ✅ Gọi Service thay vì Repo
 
-
+    private static final Logger logger = LoggerFactory.getLogger(InventoryService.class);
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -43,89 +45,75 @@ public class InventoryService {
         return AuditReaderFactory.get(entityManager);
     }
 
-//    public Page<InventoryAudResponse> getInventoryHistoryByStore(
-//            Pageable pageable,
-//            Long id,
-//            Long updatedBy,
-//            Integer rev,
-//            String revType,
-//            LocalDateTime updatedAtFrom,
-//            LocalDateTime updatedAtTo,
-//            String productName,
-//            Long storeId,
-//            Long categoryId,
-//            String languageCode) {
-//
-//        AuditReader auditReader = AuditReaderFactory.get(entityManager);
-//        AuditQuery query = auditReader.createQuery().forRevisionsOfEntity(Inventory.class, false, true);
-//
-//        query.add(AuditEntity.property("store_id").eq(storeId));
-//
-//        if (updatedAtFrom != null) {
-//            query.add(AuditEntity.property("updatedAt").ge(updatedAtFrom));
-//        }
-//        if (updatedAtTo != null) {
-//            query.add(AuditEntity.property("updatedAt").le(updatedAtTo));
-//        }
-//        if (updatedBy != null) {
-//            query.add(AuditEntity.property("updatedBy").eq(updatedBy));
-//        }
-//        if (id != null) {
-//            query.add(AuditEntity.property("id").eq(id));
-//        }
-//        if (rev != null) {
-//            query.add(AuditEntity.revisionNumber().eq(rev));
-//        }
-//        if (revType != null && !revType.isEmpty()) {
-//            query.add(AuditEntity.revisionType().eq(RevisionType.valueOf(revType)));
-//        }
-//
-//        List<Long> productVariantIds = new ArrayList<>();
-//
-//        // 🔹 Lọc theo `categoryId`
-//        if (categoryId != null) {
-//            List<Long> categoryIds = categoryService.getAllChildCategoryIds(categoryId);
-//            productVariantIds.addAll(productVariantRepository.findProductVariantIdsByCategoryIds(categoryIds));
-//        }
-//
-//        // 🔹 Lọc theo `productName`
-//        if (productName != null && !productName.trim().isEmpty()) {
-//            List<Long> variantIdsByName = productVariantRepository.findProductVariantIdsByProductName(productName, languageCode);
-//            productVariantIds.retainAll(variantIdsByName);
-//        }
-//
-//        if (!productVariantIds.isEmpty()) {
-//            query.add(AuditEntity.relatedId("productVariantId").in(productVariantIds.toArray()));
-//        }
-//
-//        query.addOrder(AuditEntity.revisionNumber().desc());
-//
-//        query.setFirstResult(pageable.getPageNumber() * pageable.getPageSize());
-//        query.setMaxResults(pageable.getPageSize());
-//
-//        List<?> results = query.getResultList();
-//        List<InventoryAudResponse> responseList = new ArrayList<>();
-//
-//        for (Object result : results) {
-//            Object[] arr = (Object[]) result;
-//            Inventory inventory = (Inventory) arr[0];
-//            CustomInventoryRevesionEntity revEntity = (CustomInventoryRevesionEntity) arr[1]; // 🔹 Cập nhật kiểu dữ liệu
-//            RevisionType revisionType = (RevisionType) arr[2];
-//
-//            // 🔹 Lấy giá trị delta_quantity trực tiếp từ database
-//            Integer deltaQuantity = revEntity.getDeltaQuantity();
-//
-//            responseList.add(InventoryAudResponse.fromInventory(inventory, revEntity, revisionType, deltaQuantity, languageCode));
-//        }
-//
-//        Number countResult = (Number) auditReader.createQuery()
-//                .forRevisionsOfEntity(Inventory.class, false, true)
-//                .addProjection(AuditEntity.revisionNumber().count())
-//                .getSingleResult();
-//        long total = countResult.longValue();
-//
-//        return new PageImpl<>(responseList, pageable, total);
-//    }
+    public Page<InventoryAudResponse> getInventoryHistoryByStore(
+            Pageable pageable,
+            Long id,
+            Long updatedBy,
+            Integer rev,
+            String revType,
+            LocalDateTime updatedAtFrom,
+            LocalDateTime updatedAtTo,
+            Long storeId,
+            String languageCode) {
+
+        AuditReader auditReader = AuditReaderFactory.get(entityManager);
+        AuditQuery query = auditReader.createQuery().forRevisionsOfEntity(Inventory.class, false, true);
+
+        // 🔹 Kiểm tra storeId nếu có
+        if (storeId != null) {
+            query.add(AuditEntity.property("store_id").eq(storeId));
+        }
+
+        if (updatedAtFrom != null) {
+            query.add(AuditEntity.property("updatedAt").ge(updatedAtFrom));
+        }
+        if (updatedAtTo != null) {
+            query.add(AuditEntity.property("updatedAt").le(updatedAtTo));
+        }
+        if (updatedBy != null) {
+            query.add(AuditEntity.property("updatedBy").eq(updatedBy));
+        }
+        if (id != null) {
+            query.add(AuditEntity.id().eq(id));
+        }
+        if (rev != null) {
+            query.add(AuditEntity.revisionNumber().eq(rev));
+        }
+        if (revType != null && !revType.isEmpty()) {
+            query.add(AuditEntity.revisionType().eq(RevisionType.valueOf(revType)));
+        }
+
+        // 🔹 Sắp xếp theo `revisionNumber` mới nhất
+        query.addOrder(AuditEntity.revisionNumber().desc());
+
+        // 🔹 Phân trang
+        query.setFirstResult((int) pageable.getOffset());
+        query.setMaxResults(pageable.getPageSize());
+
+        // 🔹 Lấy kết quả
+        List<?> results = query.getResultList();
+        List<InventoryAudResponse> responseList = new ArrayList<>();
+
+        for (Object result : results) {
+            Object[] arr = (Object[]) result;
+            Inventory inventory = (Inventory) arr[0];
+            DefaultRevisionEntity revEntity = (DefaultRevisionEntity) arr[1];
+            RevisionType revisionType = (RevisionType) arr[2];
+
+            Integer deltaQuantity = inventory.getDeltaQuantity();
+
+            responseList.add(InventoryAudResponse.fromInventory(inventory, revEntity, revisionType, deltaQuantity, languageCode));
+        }
+
+        // 🔹 Tính tổng số bản ghi khớp với điều kiện
+        Number countResult = (Number) auditReader.createQuery()
+                .forRevisionsOfEntity(Inventory.class, false, true)
+                .addProjection(AuditEntity.id().count())
+                .getSingleResult();
+        long total = countResult.longValue();
+
+        return new PageImpl<>(responseList, pageable, total);
+    }
 
 
 
