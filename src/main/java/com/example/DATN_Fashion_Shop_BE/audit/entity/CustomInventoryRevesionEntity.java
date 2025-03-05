@@ -14,7 +14,7 @@ import java.time.Instant;
 @Setter
 @Entity
 //@RevisionEntity(CustomAuditListener.class)
-@Table(name = "inventories_aud")  //inventories_aud
+//@Table(name = "inventories_aud")  //inventories_aud
 public class CustomInventoryRevesionEntity extends DefaultRevisionEntity {
 
     @Column(name = "delta_quantity",nullable = true)
