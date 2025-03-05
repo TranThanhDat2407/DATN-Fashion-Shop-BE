@@ -37,10 +37,17 @@ public class OrderDetailResponse {
         Product product = orderDetail.getProductVariant().getProduct();
         Order order = orderDetail.getOrder(); // Lấy Order từ OrderDetail
 
-        // Lấy ảnh đầu tiên của sản phẩm nếu có
-        String imageUrl = (product.getMedias() != null && !product.getMedias().isEmpty())
-                ? product.getMedias().get(0).getMediaUrl()
-                : null;
+        ProductVariant variant = orderDetail.getProductVariant();
+        AttributeValue color = variant.getColorValue();
+        String productImage = null;
+        if (product.getMedias() != null && !product.getMedias().isEmpty()) {
+            productImage = product.getMedias().stream()
+                    .filter(media -> media.getColorValue() != null && color != null && media.getColorValue().getId().equals(color.getId())) // So sánh bằng ID thay vì equals()
+                    .map(ProductMedia::getMediaUrl)
+                    .findFirst()
+                    .orElse(product.getMedias().get(0).getMediaUrl()); // Nếu không có, lấy ảnh đầu tiên
+        }
+
 
         UserAddressResponse defaultAddress = (userAddressResponses != null && !userAddressResponses.isEmpty())
                 ? userAddressResponses.stream()
@@ -68,7 +75,7 @@ public class OrderDetailResponse {
                 .quantity(orderDetail.getQuantity())
                 .unitPrice(orderDetail.getUnitPrice())
                 .totalPrice(orderDetail.getTotalPrice())
-                .imageUrl(imageUrl)
+                .imageUrl(productImage)
                 .productVariant(ProductVariantResponse.fromProductVariant(orderDetail.getProductVariant()))
                 .recipientName(defaultAddress != null ? defaultAddress.getFirstName() + " " + defaultAddress.getLastName() : null)
                 .recipientPhone(defaultAddress != null ? defaultAddress.getPhone() : null)

@@ -28,17 +28,17 @@ public class InventoryController {
     private final LocalizationUtils localizationUtils;
 
 
-    @GetMapping("/store/{storeId}/history")
+    @GetMapping("/store/inventory-history")
     public ResponseEntity<ApiResponse<PageResponse<InventoryAudResponse>>> getInventoryHistoryByStore(
-            @PathVariable Long storeId,
+            @RequestParam(required = false) Long storeId,
             @RequestParam(required = false) Long id,
             @RequestParam(required = false) Long updatedBy,
             @RequestParam(required = false) Integer rev,
             @RequestParam(required = false) String revType,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime updatedAtFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime updatedAtTo,
-            @RequestParam(required = false) String productName,
-            @RequestParam(required = false) Long categoryId,
+//            @RequestParam(required = false) String productName,
+//            @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false, defaultValue = "vi") String languageCode,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
@@ -46,7 +46,7 @@ public class InventoryController {
         Pageable pageable = PageRequest.of(page, size);
 
         Page<InventoryAudResponse> history = inventoryService.getInventoryHistoryByStore(
-                pageable, id, updatedBy, rev, revType, updatedAtFrom, updatedAtTo, productName, storeId, categoryId, languageCode);
+                pageable, id, updatedBy, rev, revType, updatedAtFrom, updatedAtTo, storeId, languageCode);
 
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),

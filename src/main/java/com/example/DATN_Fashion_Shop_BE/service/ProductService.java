@@ -557,6 +557,15 @@ public class ProductService {
         return ProductMediaResponse.fromProductMedia(updatedMedia);
     }
 
+
+    public List<ProductVariantsMediaResponse> searchVariantsByProductName(String productName, String languageCode) {
+        List<ProductVariant> variants = productVariantRepository.findByProductNameAndLanguage(productName, languageCode);
+
+        return variants.stream()
+                .map(variant -> ProductVariantsMediaResponse.fromProductVariant(variant, languageCode))
+                .collect(Collectors.toList());
+    }
+
     public boolean isProductInWishlist(Long userId, Long productId, Long colorId) {
 //        User user = userRepository.findById(userId)
 //                .orElseThrow(() -> new RuntimeException("User not found"));

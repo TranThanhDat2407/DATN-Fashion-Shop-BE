@@ -34,4 +34,21 @@ public class ProductVariantResponse extends BaseResponse {
                 .productName(variant.getProduct().getTranslationByLanguage("en").getName())
                 .build();
     }
+
+    public static ProductVariantResponse fromProductVariant(ProductVariant variant, String languageCode) {
+        ProductsTranslation translation = variant.getProduct().getTranslationByLanguage(languageCode);
+        String productName = (translation != null) ? translation.getName() : "Unknown";
+
+        return ProductVariantResponse.builder()
+                .id(variant.getId())
+                .basePrice(variant.getProduct().getBasePrice())
+                .salePrice(variant.getAdjustedPrice())
+                .colorId(variant.getColorValue().getId())
+                .colorName(variant.getColorValue().getValueName())
+                .sizeId(variant.getSizeValue().getId())
+                .size(variant.getSizeValue().getValueName())
+                .productId(variant.getProduct().getId())
+                .productName(productName)
+                .build();
+    }
 }
