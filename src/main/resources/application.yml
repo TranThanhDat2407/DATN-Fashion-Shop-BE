@@ -18,7 +18,7 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:sqlserver://localhost:1433;databaseName=DATN_FASHION_SHOP;encrypt=false;trustServerCertificate=true;}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     username: ${SPRING_DATASOURCE_USERNAME:sa}
-    password: ${SPRING_DATASOURCE_PASSWORD:songlong}
+    password: ${SPRING_DATASOURCE_PASSWORD:123}
   jpa:
     show-sql: true
     hibernate:
@@ -33,6 +33,10 @@ spring:
       dialect: org.hibernate.dialect.MySQL8Dialect
       format_sql: true
       org.hibernate.envers.audit_table_suffix: _AUD
+      org.hibernate.envers.global_with_modified_flag: false
+      org.hibernate.envers.revision_on_collection_change: false
+      org.hibernate.envers.do_not_audit_optimistic_locking_field: true
+      org.hibernate.envers.global_relation_mapping: false
       org:
         hibernate:
           envers:

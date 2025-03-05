@@ -22,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class CouponService {
@@ -394,5 +395,20 @@ public class CouponService {
         }
     }
 
+
+    public Boolean canUserUseCoupon (Long userId, Long couponId){
+        Optional<Coupon> couponOpt = couponRepository.findById(couponId);
+        if (couponOpt.isEmpty()) {
+            return false;
+        }
+
+        Coupon coupon = couponOpt.get();
+
+        if (!coupon.getIsActive() || coupon.getExpirationDate().isBefore(LocalDateTime.now())) {
+            return false;
+        }
+
+        return couponUserRestrictionRepository.findByUserIdAndCouponId(userId, couponId).isPresent();
+    }
 
 }

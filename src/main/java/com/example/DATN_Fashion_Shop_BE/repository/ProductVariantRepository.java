@@ -29,4 +29,13 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
 
     @Query("SELECT pv FROM ProductVariant pv WHERE pv.product.id = :productId AND pv.colorValue.id = :colorId")
     List<ProductVariant> findByProductAndColor(@Param("productId") Long productId, @Param("colorId") Long colorId);
+
+
+    @Query("SELECT pv FROM ProductVariant pv WHERE pv.product.id IN " +
+            "(SELECT p.id FROM Product p JOIN p.translations t " +
+            "WHERE (:name IS NULL OR :name = '' OR LOWER(t.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
+            "AND t.language.code = :languageCode)")
+    List<ProductVariant> findByProductNameAndLanguage(@Param("name") String name,
+                                                      @Param("languageCode") String languageCode);
+
 }

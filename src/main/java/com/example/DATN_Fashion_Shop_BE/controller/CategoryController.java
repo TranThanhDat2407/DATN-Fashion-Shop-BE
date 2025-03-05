@@ -9,6 +9,10 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.category.CategoryEditRespon
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.FieldErrorDetails;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
+import com.example.DATN_Fashion_Shop_BE.model.CategoriesTranslation;
+import com.example.DATN_Fashion_Shop_BE.model.Category;
+import com.example.DATN_Fashion_Shop_BE.repository.CategoryRepository;
+import com.example.DATN_Fashion_Shop_BE.repository.CategoryTranslationRepository;
 import com.example.DATN_Fashion_Shop_BE.service.CategoryService;
 
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
@@ -41,6 +45,8 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class CategoryController {
     private final LocalizationUtils localizationUtils;
+    private final CategoryTranslationRepository categoryTranslationRepository;
+    private final CategoryRepository categoryRepository;
     private CategoryService categoryService;
     private static final Logger logger = LoggerFactory.getLogger(CategoryController.class);
     private static final List<String> ALLOWED_IMAGE_EXTENSIONS = Arrays.asList("png", "jpg", "jpeg", "avif", "gif");
@@ -176,6 +182,54 @@ public class CategoryController {
                 localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_RETRIEVED_SUCCESSFULLY),
                 childCategories
         ));
+    }
+
+    @Operation(
+            summary = "Lấy category cha bằng id của category con",
+            description = "api đảo ngược. ",
+            tags = "Categories"
+    )
+    @GetMapping("{languageCode}/category/parent/reverse/{categoryId}")
+    public ResponseEntity<ApiResponse<CategoryDTO>> getParent(
+            @PathVariable String languageCode,
+            @PathVariable Long categoryId,
+            @RequestParam(required = false) Boolean isActive) {
+
+        CategoryDTO childCategories = categoryService.getParentCategoriesWithTranslations(languageCode,
+                categoryId, isActive);
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_RETRIEVED_SUCCESSFULLY),
+                childCategories
+        ));
+    }
+    public CategoryDTO getParentCategoriesWithTranslations(String languageCode, Long categoryId, Boolean isActive) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Category not found with id: " + categoryId));
+
+        // Tìm danh mục cha gần nhất thỏa mãn điều kiện isActive (nếu có)
+        Category parent = category.getParentCategory();
+        while (parent != null && isActive != null && !parent.getIsActive().equals(isActive)) {
+            parent = parent.getParentCategory();
+        }
+
+        // Nếu không có danh mục cha nào thỏa mãn, trả về null
+        if (parent == null) {
+            return null;
+        }
+
+        // Lấy bản dịch của danh mục cha gần nhất
+        CategoriesTranslation translation = categoryTranslationRepository
+                .findByCategoryIdAndLanguageCode(parent.getId(), languageCode)
+                .orElse(null);
+
+        // Chuyển sang DTO
+        return CategoryDTO.builder()
+                .id(parent.getId())
+                .imageUrl(parent.getImageUrl())
+                .name(translation != null ? translation.getName() : "")
+                .isActive(parent.getIsActive())
+                .build();
     }
 
     @Operation(

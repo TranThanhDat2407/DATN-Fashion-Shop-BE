@@ -193,4 +193,15 @@ public class CouponController {
         ));
     }
 
+    @GetMapping("/validate/coupon-user")
+    public ResponseEntity<ApiResponse<Boolean>> validateCouponUser(
+            @RequestParam Long userId,
+            @RequestParam Long couponId
+    ){
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.USER_DETAILS_RETRIEVED_SUCCESSFULLY),
+                couponService.canUserUseCoupon(userId, couponId)
+        ));
+    }
+
 }

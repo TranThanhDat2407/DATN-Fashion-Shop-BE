@@ -56,5 +56,4 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             "AND o.status_id = 5",
             nativeQuery = true)
     List<Order> getTotalOrderCancelYesterday();
-
 }

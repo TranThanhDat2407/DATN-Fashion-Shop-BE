@@ -1,5 +1,6 @@
 package com.example.DATN_Fashion_Shop_BE.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,6 +26,7 @@ public class Address {
     private String ward;
 
     @Column(name = "city",columnDefinition = "NVARCHAR(MAX)", nullable = false)
+    @JsonProperty("province")
     private String city;
 
     @Column(name = "full_address",columnDefinition = "NVARCHAR(MAX)")

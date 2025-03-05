@@ -6,13 +6,20 @@ import com.example.DATN_Fashion_Shop_BE.dto.request.attribute_values.CreateSizeR
 import com.example.DATN_Fashion_Shop_BE.dto.response.attribute_values.*;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
+import org.hibernate.envers.AuditReader;
+import org.hibernate.envers.AuditReaderFactory;
+import org.hibernate.envers.query.AuditEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +31,10 @@ public class InventoryTransferService {
     private final WarehouseRepository warehouseRepository;
     private final StoreRepository storeRepository;
     private final ProductVariantRepository productVariantRepository;
+
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     // Tạo yêu cầu chuyển kho
     @Transactional
@@ -183,4 +194,17 @@ public class InventoryTransferService {
         return inventoryTransferRepository.save(transfer);
     }
 
+
+    public List<InventoryTransfer> getAllTransfersByStore(Long storeId) {
+        return inventoryTransferRepository.findByStoreId(storeId);
+    }
+
+    public List<Object[]> getInventoryTransferHistoryByStore(Long storeId) {
+        AuditReader auditReader = AuditReaderFactory.get(entityManager);
+
+        return auditReader.createQuery()
+                .forRevisionsOfEntity(InventoryTransfer.class, false, true)
+                .add(AuditEntity.property("store.id").eq(storeId))
+                .getResultList();
+    }
 }

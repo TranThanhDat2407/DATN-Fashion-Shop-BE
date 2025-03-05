@@ -119,14 +119,17 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/products/**", apiPrefix), "POST"),
                 Pair.of(String.format("%s/categories**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/users/register", apiPrefix), "POST"),
+                Pair.of(String.format("%s/users/register/verify**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/users/login", apiPrefix), "POST"),
                 Pair.of(String.format("%s/users/check-email", apiPrefix), "GET"),
                 Pair.of(String.format("%s/users/check-phone", apiPrefix), "GET"),
                 Pair.of(String.format("%s/users/forgot-password", apiPrefix), "POST"),
                 Pair.of(String.format("%s/users/verify-otp", apiPrefix), "POST"),
                 Pair.of(String.format("%s/users/reset-password", apiPrefix), "POST"),
+                Pair.of(String.format("%s/users/reset-password/**", apiPrefix), "POST"),
                 Pair.of(String.format("%s/users/reset-password-email/**", apiPrefix), "POST"),
                 Pair.of(String.format("%s/users/refreshToken", apiPrefix), "POST"),
+                Pair.of(String.format("%s/users/reset-password-email/**", apiPrefix), "POST"),
 
                 Pair.of(String.format("%s/address/**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/address/**", apiPrefix), "POST"),
@@ -142,6 +145,8 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/inventory-transfers/**", apiPrefix), "POST"),
                 Pair.of(String.format("%s/inventory-transfers/**", apiPrefix), "DELETE"),
                 Pair.of(String.format("%s/inventory-transfers/**", apiPrefix), "PUT"),
+
+                Pair.of(String.format("%s/inventory/**", apiPrefix), "GET"),
 
                 Pair.of(String.format("%s/languages**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/healthcheck/**", apiPrefix), "GET"),
@@ -199,6 +204,12 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/payment/**", apiPrefix), "POST"),
                 Pair.of(String.format("%s/payment/**", apiPrefix), "PUT"),
                 Pair.of(String.format("%s/payment/**", apiPrefix), "DELETE"),
+
+
+                Pair.of(String.format("%s/ghn/**", apiPrefix), "GET"),
+                Pair.of(String.format("%s/ghn/**", apiPrefix), "POST"),
+                Pair.of(String.format("%s/ghn/**", apiPrefix), "PUT"),
+                Pair.of(String.format("%s/ghn/**", apiPrefix), "DELETE"),
 
                 // Swagger
                 Pair.of("/api-docs","GET"),
