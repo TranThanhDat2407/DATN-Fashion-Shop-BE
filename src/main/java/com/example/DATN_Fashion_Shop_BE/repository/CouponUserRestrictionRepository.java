@@ -21,4 +21,5 @@ public interface CouponUserRestrictionRepository extends JpaRepository<CouponUse
     @Transactional
     @Query("DELETE FROM CouponUserRestriction c WHERE c.coupon.id = :couponId AND c.user.id = :userId")
     void deleteByCouponIdAndUserId(@Param("couponId") Long couponId, @Param("userId") Long userId);
+
 }

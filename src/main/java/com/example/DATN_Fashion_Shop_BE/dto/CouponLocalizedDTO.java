@@ -19,8 +19,6 @@ public class CouponLocalizedDTO {
     private String discountType;
     private Float discountValue;
     private Float minOrderValue;
-
-    
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime expirationDate;
     private Boolean isActive;
