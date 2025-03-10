@@ -15,16 +15,13 @@ import java.util.List;
 public class CouponSpecification {
     public static Specification<Coupon> filterCoupons(String keyword, LocalDateTime expirationDate,
                                                       Float discountValue, Float minOrderValue,
-                                                      String languageCode) {
+                                                      String languageCode,Long userId) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
-
-//            // 🔹 JOIN với CouponTranslation để tìm theo name, description
-//            Join<Coupon, CouponTranslation> translationJoin = root.join("translations", JoinType.LEFT);
-//            if (userId != null) {
-//                Join<Coupon, CouponUserRestriction> userJoin = root.join("userRestrictions", JoinType.LEFT);
-//                predicates.add(criteriaBuilder.equal(userJoin.get("user").get("id"), userId));
-//            }
+            if (userId != null) {
+                Join<Coupon, CouponUserRestriction> userJoin = root.join("userRestrictions", JoinType.INNER);
+                predicates.add(criteriaBuilder.equal(userJoin.get("user").get("id"), userId));
+            }
 
             // 🔥 Tìm kiếm linh hoạt trên tất cả các tiêu chí
             if (keyword != null && !keyword.isEmpty()) {
@@ -46,9 +43,11 @@ public class CouponSpecification {
 
             // 🔹 Lọc theo ngày hết hạn (nếu có)
             if (expirationDate != null) {
-                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("expirationDate"), expirationDate));
-            }
+                LocalDateTime startOfDay = expirationDate.withHour(0).withMinute(0).withSecond(0);
+                LocalDateTime endOfDay = expirationDate.withHour(23).withMinute(59).withSecond(59);
 
+                predicates.add(criteriaBuilder.between(root.get("expirationDate"), startOfDay, endOfDay));
+            }
             // 🔹 Lọc theo giá trị giảm giá
             if (discountValue != null) {
                 predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("discountValue"), discountValue));

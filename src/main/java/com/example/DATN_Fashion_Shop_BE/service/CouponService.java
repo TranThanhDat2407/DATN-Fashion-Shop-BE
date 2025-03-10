@@ -255,7 +255,7 @@ public class CouponService {
     }
     public Page<CouponLocalizedDTO> searchCoupons(String keyword, LocalDateTime expirationDate,
                                                   Float discountValue, Float minOrderValue,
-                                                  String languageCode, int page, int size,
+                                                  String languageCode, Long userId, int page, int size,
                                                   String sortBy, String sortDirection) {
         // Xác định trường cần sắp xếp
         String sortField = "createdAt"; // Mặc định sắp xếp theo ngày tạo
@@ -269,7 +269,7 @@ public class CouponService {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         //  Sử dụng `keyword` để tìm kiếm trên nhiều trường
-        Specification<Coupon> spec = CouponSpecification.filterCoupons(keyword, expirationDate, discountValue, minOrderValue, languageCode);
+        Specification<Coupon> spec = CouponSpecification.filterCoupons(keyword, expirationDate, discountValue, minOrderValue, languageCode,userId);
 
         // Truy vấn danh sách coupon
         Page<Coupon> couponPage = couponRepository.findAll(spec, pageable);

@@ -145,13 +145,14 @@ public class CouponController {
             @RequestParam(required = false) Float discountValue,
             @RequestParam(required = false) Float minOrderValue,
             @RequestParam(required = false) String languageCode,
+            @RequestParam(required = false) Long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy, // Trường để sắp xếp
             @RequestParam(defaultValue = "asc") String sortDirection
     ) {
         Page<CouponLocalizedDTO> result = couponService.searchCoupons(code, expirationDate, discountValue,
-                minOrderValue, languageCode, page, size,sortBy, sortDirection);
+                minOrderValue, languageCode,userId,  page, size,sortBy, sortDirection);
 
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.COUPON_GETALL_SUCCESS),
