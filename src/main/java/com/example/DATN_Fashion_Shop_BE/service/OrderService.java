@@ -3,6 +3,7 @@ package com.example.DATN_Fashion_Shop_BE.service;
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.config.GHNConfig;
 import com.example.DATN_Fashion_Shop_BE.dto.request.Ghn.PreviewOrderRequest;
+import com.example.DATN_Fashion_Shop_BE.dto.request.Notification.NotificationTranslationRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.order.OrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.store.StorePaymentRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.GhnPreviewResponse;
@@ -66,6 +67,7 @@ public class OrderService {
     private final StoreRepository storeRepository;
     private final InventoryRepository inventoryRepository;
     private final CouponUserRestrictionRepository couponUserRestrictionRepository;
+    private final NotificationService notificationService;
     private final EmailService emailService;
     private final AddressService addressService;
 
@@ -145,7 +147,7 @@ public class OrderService {
 
         // 🛒 Nếu là COD, tạo luôn đơn hàng
         if ("COD".equalsIgnoreCase(paymentMethod.getMethodName())) {
-            return processCodOrder(orderRequest, cart, cartItems, coupon, finalAmount, fullShippingAddress, shippingFee, shippingMethod, paymentMethod);
+            return processCodOrder(orderRequest, cart, cartItems, coupon, finalAmount, fullShippingAddress, shippingFee,shippingMethod, paymentMethod);
         }
 
         // 💳 Nếu là VNPay, tạo đơn hàng trước khi tạo URL thanh toán
@@ -185,6 +187,34 @@ public class OrderService {
             ).collect(Collectors.toList());
 
             orderDetailRepository.saveAll(orderDetails);
+
+            Product product = orderDetails.getFirst().getProductVariant().getProduct();
+            ProductVariant variant = orderDetails.getFirst().getProductVariant();
+            AttributeValue color = variant.getColorValue();
+            String productImage = null;
+            if (product.getMedias() != null && !product.getMedias().isEmpty()) {
+                productImage = product.getMedias().stream()
+                        .filter(media -> media.getColorValue() != null && color != null && media.getColorValue().getId().equals(color.getId())) // So sánh bằng ID thay vì equals()
+                        .map(ProductMedia::getMediaUrl)
+                        .findFirst()
+                        .orElse(product.getMedias().get(0).getMediaUrl()); // Nếu không có, lấy ảnh đầu tiên
+            }
+
+            List<NotificationTranslationRequest> translations = List.of(
+                    new NotificationTranslationRequest("vi", "Trạng thái đơn hàng", notificationService.getVietnameseMessage(savedOrder.getId(), orderStatus)),
+                    new NotificationTranslationRequest("en", "Order Status", notificationService.getEnglishMessage(savedOrder.getId(), orderStatus)),
+                    new NotificationTranslationRequest("jp", "注文状況", notificationService.getJapaneseMessage(savedOrder.getId(), orderStatus))
+            );
+
+            // Gọi createNotification()
+            notificationService.createNotification(
+                    orderRequest.getUserId(),
+                    "ORDER",
+                    ""+savedOrder.getId(), // redirectUrl không cần backend xử lý
+                    productImage, // imageUrl không cần backend xử lý
+                    translations
+            );
+
             log.info("✅ Đã lưu {} sản phẩm vào OrderDetail.", orderDetails.size());
             try {
                 String vnp_TxnRef = String.valueOf(savedOrder.getId());
@@ -197,7 +227,7 @@ public class OrderService {
                 log.info("💳 URL thanh toán VNPay: {}", paymentUrl);
 
                 return ResponseEntity.ok(Collections.singletonMap("paymentUrl", paymentUrl));
-            } catch (Exception e) {
+            }catch (Exception e) {
                 log.error("❌ Lỗi khi tạo URL thanh toán VNPay: {}", e.getMessage());
                 throw new RuntimeException("Lỗi khi tạo URL thanh toán VNPay.");
             }
@@ -211,7 +241,7 @@ public class OrderService {
     @Transactional
     public ResponseEntity<?> processCodOrder(OrderRequest orderRequest, Cart cart, List<CartItem> cartItems,
                                               Coupon coupon, double finalAmount, String fullShippingAddress,
-                                              double shippingFee, ShippingMethod shippingMethod, PaymentMethod paymentMethod) {
+                                              double shippingFee,ShippingMethod shippingMethod, PaymentMethod paymentMethod) {
         OrderStatus orderStatus = orderStatusRepository.findByStatusName("PENDING")
                 .orElseThrow(() -> new RuntimeException("Trạng thái đơn hàng không hợp lệ."));
 
@@ -236,8 +266,6 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
         log.info("✅ Đơn hàng COD đã được tạo với ID: {}", savedOrder.getId());
 
-
-
         List<OrderDetail> orderDetails = cartItems.stream().map(item ->
                 OrderDetail.builder()
                         .order(savedOrder)
@@ -250,11 +278,6 @@ public class OrderService {
 
         orderDetailRepository.saveAll(orderDetails);
         log.info("✅ Đã lưu {} sản phẩm vào OrderDetail.", orderDetails.size());
-
-
-
-
-
 
         Payment payment = Payment.builder()
                 .order(savedOrder)
@@ -317,6 +340,7 @@ public class OrderService {
 
         return ResponseEntity.ok(CreateOrderResponse.fromOrder(savedOrder));
     }
+
 
 
     public PreviewOrderResponse previewOrder(PreviewOrderRequest request) {
@@ -412,14 +436,6 @@ public class OrderService {
 
         return ordersPage.map(HistoryOrderResponse::fromHistoryOrder);
     }
-
-
-
-
-
-
-
-
 
 
 
