@@ -23,7 +23,20 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     Page<Order> findByOrderStatus_StatusName(String statusName, Pageable pageable);
 
-    @Query("SELECT o FROM Order o " +
+    // Lọc theo địa chỉ
+    Page<Order> findByShippingAddressContainingIgnoreCase(String shippingAddress, Pageable pageable);
+
+    // Lọc theo khoảng giá
+    Page<Order> findByTotalPriceBetween(Double minPrice, Double maxPrice, Pageable pageable);
+
+    // Lọc theo ngày tạo
+    Page<Order> findByCreatedAtBetween(LocalDateTime fromDate, LocalDateTime toDate, Pageable pageable);
+
+    // Lọc theo ngày cập nhật
+    Page<Order> findByUpdatedAtBetween(LocalDateTime updateFromDate, LocalDateTime updateToDate, Pageable pageable);
+
+
+ @Query("SELECT o FROM Order o " +
             "WHERE CAST(o.createdAt AS DATE) = CAST(GETDATE() AS DATE)  AND o.orderStatus.id= 6")
     List<Order> getTotalRevenueToday();
 

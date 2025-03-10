@@ -1,16 +1,12 @@
 package com.example.DATN_Fashion_Shop_BE.dto.response.orderDetail;
 
 import com.example.DATN_Fashion_Shop_BE.dto.response.payment.PaymentMethodResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.product.CreateProductResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.product.ProductTranslationResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.product.ProductVariantResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.userAddressResponse.UserAddressResponse;
 import com.example.DATN_Fashion_Shop_BE.model.*;
-import com.example.DATN_Fashion_Shop_BE.service.EmailService;
 import lombok.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,30 +16,36 @@ import java.util.stream.Collectors;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class OrderDetailResponse {
+public class OrderDetailAdminResponse {
     private Long orderDetailId;
     private Long orderId;
     private Integer quantity;
     private Double unitPrice;
     private Double totalPrice;
     private ProductVariantResponse productVariant;
-    private String recipientName;
-    private String recipientPhone;
+    private String customerName;
+    private String customerPhone;
     private String shippingAddress;
     private String paymentMethod;
+    private String paymentStatus;
+    private String orderStatus;
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
+    private Double couponPrice;
     private Double tax;
     private Double shippingFee;
-    private Double grandTotal;
+    private Double totalAmount;
     private String imageUrl;
-    private static final Logger log = LoggerFactory.getLogger(OrderDetailResponse.class);
 
 
-    public static OrderDetailResponse fromOrderDetail(OrderDetail orderDetail, List<UserAddressResponse> userAddressResponses) {
-        Product product = orderDetail.getProductVariant().getProduct();
-        Order order = orderDetail.getOrder(); // Lấy Order từ OrderDetail
+    public static OrderDetailAdminResponse fromOrderDetailAdmin(OrderDetail orderDetail) {
 
-
+        Order order = orderDetail.getOrder();
         ProductVariant variant = orderDetail.getProductVariant();
+        Product product = variant.getProduct();
+
+//        Product product = orderDetail.getProductVariant().getProduct();
+
         AttributeValue color = variant.getColorValue();
         String productImage = null;
         if (product.getMedias() != null && !product.getMedias().isEmpty()) {
@@ -51,9 +53,12 @@ public class OrderDetailResponse {
                     .filter(media -> media.getColorValue() != null && color != null && media.getColorValue().getId().equals(color.getId())) // So sánh bằng ID thay vì equals()
                     .map(ProductMedia::getMediaUrl)
                     .findFirst()
-                    .orElse(product.getMedias().get(0).getMediaUrl()); // Nếu không có, lấy ảnh đầu tiên
+                    .orElse(product.getMedias().get(0).getMediaUrl());
         }
 
+        List<UserAddressResponse> userAddressResponses = order.getUser().getUserAddresses().stream()
+                .map(UserAddressResponse::fromUserAddress)
+                .collect(Collectors.toList());
 
         UserAddressResponse defaultAddress = (userAddressResponses != null && !userAddressResponses.isEmpty())
                 ? userAddressResponses.stream()
@@ -62,42 +67,47 @@ public class OrderDetailResponse {
                 .orElse(userAddressResponses.get(0))
                 : null;
 
-        log.info("📌 Default Address: {}", defaultAddress);
-        String recipientName = (defaultAddress != null) ? defaultAddress.getLastName() + " " + defaultAddress.getFirstName() : null;
-        String recipientPhone = (defaultAddress != null) ? defaultAddress.getPhone() : null;
+        String customerName = (defaultAddress != null) ? defaultAddress.getFirstName() + " " + defaultAddress.getLastName() : null;
+        String customerPhone = (defaultAddress != null) ? defaultAddress.getPhone() : null;
 
-        log.info("📌 Recipient Name: {}", recipientName);
-        log.info("📌 Recipient Phone: {}", recipientPhone);
 
+        // 🛠️ Xử lý phương thức thanh toán
         List<PaymentMethodResponse> paymentMethods = (order.getPayments() != null)
                 ? order.getPayments().stream()
                 .map(payment -> PaymentMethodResponse.fromPaymentMethod(payment.getPaymentMethod()))
                 .collect(Collectors.toList())
                 : List.of();
 
-
-        String paymentMethodNames = (paymentMethods != null && !paymentMethods.isEmpty())
+        String paymentMethodNames = (!paymentMethods.isEmpty())
                 ? paymentMethods.stream().map(PaymentMethodResponse::getMethodName).collect(Collectors.joining(", "))
                 : "Thanh toán khi nhận hàng";
 
+        // 🛠️ Xử lý trạng thái thanh toán
+        String paymentStatus = order.getPayments().stream()
+                .map(Payment::getStatus)
+                .findFirst()
+                .orElse("Chưa thanh toán");
 
-        return OrderDetailResponse.builder()
+        return OrderDetailAdminResponse.builder()
                 .orderDetailId(orderDetail.getId())
                 .orderId(order.getId())
                 .quantity(orderDetail.getQuantity())
                 .unitPrice(orderDetail.getUnitPrice())
                 .totalPrice(orderDetail.getTotalPrice())
-                .imageUrl(productImage)
                 .productVariant(ProductVariantResponse.fromProductVariant(orderDetail.getProductVariant()))
-                .recipientName(defaultAddress != null ? defaultAddress.getFirstName() + " " + defaultAddress.getLastName() : null)
-                .recipientPhone(defaultAddress != null ? defaultAddress.getPhone() : null)
+                .customerName(customerName)
+                .customerPhone(customerPhone)
                 .shippingAddress(order.getShippingAddress())
                 .paymentMethod(paymentMethodNames)
+                .paymentStatus(paymentStatus)
+                .orderStatus(order.getOrderStatus().getStatusName())
+                .createTime(order.getCreatedAt())
+                .updateTime(order.getUpdatedAt())
                 .tax(order.getTaxAmount())
                 .shippingFee(order.getShippingFee())
-                .grandTotal(order.getTotalPrice())
+                .totalAmount(order.getTotalPrice())
+                .imageUrl(productImage)
                 .build();
-
     }
-
 }
+

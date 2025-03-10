@@ -36,5 +36,4 @@ public class UserAddress {
     private String phone;
 
 
-
 }

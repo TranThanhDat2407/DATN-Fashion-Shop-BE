@@ -13,15 +13,19 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.order.*;
 import com.example.DATN_Fashion_Shop_BE.dto.response.orderDetail.OrderDetailResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.StorePaymentResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.userAddressResponse.UserAddressResponse;
+import com.example.DATN_Fashion_Shop_BE.exception.BadRequestException;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
+import com.example.DATN_Fashion_Shop_BE.exception.NotFoundException;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 
+
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
-import org.aspectj.weaver.ast.Or;
+
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -261,7 +265,7 @@ public class OrderService {
                 .paymentMethod(paymentMethod)
                 .paymentDate(new Date())
                 .amount(finalAmount)
-                .status("PENDING")
+                .status("UNPAID")
                 .transactionCode(UUID.randomUUID().toString())
                 .build();
 
@@ -414,9 +418,129 @@ public class OrderService {
     }
 
 
+    public Page<GetAllOrderAdmin> getAllOrdersAdmin(Pageable pageable) {
+
+        Page<Order> orders = orderRepository.findAll(pageable);
+
+        return orders.map(GetAllOrderAdmin::fromGetAllOrderAdmin);
+    }
+
+    public Page<GetAllOrderAdmin> getOrdersByStatusAdmin(String status, Pageable pageable) {
+
+        return orderRepository.findByOrderStatus_StatusName(status, pageable)
+
+                .map(GetAllOrderAdmin::fromGetAllOrderAdmin);
+    }
+
+    public Page<GetAllOrderAdmin> filterByStatus(String status, Pageable pageable) {
+        return orderRepository.findByOrderStatus_StatusName(status, pageable)
+                .map(GetAllOrderAdmin::fromGetAllOrderAdmin);
+    }
+
+    public Page<GetAllOrderAdmin> filterByAddress(String shippingAddress, Pageable pageable) {
+        return orderRepository.findByShippingAddressContainingIgnoreCase(shippingAddress, pageable)
+                .map(GetAllOrderAdmin::fromGetAllOrderAdmin);
+    }
+
+    public Page<GetAllOrderAdmin> filterByPriceRange(Double minPrice, Double maxPrice, Pageable pageable) {
+        return orderRepository.findByTotalPriceBetween(minPrice, maxPrice, pageable)
+                .map(GetAllOrderAdmin::fromGetAllOrderAdmin);
+    }
+
+    public Page<GetAllOrderAdmin> filterByCreatedDate(LocalDateTime fromDate, LocalDateTime toDate, Pageable pageable) {
+        if (toDate == null) {
+            toDate = LocalDateTime.now();
+        }
+        return orderRepository.findByCreatedAtBetween(fromDate, toDate, pageable)
+                .map(GetAllOrderAdmin::fromGetAllOrderAdmin);
+    }
+
+    public Page<GetAllOrderAdmin> filterByUpdatedDate(LocalDateTime updateFromDate, LocalDateTime updateToDate, Pageable pageable) {
+        if (updateToDate == null) {
+            updateToDate = LocalDateTime.now();
+        }
+        return orderRepository.findByUpdatedAtBetween(updateFromDate, updateToDate, pageable)
+                .map(GetAllOrderAdmin::fromGetAllOrderAdmin);
+    }
+    @Transactional
+    public GetAllOrderAdmin updateOrderStatus(Long orderId, String newStatus) {
+        // 1️⃣ Kiểm tra đơn hàng có tồn tại không
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found with id: " + orderId));
 
 
+        // 2️⃣ Kiểm tra trạng thái có hợp lệ không
+        OrderStatus currentStatus = order.getOrderStatus();
+        OrderStatus updatedStatus = orderStatusRepository.findByStatusName(newStatus)
+                .orElseThrow(() -> new BadRequestException("Invalid order status: " + newStatus));
 
+        // 3️⃣ Kiểm tra trạng thái mới không được cập nhật ngược
+        if (!isValidStatusTransition(currentStatus.getStatusName(), newStatus)) {
+            throw new BadRequestException("Cannot update order status from " +
+                    currentStatus.getStatusName() + " to " + newStatus);
+        }
+
+        // 4️⃣ Cập nhật trạng thái
+        order.setOrderStatus(updatedStatus);
+        order.setUpdatedAt(LocalDateTime.now());
+        orderRepository.save(order);
+
+        return GetAllOrderAdmin.fromGetAllOrderAdmin(order);
+    }
+
+    private boolean isValidStatusTransition(String currentStatus, String newStatus) {
+        List<String> statusFlow = List.of("PENDING", "PROCESSING", "SHIPPED", "DELIVERED","CANCELLED", "DONE");
+
+        int currentIndex = statusFlow.indexOf(currentStatus);
+        int newIndex = statusFlow.indexOf(newStatus);
+
+        // Cho phép cập nhật trực tiếp từ PENDING → DONE
+        if ("PENDING".equals(currentStatus) && "DONE".equals(newStatus)) {
+            return true;
+        }
+
+        // Cho phép cập nhật trực tiếp từ PROCESSING → DONE
+        if ("PROCESSING".equals(currentStatus) && "DONE".equals(newStatus)) {
+            return true;
+        }
+
+        // Cho phép cập nhật trực tiếp từ PENDING → CANCELLED
+        if ("PENDING".equals(currentStatus) && "CANCELLED".equals(newStatus)) {
+            return true;
+        }
+
+        return currentIndex < newIndex;
+    }
+
+    @Transactional
+    public GetAllOrderAdmin updatePaymentStatus(Long orderId, String paymentStatus) {
+        // 1️⃣ Kiểm tra đơn hàng có tồn tại không
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found with id: " + orderId));
+
+        // 2️⃣ Lấy phương thức thanh toán từ danh sách Payment
+        String paymentMethod = order.getPayments().stream()
+                .findFirst()
+                .map(payment -> payment.getPaymentMethod().getMethodName()) // Lấy tên phương thức thanh toán
+                .orElseThrow(() -> new BadRequestException("Payment method not found for order ID: " + orderId));
+
+        // 3️⃣ Kiểm tra phương thức thanh toán có phải là COD không
+        if (!"COD".equalsIgnoreCase(paymentMethod)) {
+            throw new BadRequestException("Only COD orders can update payment status manually.");
+        }
+
+        // 4️⃣ Kiểm tra trạng thái thanh toán có hợp lệ không
+        List<String> validPaymentStatuses = List.of("PAID", "UNPAID");
+        if (!validPaymentStatuses.contains(paymentStatus.toUpperCase())) {
+            throw new BadRequestException("Invalid payment status: " + paymentStatus);
+        }
+
+        // 5️⃣ Cập nhật trạng thái thanh toán
+        order.getPayments().forEach(payment -> payment.setStatus(paymentStatus.toUpperCase()));
+        orderRepository.save(order);
+
+        return GetAllOrderAdmin.fromGetAllOrderAdmin(order);
+    }
 
 
 
