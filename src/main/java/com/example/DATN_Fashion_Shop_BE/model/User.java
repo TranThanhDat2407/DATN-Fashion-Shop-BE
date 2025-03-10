@@ -60,6 +60,10 @@ public class User extends BaseEntity implements UserDetails{
     @Column(name = "verify")
     private Boolean verify;
 
+    @OneToMany(mappedBy = "user")
+    @NotAudited
+    private List<Notification> notification;
+
 
     @OneToMany(mappedBy = "user")
     @NotAudited
