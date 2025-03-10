@@ -44,6 +44,9 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.example.DATN_Fashion_Shop_BE.service.ScheduledCouponService.COUPON_TRANSLATIONS;
+
+
 @RequiredArgsConstructor
 @Service
 public class UserService{
@@ -57,6 +60,7 @@ public class UserService{
     private final JwtTokenUtil jwtTokenUtil;
     private final AuthenticationManager authenticationManager;
     private final LocalizationUtils localizationUtils;
+    private final CouponService couponService;
     private final SecureTokenService secureTokenService;
 
 
@@ -136,6 +140,18 @@ public class UserService{
             staffRepository.save(staff);
         }
 
+        Coupon welcomeCoupon = couponService.createCouponForUser(
+                "WELCOME",
+                "FIXED",
+                50000f, // Giảm 50.000 VND
+                200000f, // Đơn hàng tối thiểu 200.000 VND
+                14,
+                savedUser,
+                "/uploads/coupons/welcomeCoupon.png",
+                COUPON_TRANSLATIONS.get("BIRTHDAY")
+
+
+        );
         System.out.println("Id user: " + savedUser.getId());
 
         sendRegistrationConfirmationEmail(savedUser);

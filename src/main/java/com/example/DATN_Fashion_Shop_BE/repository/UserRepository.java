@@ -68,4 +68,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByIdAndIsActiveTrue(Long id);
 
+    List<User> findByGender(String female);
 }

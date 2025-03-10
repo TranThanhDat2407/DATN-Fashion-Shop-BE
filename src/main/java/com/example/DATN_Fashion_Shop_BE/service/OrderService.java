@@ -9,13 +9,11 @@ import com.example.DATN_Fashion_Shop_BE.dto.request.store.StorePaymentRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.GhnPreviewResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.PreviewOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.TotalOrderTodayResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.order.CreateOrderResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.order.*;
 
-import com.example.DATN_Fashion_Shop_BE.dto.response.order.HistoryOrderResponse;
-
-import com.example.DATN_Fashion_Shop_BE.dto.response.order.TotalOrderCancelTodayResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.order.TotalRevenueTodayResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.orderDetail.OrderDetailResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.StorePaymentResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.userAddressResponse.UserAddressResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
@@ -70,6 +68,8 @@ public class OrderService {
     private final InventoryRepository inventoryRepository;
     private final CouponUserRestrictionRepository couponUserRestrictionRepository;
     private final NotificationService notificationService;
+    private final EmailService emailService;
+    private final AddressService addressService;
 
 
     @Transactional
@@ -174,8 +174,6 @@ public class OrderService {
 
 
             Order savedOrder = orderRepository.save(order);
-
-
             log.info("✅ Đơn hàng VNPay đã được tạo với ID: {}", savedOrder.getId());
 
             List<OrderDetail> orderDetails = cartItems.stream().map(item ->
@@ -239,10 +237,9 @@ public class OrderService {
     }
 
 
-
-
     // Xử lý đơn hàng khi thanh toán COD
-    private ResponseEntity<?> processCodOrder(OrderRequest orderRequest, Cart cart, List<CartItem> cartItems,
+    @Transactional
+    public ResponseEntity<?> processCodOrder(OrderRequest orderRequest, Cart cart, List<CartItem> cartItems,
                                               Coupon coupon, double finalAmount, String fullShippingAddress,
                                               double shippingFee,ShippingMethod shippingMethod, PaymentMethod paymentMethod) {
         OrderStatus orderStatus = orderStatusRepository.findByStatusName("PENDING")
@@ -294,6 +291,48 @@ public class OrderService {
         paymentRepository.save(payment);
         savedOrder.getPayments().add(payment);
         orderRepository.save(savedOrder);
+
+        User userWithAddresses = userRepository.findById(savedOrder.getUser().getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng!"));
+
+        log.info("📌 User Addresses từ DB: {}", userWithAddresses.getUserAddresses());
+
+        List<UserAddressResponse> userAddressResponses = (userWithAddresses.getUserAddresses() != null)
+                ? userWithAddresses.getUserAddresses().stream()
+                .map(UserAddressResponse::fromUserAddress)
+                .collect(Collectors.toList())
+                : new ArrayList<>();
+
+        log.info("📌 userAddressResponses: {}", userAddressResponses);
+
+
+        // Sau khi lưu OrderDetail, lấy lại đơn hàng từ DB để cập nhật danh sách OrderDetail
+        Order reloadedOrder = orderRepository.findById(savedOrder.getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng đã lưu!"));
+
+        // Đảm bảo OrderDetails không bị null
+        if (reloadedOrder.getOrderDetails() == null) {
+            reloadedOrder.setOrderDetails(new ArrayList<>());
+        }
+
+        // Truy vấn lại danh sách OrderDetail từ DB
+        List<OrderDetail> reloadedOrderDetails = orderDetailRepository.findByOrderId(savedOrder.getId());
+
+        List<OrderDetailResponse> orderDetailResponses = reloadedOrderDetails.stream()
+                .map(orderDetail -> OrderDetailResponse.fromOrderDetail(orderDetail, userAddressResponses))
+                .collect(Collectors.toList());
+
+
+        log.info("📌 userAddressResponses: {}", userAddressResponses);
+
+        // ✅ Gửi email xác nhận đơn hàng
+        if (userWithAddresses.getEmail() != null && !userWithAddresses.getEmail().isEmpty()) {
+            emailService.sendOrderConfirmationEmail(userWithAddresses.getEmail(), orderDetailResponses);
+            log.info("📧 Đã gửi email xác nhận đơn hàng đến {}", userWithAddresses.getEmail());
+        } else {
+            log.warn("⚠ Không thể gửi email xác nhận đơn hàng vì email của người dùng không tồn tại.");
+        }
+
 
         cartItemRepository.deleteAll(cartItems);
 

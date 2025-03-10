@@ -510,7 +510,18 @@ public class ProductController {
                 .body(ApiResponseUtils.successResponse(
                         localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
                         productService.getInventoryByProductAndColorAndSize(productId, colorId,sizeId)));
+    }
 
+    @GetMapping("/variants/by-product-name")
+    public ResponseEntity<ApiResponse<List<ProductVariantsMediaResponse>>> searchVariants(
+            @RequestParam(required = false) String productName,
+            @RequestParam(required = false) String languageCode) {
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                        productService.searchVariantsByProductName(productName, languageCode))
+                );
     }
 
     @GetMapping("/image/{filename}")
