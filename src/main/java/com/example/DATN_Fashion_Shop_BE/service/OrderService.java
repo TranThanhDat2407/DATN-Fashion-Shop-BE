@@ -3,6 +3,7 @@ package com.example.DATN_Fashion_Shop_BE.service;
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.config.GHNConfig;
 import com.example.DATN_Fashion_Shop_BE.dto.request.Ghn.PreviewOrderRequest;
+import com.example.DATN_Fashion_Shop_BE.dto.request.Notification.NotificationTranslationRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.order.OrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.store.StorePaymentRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.GhnPreviewResponse;
@@ -24,8 +25,7 @@ import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
-
-
+import org.aspectj.weaver.ast.Or;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,6 +70,7 @@ public class OrderService {
     private final StoreRepository storeRepository;
     private final InventoryRepository inventoryRepository;
     private final CouponUserRestrictionRepository couponUserRestrictionRepository;
+    private final NotificationService notificationService;
     private final EmailService emailService;
     private final AddressService addressService;
 
@@ -190,6 +191,7 @@ public class OrderService {
 
             orderDetailRepository.saveAll(orderDetails);
             log.info("✅ Đã lưu {} sản phẩm vào OrderDetail.", orderDetails.size());
+
             try {
                 String vnp_TxnRef = String.valueOf(savedOrder.getId());
                 long vnp_Amount = (long) (finalAmount * 100);
@@ -255,7 +257,32 @@ public class OrderService {
         orderDetailRepository.saveAll(orderDetails);
         log.info("✅ Đã lưu {} sản phẩm vào OrderDetail.", orderDetails.size());
 
+        Product product = orderDetails.getFirst().getProductVariant().getProduct();
+        ProductVariant variant = orderDetails.getFirst().getProductVariant();
+        AttributeValue color = variant.getColorValue();
+        String productImage = null;
+        if (product.getMedias() != null && !product.getMedias().isEmpty()) {
+            productImage = product.getMedias().stream()
+                    .filter(media -> media.getColorValue() != null && color != null && media.getColorValue().getId().equals(color.getId())) // So sánh bằng ID thay vì equals()
+                    .map(ProductMedia::getMediaUrl)
+                    .findFirst()
+                    .orElse(product.getMedias().get(0).getMediaUrl()); // Nếu không có, lấy ảnh đầu tiên
+        }
 
+        List<NotificationTranslationRequest> translations = List.of(
+                new NotificationTranslationRequest("vi", "Trạng thái đơn hàng", notificationService.getVietnameseMessage(savedOrder.getId(), orderStatus)),
+                new NotificationTranslationRequest("en", "Order Status", notificationService.getEnglishMessage(savedOrder.getId(), orderStatus)),
+                new NotificationTranslationRequest("jp", "注文状況", notificationService.getJapaneseMessage(savedOrder.getId(), orderStatus))
+        );
+
+        // Gọi createNotification()
+        notificationService.createNotification(
+                orderRequest.getUserId(),
+                "ORDER",
+                ""+savedOrder.getId(), // redirectUrl không cần backend xử lý
+                productImage, // imageUrl không cần backend xử lý
+                translations
+        );
 
 
 
