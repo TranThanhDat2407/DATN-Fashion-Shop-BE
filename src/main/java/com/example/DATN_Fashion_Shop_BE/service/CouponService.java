@@ -208,6 +208,9 @@ public class CouponService {
         couponRepository.deleteById(id);
     }
 
+
+
+
     public List<CouponLocalizedDTO> getAllCoupons(String languageCode) {
         List<Coupon> coupons = couponRepository.findAll();
 
@@ -281,36 +284,7 @@ public class CouponService {
             return CouponLocalizedDTO.fromCoupons(coupon, translation, userIds);
         });
     }
-    public void generateBirthdayCoupons(List<User> usersWithBirthday) {
-        LocalDateTime today = LocalDateTime.now();
-        String birthdayImageUrl = "/images/coupons/5625ad39-d0cb-4b36-a582-3bcf288260a2_pc_1720432249113_2117241469.jpg";
-        for (User user : usersWithBirthday) {
-            String couponCode = "BDAY-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-            Coupon coupon = Coupon.builder()
-                    .code(couponCode)
-                    .discountType("PERCENTAGE")
-                    .discountValue(10.0f)
-                    .minOrderValue(100.0f)
-                    .expirationDate(today.plusDays(7))
-                    .imageUrl(birthdayImageUrl)
-                    .isActive(true)
-                    .isGlobal(false)
-                    .build();
-            // ✅ Lưu coupon trước
-            coupon = couponRepository.save(coupon);
 
-            CouponUserRestriction restriction = CouponUserRestriction.builder()
-                    .user(user)
-                    .coupon(coupon)
-                    .build();
-
-            // ✅ Lưu restriction vào DB
-            couponUserRestrictionRepository.save(restriction);
-
-            // 📨 Gửi email thông báo cho user
-            emailService.sendBirthdayCoupon(user.getEmail(), couponCode);
-        }
-    }
 
     public CouponDetailResponse getCouponById(Long couponId) throws DataNotFoundException {
         Coupon coupon = couponRepository.findById(couponId).orElseThrow(
@@ -325,6 +299,102 @@ public class CouponService {
         );
         return CouponDetailResponse.fromCoupon(coupon);
     }
+
+
+    private String generateRandomCode(String prefix) {
+        return prefix + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+    }
+
+    @Transactional
+    public Coupon createCouponForUser(String prefix, String discountType, Float discountValue,
+                                      Float minOrderValue, int expirationDays, User user,
+                                      String imageUrl, List<CouponTranslationDTO> translationDTOs) {
+        try {
+            // ✅ Sinh mã giảm giá ngẫu nhiên
+            String code = generateRandomCode(prefix);
+
+            // ✅ Tạo đối tượng Coupon
+            Coupon coupon = Coupon.builder()
+                    .code(code)
+                    .discountType(discountType)
+                    .discountValue(discountValue)
+                    .minOrderValue(minOrderValue)
+                    .expirationDate(LocalDateTime.now().plusDays(expirationDays))
+                    .imageUrl(imageUrl)
+                    .isGlobal(false)
+                    .isActive(true)
+                    .build();
+
+            // ✅ Lưu coupon vào database
+            coupon = couponRepository.save(coupon);
+
+            // ✅ Áp dụng coupon cho user
+            CouponUserRestriction restriction = CouponUserRestriction.builder()
+                    .user(user)
+                    .coupon(coupon)
+                    .build();
+            couponUserRestrictionRepository.save(restriction);
+
+            // ✅ Thêm bản dịch
+            saveCouponTranslations(coupon, translationDTOs);
+
+            return coupon;
+
+        } catch (Exception e) {
+            throw new RuntimeException("❌ Error creating coupon: " + e.getMessage(), e);
+        }
+    }
+
+
+    @Transactional
+    public Coupon createCouponForAllUser(String prefix, String discountType, Float discountValue,
+                                         Float minOrderValue, int expirationDays, boolean isGlobal,
+                                         String imageUrl, List<CouponTranslationDTO> translationDTOs) {
+        // ✅ Sinh mã giảm giá ngẫu nhiên
+        String code = generateRandomCode(prefix);
+
+        // ✅ Tạo đối tượng Coupon
+        Coupon coupon = Coupon.builder()
+                .discountType(discountType)
+                .discountValue(discountValue)
+                .minOrderValue(minOrderValue)
+                .expirationDate(LocalDateTime.now().plusDays(expirationDays))
+                .code(code)
+                .imageUrl(imageUrl)
+                .isGlobal(true)
+                .userRestrictions(new ArrayList<>()) // Tránh lỗi null list
+                .build();
+
+        // ✅ Lưu coupon vào database
+        coupon = couponRepository.save(coupon);
+
+        // ✅ Thêm bản dịch
+        saveCouponTranslations(coupon, translationDTOs);
+
+        return coupon;
+    }
+
+
+    private void saveCouponTranslations(Coupon coupon, List<CouponTranslationDTO> translationDTOs) {
+        if (translationDTOs != null && !translationDTOs.isEmpty()) {
+            List<CouponTranslation> translations = translationDTOs.stream()
+                    .map(dto -> {
+                        Language language = languageRepository.findByCode(dto.getLanguageCode())
+                                .orElseThrow(() -> new RuntimeException("Language not found for code: " + dto.getLanguageCode()));
+
+                        return CouponTranslation.builder()
+                                .name(dto.getName())
+                                .description(dto.getDescription())
+                                .coupon(coupon)
+                                .language(language)
+                                .build();
+                    })
+                    .collect(Collectors.toList());
+
+            couponTranslationRepository.saveAll(translations);
+        }
+    }
+
 
     public Boolean canUserUseCoupon (Long userId, Long couponId){
         Optional<Coupon> couponOpt = couponRepository.findById(couponId);
