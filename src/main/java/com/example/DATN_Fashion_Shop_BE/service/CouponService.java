@@ -282,37 +282,39 @@ public class CouponService {
                 })
                 .collect(Collectors.toList());
     }
-    public Page<CouponLocalizedDTO> searchCoupons(String code, LocalDateTime expirationDate,
+    public Page<CouponLocalizedDTO> searchCoupons(String keyword, LocalDateTime expirationDate,
                                                   Float discountValue, Float minOrderValue,
-                                                  String languageCode, int page, int size,
+                                                  String languageCode, Long userId, int page, int size,
                                                   String sortBy, String sortDirection) {
-        Sort sort;
-
         // Xác định trường cần sắp xếp
+        String sortField = "createdAt"; // Mặc định sắp xếp theo ngày tạo
         if ("expirationDate".equalsIgnoreCase(sortBy)) {
-            sort = Sort.by("expirationDate");
-        } else {
-            sort = Sort.by("createdAt"); // Mặc định sắp xếp theo ngày tạo
+            sortField = "expirationDate";
         }
 
         // Xác định chiều sắp xếp (tăng dần hoặc giảm dần)
-        if ("desc".equalsIgnoreCase(sortDirection)) {
-            sort = sort.descending();
-        } else {
-            sort = sort.ascending();
-        }
+        Sort sort = "desc".equalsIgnoreCase(sortDirection) ? Sort.by(sortField).descending() : Sort.by(sortField).ascending();
 
         Pageable pageable = PageRequest.of(page, size, sort);
-        Specification<Coupon> spec = CouponSpecification.filterCoupons(code, expirationDate, discountValue, minOrderValue, languageCode);
 
+        //  Sử dụng `keyword` để tìm kiếm trên nhiều trường
+        Specification<Coupon> spec = CouponSpecification.filterCoupons(keyword, expirationDate, discountValue, minOrderValue, languageCode,userId);
+
+        // Truy vấn danh sách coupon
         Page<Coupon> couponPage = couponRepository.findAll(spec, pageable);
 
+        // Mapping kết quả sang DTO mà không cần userIds
         return couponPage.map(coupon -> {
             CouponTranslation translation = coupon.getCouponTranslationByLanguage(languageCode);
-            List<Long> userIds = couponUserRestrictionRepository.findUserIdsByCouponId(coupon.getId());
-            return CouponLocalizedDTO.fromCoupons(coupon, translation, userIds);
+            //  Đảm bảo lấy name & description từ CouponTranslation
+            List<Long> allowedUserIds = couponUserRestrictionRepository.findUserIdsByCouponId(coupon.getId());
+
+            return CouponLocalizedDTO.fromCoupons(coupon, translation, allowedUserIds);
         });
     }
+
+
+
 
 
     public CouponDetailResponse getCouponById(Long couponId) throws DataNotFoundException {

@@ -149,11 +149,8 @@ public class UserService{
                 savedUser,
                 "/uploads/coupons/welcomeCoupon.png",
                 COUPON_TRANSLATIONS.get("BIRTHDAY")
-
-
         );
         System.out.println("Id user: " + savedUser.getId());
-
         sendRegistrationConfirmationEmail(savedUser);
 
         return savedUser;

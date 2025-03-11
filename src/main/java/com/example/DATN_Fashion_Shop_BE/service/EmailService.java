@@ -36,10 +36,8 @@ public class EmailService {
 
         mailSender.send(message);
     }
-
     public void sendVerificationEmail(String to, String firstName, String verificationUrl) throws MessagingException {
         String subject = "🔐 Email Verification";
-
         String message = "<html><head>"
                 + "<style>"
                 + "body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }"
