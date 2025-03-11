@@ -188,32 +188,7 @@ public class OrderService {
 
             orderDetailRepository.saveAll(orderDetails);
 
-            Product product = orderDetails.getFirst().getProductVariant().getProduct();
-            ProductVariant variant = orderDetails.getFirst().getProductVariant();
-            AttributeValue color = variant.getColorValue();
-            String productImage = null;
-            if (product.getMedias() != null && !product.getMedias().isEmpty()) {
-                productImage = product.getMedias().stream()
-                        .filter(media -> media.getColorValue() != null && color != null && media.getColorValue().getId().equals(color.getId())) // So sánh bằng ID thay vì equals()
-                        .map(ProductMedia::getMediaUrl)
-                        .findFirst()
-                        .orElse(product.getMedias().get(0).getMediaUrl()); // Nếu không có, lấy ảnh đầu tiên
-            }
 
-            List<NotificationTranslationRequest> translations = List.of(
-                    new NotificationTranslationRequest("vi", "Trạng thái đơn hàng", notificationService.getVietnameseMessage(savedOrder.getId(), orderStatus)),
-                    new NotificationTranslationRequest("en", "Order Status", notificationService.getEnglishMessage(savedOrder.getId(), orderStatus)),
-                    new NotificationTranslationRequest("jp", "注文状況", notificationService.getJapaneseMessage(savedOrder.getId(), orderStatus))
-            );
-
-            // Gọi createNotification()
-            notificationService.createNotification(
-                    orderRequest.getUserId(),
-                    "ORDER",
-                    ""+savedOrder.getId(), // redirectUrl không cần backend xử lý
-                    productImage, // imageUrl không cần backend xử lý
-                    translations
-            );
 
             log.info("✅ Đã lưu {} sản phẩm vào OrderDetail.", orderDetails.size());
             try {
@@ -277,7 +252,37 @@ public class OrderService {
         ).collect(Collectors.toList());
 
         orderDetailRepository.saveAll(orderDetails);
+
+
         log.info("✅ Đã lưu {} sản phẩm vào OrderDetail.", orderDetails.size());
+
+
+        Product product = orderDetails.getFirst().getProductVariant().getProduct();
+        ProductVariant variant = orderDetails.getFirst().getProductVariant();
+        AttributeValue color = variant.getColorValue();
+        String productImage = null;
+        if (product.getMedias() != null && !product.getMedias().isEmpty()) {
+            productImage = product.getMedias().stream()
+                    .filter(media -> media.getColorValue() != null && color != null && media.getColorValue().getId().equals(color.getId())) // So sánh bằng ID thay vì equals()
+                    .map(ProductMedia::getMediaUrl)
+                    .findFirst()
+                    .orElse(product.getMedias().get(0).getMediaUrl()); // Nếu không có, lấy ảnh đầu tiên
+        }
+
+        List<NotificationTranslationRequest> translations = List.of(
+                new NotificationTranslationRequest("vi", "Trạng thái đơn hàng", notificationService.getVietnameseMessage(savedOrder.getId(), orderStatus)),
+                new NotificationTranslationRequest("en", "Order Status", notificationService.getEnglishMessage(savedOrder.getId(), orderStatus)),
+                new NotificationTranslationRequest("jp", "注文状況", notificationService.getJapaneseMessage(savedOrder.getId(), orderStatus))
+        );
+
+        // Gọi createNotification()
+        notificationService.createNotification(
+                orderRequest.getUserId(),
+                "ORDER",
+                ""+savedOrder.getId(), // redirectUrl không cần backend xử lý
+                productImage, // imageUrl không cần backend xử lý
+                translations
+        );
 
         Payment payment = Payment.builder()
                 .order(savedOrder)

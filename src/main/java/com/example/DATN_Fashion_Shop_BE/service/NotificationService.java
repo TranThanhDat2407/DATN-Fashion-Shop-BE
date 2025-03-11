@@ -11,9 +11,12 @@ import com.example.DATN_Fashion_Shop_BE.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -117,6 +120,90 @@ public class NotificationService {
             case "DONE" -> "注文 #" + orderId + " は完了しました。";
             default -> "不明な注文ステータスです。";
         };
+    }
+
+
+    public List<NotificationTranslationRequest> createCouponTranslations(Coupon coupon) {
+        String discountDetails = getDiscountDetails(coupon);
+
+        return List.of(
+                new NotificationTranslationRequest("vi", "Ưu đãi đặc biệt!",
+                        "Bạn có một mã giảm giá với giá trị là ##" + discountDetails + "##" +
+                                " cho đơn hàng có giá trị từ ##" + coupon.getMinOrderValue() + "## trở lên." +
+                                " Hạn sử dụng: " + formatDate(coupon.getExpirationDate(), "vi") + "."
+                ),
+                new NotificationTranslationRequest("en", "Special Offer!",
+                        "You have a discount code worth ##" + discountDetails + "##" +
+                                " for orders from ##" + coupon.getMinOrderValue() + "## or more." +
+                                " Expiry date: " + formatDate(coupon.getExpirationDate(), "en") + "."
+                ),
+                new NotificationTranslationRequest("jp", "特別オファー！",
+                        "あなたには ##" + discountDetails + "## の割引コードがあります。" +
+                                " 最低注文額: ##" + coupon.getMinOrderValue() + "##。" +
+                                " 有効期限: " + formatDate(coupon.getExpirationDate(), "jp") + "。"
+                )
+        );
+    }
+
+    public String getDiscountDetails(Coupon coupon) {
+        if ("PERCENT".equalsIgnoreCase(coupon.getDiscountType())) {
+            return coupon.getDiscountValue() + "%";
+        } else if ("FIXED".equalsIgnoreCase(coupon.getDiscountType())) {
+            return String.valueOf(coupon.getDiscountValue()); // Trả về số tiền gốc, frontend sẽ xử lý format tiền tệ
+        }
+        return "";
+    }
+
+    public String formatDate(LocalDateTime date, String langCode) {
+        DateTimeFormatter formatter;
+        switch (langCode) {
+            case "vi": formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"); break;
+            case "en": formatter = DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm"); break;
+            case "jp": formatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日 HH:mm"); break;
+            default: formatter = DateTimeFormatter.ISO_DATE_TIME;
+        }
+        return date.format(formatter);
+    }
+
+    public List<NotificationTranslationRequest> createPromotionTranslations(Promotion promotion) {
+        return List.of(
+                new NotificationTranslationRequest("vi", "Khuyến mãi hấp dẫn!",
+                        "Giảm ngay **##" + promotion.getDiscountPercentage() + "%##** cho các sản phẩm trong chương trình!" +
+                                " Chương trình diễn ra từ **" + formatDate(promotion.getStartDate(), "vi") + "** đến **" + formatDate(promotion.getEndDate(), "vi") + "**." +
+                                " Đừng bỏ lỡ!"
+                ),
+                new NotificationTranslationRequest("en", "Exciting Promotion!",
+                        "Get **##" + promotion.getDiscountPercentage() + "%##** off on selected products!" +
+                                " The promotion runs from **" + formatDate(promotion.getStartDate(), "en") + "** to **" + formatDate(promotion.getEndDate(), "en") + "**." +
+                                " Don't miss out!"
+                ),
+                new NotificationTranslationRequest("jp", "お得なプロモーション！",
+                        "選ばれた商品の割引 **##" + promotion.getDiscountPercentage() + "%##**！" +
+                                " プロモーション期間: **" + formatDate(promotion.getStartDate(), "jp") + "** から **" + formatDate(promotion.getEndDate(), "jp") + "** まで。" +
+                                " お見逃しなく！"
+                )
+        );
+    }
+
+    @Transactional
+    //@Scheduled(cron = "0 * * * * ?")
+    @Scheduled(cron = "0 0 0 1 */2 ?")
+    public void scheduledDeleteAllNotifications() {
+        notificationRepository.deleteAll();
+        System.out.println("🔄 Tất cả thông báo đã được xóa tự động vào ngày 1 của mỗi 2 tháng!");
+    }
+
+    @Transactional
+    public void deleteById(Long notificationId) {
+        if (!notificationRepository.existsById(notificationId)) {
+            throw new RuntimeException("Notification with ID " + notificationId + " not found");
+        }
+        notificationRepository.deleteById(notificationId);
+    }
+
+    @Transactional
+    public void deleteByUserId(Long userId) {
+        notificationRepository.deleteByUserId(userId);
     }
 
 }

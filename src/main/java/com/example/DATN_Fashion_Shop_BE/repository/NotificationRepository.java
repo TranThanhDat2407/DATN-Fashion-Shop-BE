@@ -25,4 +25,11 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     void markAllAsReadByUserId(Long userId);
 
     List<Notification> findByUserId(Long userId);
+
+    @Override
+    void deleteAll();
+
+    void deleteById(Long id);
+
+    void deleteByUserId(Long UserId);
 }

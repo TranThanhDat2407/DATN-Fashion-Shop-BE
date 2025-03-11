@@ -62,4 +62,15 @@ public class NotificationController {
         return ResponseEntity.ok("All notifications marked as read.");
     }
 
+    @DeleteMapping("/delete/{notificationId}")
+    public ResponseEntity<String> deleteNotificationById(@PathVariable Long notificationId) {
+        notificationService.deleteById(notificationId);
+        return ResponseEntity.ok("Notification with ID " + notificationId + " has been deleted.");
+    }
+
+    @DeleteMapping("/delete/user/{userId}")
+    public ResponseEntity<String> deleteNotificationsByUserId(@PathVariable Long userId) {
+        notificationService.deleteByUserId(userId);
+        return ResponseEntity.ok("All notifications for user " + userId + " have been deleted.");
+    }
 }
