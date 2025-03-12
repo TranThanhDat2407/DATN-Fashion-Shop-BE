@@ -641,12 +641,10 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new DataNotFoundException("Order not found"));
 
-        // Nếu đơn hàng đã hoàn thành (DONE) thì không được chỉnh sửa
         if ("DONE".equals(order.getOrderStatus().getStatusName())) {
             throw new IllegalStateException("Cannot update a completed order.");
         }
 
-        // Tìm trạng thái mới
         OrderStatus newStatus = orderStatusRepository.findByStatusName(request.getStatusName())
                 .orElseThrow(() -> new DataNotFoundException("Order status not found"));
 

@@ -24,6 +24,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -513,16 +516,22 @@ public class ProductController {
     }
 
     @GetMapping("/variants/by-product-name")
-    public ResponseEntity<ApiResponse<List<ProductVariantsMediaResponse>>> searchVariants(
+    public ResponseEntity<ApiResponse<PageResponse<ProductVariantsMediaResponse>>> searchVariants(
             @RequestParam(required = false) String productName,
-            @RequestParam(required = false) String languageCode) {
+            @RequestParam(required = false) String languageCode,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(ApiResponseUtils.successResponse(
                         localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
-                        productService.searchVariantsByProductName(productName, languageCode))
+                        PageResponse.fromPage(productService.searchVariantsByProductName(productName,
+                                languageCode, pageable)))
                 );
     }
+
 
     @GetMapping("/image/{filename}")
     public ResponseEntity<Resource> showImage(@PathVariable String filename) {

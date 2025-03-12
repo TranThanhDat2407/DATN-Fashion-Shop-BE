@@ -558,13 +558,14 @@ public class ProductService {
     }
 
 
-    public List<ProductVariantsMediaResponse> searchVariantsByProductName(String productName, String languageCode) {
-        List<ProductVariant> variants = productVariantRepository.findByProductNameAndLanguage(productName, languageCode);
+    public Page<ProductVariantsMediaResponse> searchVariantsByProductName(
+            String productName, String languageCode, Pageable pageable) {
 
-        return variants.stream()
-                .map(variant -> ProductVariantsMediaResponse.fromProductVariant(variant, languageCode))
-                .collect(Collectors.toList());
+        Page<ProductVariant> variants = productVariantRepository.findByProductNameAndLanguage(productName, languageCode, pageable);
+
+        return variants.map(variant -> ProductVariantsMediaResponse.fromProductVariant(variant, languageCode));
     }
+
 
     public boolean isProductInWishlist(Long userId, Long productId, Long colorId) {
 //        User user = userRepository.findById(userId)
