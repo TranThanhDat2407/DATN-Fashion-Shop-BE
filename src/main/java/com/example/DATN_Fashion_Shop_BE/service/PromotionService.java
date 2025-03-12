@@ -196,7 +196,7 @@ public class PromotionService {
                     user.getId(),
                     "PROMOTION",
                     null, // redirectUrl không cần backend xử lý
-                    null, // Không cần imageUrl
+                    "promotion.jpg", // Không cần imageUrl
                     translations
             );
         });
