@@ -3,6 +3,7 @@ package com.example.DATN_Fashion_Shop_BE.service;
 import com.example.DATN_Fashion_Shop_BE.dto.CouponDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.CouponLocalizedDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.CouponTranslationDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.request.Notification.NotificationTranslationRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.coupon.CouponCreateRequestDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.response.coupon.CouponDetailResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
@@ -34,7 +35,7 @@ public class CouponService {
     private final CouponUserRestrictionRepository couponUserRestrictionRepository;
     private final EmailService emailService;
     private final FileStorageService fileStorageService;
-
+    private final NotificationService notificationService;
 
     public boolean applyCoupon(Long userId, String couponCode) {
         Optional<Coupon> couponOpt = couponRepository.findFirstByCode(couponCode);
@@ -84,17 +85,26 @@ public class CouponService {
 
         coupon = couponRepository.save(coupon);
 
-        // 2️⃣ Nếu không phải global, tạo ràng buộc với user
-        if (!request.getIsGlobal() && request.getUserIds() != null && !request.getUserIds().isEmpty()) {
-            List<User> users = userRepository.findAllById(request.getUserIds());
+        // Danh sách user sẽ nhận thông báo
+        List<User> targetUsers;
+
+        // 2️⃣ Nếu là Global, lấy tất cả customer
+        if (request.getIsGlobal()) {
+            targetUsers = userRepository.findByRoleCustomer();
+        } else if (request.getUserIds() != null && !request.getUserIds().isEmpty()) {
+            // Nếu không phải global, tạo ràng buộc với user
+            targetUsers = userRepository.findAllById(request.getUserIds());
+
             Coupon finalCoupon = coupon;
-            List<CouponUserRestriction> restrictions = users.stream()
+            List<CouponUserRestriction> restrictions = targetUsers.stream()
                     .map(user -> CouponUserRestriction.builder()
                             .user(user)
                             .coupon(finalCoupon)
                             .build())
                     .collect(Collectors.toList());
             couponUserRestrictionRepository.saveAll(restrictions);
+        } else {
+            targetUsers = List.of(); // Nếu không có user nào, tránh lỗi null
         }
 
         // 3️⃣ Lưu bản dịch coupon
@@ -115,7 +125,10 @@ public class CouponService {
 
         couponTranslationRepository.saveAll(translations);
 
-        // 4️⃣ Trả về CouponDTO đã có ảnh
+        // 4️⃣ Gửi Notification cho danh sách user đã lấy
+        sendCouponNotification(coupon, targetUsers);
+
+        // 5️⃣ Trả về CouponDTO đã có ảnh
         return CouponDTO.builder()
                 .id(coupon.getId())
                 .code(coupon.getCode())
@@ -128,6 +141,22 @@ public class CouponService {
                 .imageUrl(coupon.getImageUrl()) // Trả về đường dẫn ảnh
                 .build();
     }
+
+    private void sendCouponNotification(Coupon coupon, List<User> users) {
+        List<NotificationTranslationRequest> translations = notificationService.createCouponTranslations(coupon);
+
+        users.forEach(user -> {
+            notificationService.createNotification(
+                    user.getId(),
+                    "COUPON",
+                    null, // redirectUrl không cần backend xử lý
+                    coupon.getImageUrl(),
+                    translations
+            );
+        });
+    }
+
+
 
     @Transactional
     public CouponDTO updateCoupon(Long id, CouponCreateRequestDTO request, MultipartFile imageFile) {
@@ -253,37 +282,39 @@ public class CouponService {
                 })
                 .collect(Collectors.toList());
     }
-    public Page<CouponLocalizedDTO> searchCoupons(String code, LocalDateTime expirationDate,
+    public Page<CouponLocalizedDTO> searchCoupons(String keyword, LocalDateTime expirationDate,
                                                   Float discountValue, Float minOrderValue,
-                                                  String languageCode, int page, int size,
+                                                  String languageCode, Long userId, int page, int size,
                                                   String sortBy, String sortDirection) {
-        Sort sort;
-
         // Xác định trường cần sắp xếp
+        String sortField = "createdAt"; // Mặc định sắp xếp theo ngày tạo
         if ("expirationDate".equalsIgnoreCase(sortBy)) {
-            sort = Sort.by("expirationDate");
-        } else {
-            sort = Sort.by("createdAt"); // Mặc định sắp xếp theo ngày tạo
+            sortField = "expirationDate";
         }
 
         // Xác định chiều sắp xếp (tăng dần hoặc giảm dần)
-        if ("desc".equalsIgnoreCase(sortDirection)) {
-            sort = sort.descending();
-        } else {
-            sort = sort.ascending();
-        }
+        Sort sort = "desc".equalsIgnoreCase(sortDirection) ? Sort.by(sortField).descending() : Sort.by(sortField).ascending();
 
         Pageable pageable = PageRequest.of(page, size, sort);
-        Specification<Coupon> spec = CouponSpecification.filterCoupons(code, expirationDate, discountValue, minOrderValue, languageCode);
 
+        //  Sử dụng `keyword` để tìm kiếm trên nhiều trường
+        Specification<Coupon> spec = CouponSpecification.filterCoupons(keyword, expirationDate, discountValue, minOrderValue, languageCode,userId);
+
+        // Truy vấn danh sách coupon
         Page<Coupon> couponPage = couponRepository.findAll(spec, pageable);
 
+        // Mapping kết quả sang DTO mà không cần userIds
         return couponPage.map(coupon -> {
             CouponTranslation translation = coupon.getCouponTranslationByLanguage(languageCode);
-            List<Long> userIds = couponUserRestrictionRepository.findUserIdsByCouponId(coupon.getId());
-            return CouponLocalizedDTO.fromCoupons(coupon, translation, userIds);
+            //  Đảm bảo lấy name & description từ CouponTranslation
+            List<Long> allowedUserIds = couponUserRestrictionRepository.findUserIdsByCouponId(coupon.getId());
+
+            return CouponLocalizedDTO.fromCoupons(coupon, translation, allowedUserIds);
         });
     }
+
+
+
 
 
     public CouponDetailResponse getCouponById(Long couponId) throws DataNotFoundException {

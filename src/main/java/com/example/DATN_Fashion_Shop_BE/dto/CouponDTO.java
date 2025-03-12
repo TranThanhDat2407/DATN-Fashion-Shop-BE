@@ -28,8 +28,6 @@ public class CouponDTO {
 
 
     public static CouponDTO fromCoupon(Coupon coupon) {
-
-
         return CouponDTO.builder()
                 .id(coupon.getId())
                 .code(coupon.getCode())

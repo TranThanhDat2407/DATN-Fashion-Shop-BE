@@ -1,10 +1,12 @@
 package com.example.DATN_Fashion_Shop_BE.service;
 
+import com.example.DATN_Fashion_Shop_BE.dto.request.Notification.NotificationTranslationRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.promotion.PromotionRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.promotion.PromotionResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.model.Product;
 import com.example.DATN_Fashion_Shop_BE.model.Promotion;
+import com.example.DATN_Fashion_Shop_BE.model.User;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
@@ -23,6 +25,8 @@ import java.util.Optional;
 public class PromotionService {
     private final PromotionRepository promotionRepository;
     private final ProductRepository productRepository;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     public PromotionResponse getActivePromotion() throws DataNotFoundException {
         Promotion promotion = promotionRepository.findByIsActiveTrue()
@@ -125,8 +129,15 @@ public class PromotionService {
         List<Promotion> promotionsToActivate = promotionRepository.findByStartDateBeforeAndEndDateAfter(now,now);
         for (Promotion promo : promotionsToActivate) {
             promo.setIsActive(true);
+            if(promo.getIsActive()){
+                // Lấy danh sách khách hàng để gửi thông báo
+                List<User> customers = userRepository.findByRoleCustomer();
+                // Tạo thông báo
+                sendPromotionNotification(promo, customers);
+            }
         }
         promotionRepository.saveAll(promotionsToActivate);
+
 
         // Vô hiệu hóa và xóa sản phẩm trong khuyến mãi nếu đến ngày kết thúc
         List<Promotion> promotionsToDeactivate = promotionRepository.findByEndDateBefore(now);
@@ -141,6 +152,7 @@ public class PromotionService {
             productRepository.saveAll(products);
         }
         promotionRepository.saveAll(promotionsToDeactivate);
+
     }
 
     @Transactional
@@ -175,4 +187,20 @@ public class PromotionService {
 
         productRepository.saveAll(products);
     }
+
+    private void sendPromotionNotification(Promotion promotion, List<User> users) {
+        List<NotificationTranslationRequest> translations = notificationService.createPromotionTranslations(promotion);
+
+        users.forEach(user -> {
+            notificationService.createNotification(
+                    user.getId(),
+                    "PROMOTION",
+                    null, // redirectUrl không cần backend xử lý
+                    null, // Không cần imageUrl
+                    translations
+            );
+        });
+    }
+
+
 }

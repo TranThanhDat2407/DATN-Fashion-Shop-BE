@@ -79,6 +79,12 @@ public class WebSercurityConfig {
                                     String.format("%s/users/**", apiPrefix),
                                     String.format("%s/users/reset-password-email/**", apiPrefix),
 
+                                    String.format("%s/notify/**", apiPrefix),
+                                    String.format("%s/notify/total/**", apiPrefix),
+                                    String.format("%s/notify/mark-all-read/**", apiPrefix),
+                                    String.format("%s/notify/delete/**", apiPrefix),
+                                    String.format("%s/notify/delete/user/**", apiPrefix),
+
                                   "/uploads/**",
 
                                     String.format("%s/inventory/**", apiPrefix),

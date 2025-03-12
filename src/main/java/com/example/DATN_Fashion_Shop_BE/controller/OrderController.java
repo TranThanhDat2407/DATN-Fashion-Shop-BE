@@ -14,15 +14,14 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.TotalOrderTodayResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.order.*;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreOrderResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.orderDetail.OrderDetailResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.StorePaymentResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.userAddressResponse.UserAddressResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.vnpay.VnPayResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
-import com.example.DATN_Fashion_Shop_BE.service.CartService;
-import com.example.DATN_Fashion_Shop_BE.service.GHNService;
-import com.example.DATN_Fashion_Shop_BE.service.OrderService;
-import com.example.DATN_Fashion_Shop_BE.service.VNPayService;
+import com.example.DATN_Fashion_Shop_BE.service.*;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import io.swagger.v3.oas.annotations.Operation;
@@ -63,13 +62,15 @@ public class OrderController {
 
     private final OrderService orderService;
     private final LocalizationUtils localizationUtils;
-
+    private final UserRepository userRepository;
     private final OrderRepository orderRepository;
+    private final OrderDetailRepository orderDetailRepository;
     private final PaymentRepository paymentRepository;
     private final VNPayService vnPayService;
     private final PaymentMethodRepository paymentMethodRepository;
     private final OrderStatusRepository orderStatusRepository;
     private final CartService cartService;
+    private final EmailService emailService;
 
 
 
@@ -262,26 +263,51 @@ public class OrderController {
             order.setTransactionId(vnp_TransactionNo);
             orderRepository.save(order);
             log.info("✅ Giao dịch thành công. Đã cập nhật trạng thái đơn hàng ID: {}", order.getId());
+
+
+            // 6️⃣ Lưu thông tin thanh toán
+            Payment payment = Payment.builder()
+                    .order(order)
+                    .paymentMethod(paymentMethodRepository.findByMethodName("VNPAY")
+                            .orElseThrow(() -> new RuntimeException("Phương thức thanh toán không hợp lệ.")))
+                    .paymentDate(new Date())
+                    .amount(amount)
+                    .status("SUCCESS")
+                    .transactionCode(vnp_TransactionNo)
+                    .build();
+
+            paymentRepository.save(payment);
+
+            User userWithAddresses = userRepository.findById(order.getUser().getId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng!"));
+
+            List<UserAddressResponse> userAddressResponses = (userWithAddresses.getUserAddresses() != null)
+                    ? userWithAddresses.getUserAddresses().stream()
+                    .map(UserAddressResponse::fromUserAddress)
+                    .collect(Collectors.toList())
+                    : new ArrayList<>();
+
+            User user = order.getUser();
+            if (user.getEmail() != null && !user.getEmail().isEmpty()) {
+                List<OrderDetail> orderDetails = orderDetailRepository.findByOrderId(order.getId());
+
+                List<OrderDetailResponse> orderDetailResponses = orderDetails.stream()
+                        .map(orderDetail -> OrderDetailResponse.fromOrderDetail(orderDetail, userAddressResponses))
+                        .collect(Collectors.toList());
+
+                emailService.sendOrderConfirmationEmail(user.getEmail(), orderDetailResponses);
+                log.info("📧 Đã gửi email xác nhận đơn hàng (VNPay) đến {}", user.getEmail());
+            } else {
+                log.warn("⚠ Không thể gửi email vì email của người dùng không tồn tại.");
+            }
+
+
         } else {
             order.setOrderStatus(orderStatusRepository.findByStatusName("CANCELLED")
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy trạng thái CANCELLED.")));
+            orderRepository.save(order);
             log.error("❌ Giao dịch thất bại. Đã cập nhật trạng thái đơn hàng ID: {}", order.getId());
         }
-
-
-        // 6️⃣ Lưu thông tin thanh toán
-        Payment payment = Payment.builder()
-                .order(order)
-                .paymentMethod(paymentMethodRepository.findByMethodName("VNPAY")
-                        .orElseThrow(() -> new RuntimeException("Phương thức thanh toán không hợp lệ.")))
-                .paymentDate(new Date())
-                .amount(amount)
-                .status("SUCCESS")
-                .transactionCode(UUID.randomUUID().toString())
-                .build();
-
-        paymentRepository.save(payment);
-
 
         return ResponseEntity.ok(CreateOrderResponse.fromOrder(order));
     }

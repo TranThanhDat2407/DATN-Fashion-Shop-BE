@@ -1,20 +1,30 @@
 package com.example.DATN_Fashion_Shop_BE.service;
 
+import com.example.DATN_Fashion_Shop_BE.dto.response.order.OrderResponseMail;
+import com.example.DATN_Fashion_Shop_BE.dto.response.orderDetail.OrderDetailResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.product.ProductVariantResponse;
+import com.example.DATN_Fashion_Shop_BE.model.OrderDetail;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.nio.file.Paths;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class EmailService {
     private final JavaMailSender mailSender;
-
+    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     public void sendEmail(String to, String subject, String text) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
@@ -26,10 +36,8 @@ public class EmailService {
 
         mailSender.send(message);
     }
-
     public void sendVerificationEmail(String to, String firstName, String verificationUrl) throws MessagingException {
         String subject = "🔐 Email Verification";
-
         String message = "<html><head>"
                 + "<style>"
                 + "body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }"
@@ -138,6 +146,103 @@ public class EmailService {
                 + "<p><i>Trân trọng,<br>Đội ngũ Fashion Shop</i></p>"
                 + "</div>";
     }
+
+    @Async
+    public void sendOrderConfirmationEmail(String to, List<OrderDetailResponse> orderDetails) {
+        if (orderDetails == null || orderDetails.isEmpty()) {
+            log.warn("⚠ Không có chi tiết đơn hàng để gửi email.");
+            return;
+        }
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            OrderDetailResponse firstDetail = orderDetails.get(0); // Lấy thông tin chung từ đơn hàng đầu tiên
+
+
+            String subject = "Xác nhận đơn hàng #" + firstDetail.getOrderId();
+            String orderDetailsHtml = buildOrderDetailsHtml(orderDetails);
+
+            // Xây dựng nội dung email
+            StringBuilder body = new StringBuilder();
+            body.append("<html><body>");
+            body.append("<p>Cảm ơn bạn đã đặt hàng tại cửa hàng của chúng tôi!</p>");
+            body.append("<p><strong>Mã đơn hàng:</strong> ").append(firstDetail.getOrderId()).append("</p>");
+            body.append("<p><strong>Người nhận:</strong> ").append(firstDetail.getRecipientName()).append("</p>");
+            body.append("<p><strong>Số điện thoại:</strong> ").append(firstDetail.getRecipientPhone()).append("</p>");
+            body.append("<p><strong>Địa chỉ giao hàng:</strong> ").append(firstDetail.getShippingAddress()).append("</p>");
+            body.append("<p><strong>Phương thức thanh toán:</strong> ").append(firstDetail.getPaymentMethod()).append("</p>");
+            body.append("<p><strong>Thuế:</strong> ").append(firstDetail.getTax()).append(" VNĐ</p>");
+            body.append("<p><strong>Phí vận chuyển:</strong> ").append(firstDetail.getShippingFee()).append(" VNĐ</p>");
+            body.append("<p><strong>Tổng tiền:</strong> ").append(firstDetail.getGrandTotal()).append(" VNĐ</p>");
+            body.append("<h3>Chi tiết đơn hàng:</h3>");
+            body.append(orderDetailsHtml);
+            body.append("<p>💖 Chúc bạn có một ngày tuyệt vời!</p>");
+            body.append("<p>Trân trọng,</p>");
+            body.append("<p><strong>Đội ngũ cửa hàng BrandShop luôn tận tình phục vụ quý khách</strong></p>");
+            body.append("</body></html>");
+
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(body.toString(), true);
+
+            // Gắn hình ảnh vào email
+            for (OrderDetailResponse detail : orderDetails) {
+                log.info("📌 Order ID: {}", detail.getOrderId());
+                log.info("📌 Recipient Name: {}", detail.getRecipientName());
+                log.info("📌 Recipient Phone: {}", detail.getRecipientPhone());
+                if (detail.getImageUrl() != null) {
+                    File imageFile = new File(Paths.get("uploads/images/products/", detail.getImageUrl()).toString());
+                    log.info("📌 Đường dẫn ảnh: {}", imageFile.getAbsolutePath());
+
+
+                    if (imageFile.exists()) {
+                        FileSystemResource image = new FileSystemResource(imageFile);
+                        String contentId = "image" + detail.getOrderDetailId();
+                        helper.addInline(contentId, image);
+                    } else {
+                        log.warn("⚠ Hình ảnh không tồn tại: {}", imageFile.getAbsolutePath());
+                    }
+
+                }
+            }
+
+
+            mailSender.send(message);
+            log.info("📧 Đã gửi email xác nhận đơn hàng đến {}", to);
+        } catch (MessagingException e) {
+            log.error("❌ Lỗi khi gửi email: {}", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
+
+
+    private String buildOrderDetailsHtml(List<OrderDetailResponse> orderDetails) {
+        StringBuilder html = new StringBuilder();
+        html.append("<table border='1' cellspacing='0' cellpadding='5' style='border-collapse: collapse; width: 100%;'>");
+        html.append("<tr style='background-color: #f2f2f2; text-align: left;'>");
+        html.append("<th>Hình ảnh</th><th>Sản phẩm</th><th>Số lượng</th><th>Màu</th><th>Size</th><th>Giá</th></tr>");
+
+        for (OrderDetailResponse detail : orderDetails) {
+            ProductVariantResponse product = detail.getProductVariant();
+            String contentId = "image" + detail.getOrderDetailId();
+            html.append("<tr>")
+                    .append("<td><img src='cid:").append(contentId).append("' width='100' height='100' style='border-radius: 4px;'/></td>")
+                    .append("<td>").append(product.getProductName()).append("</td>")
+                    .append("<td>").append(detail.getQuantity()).append("</td>")
+                    .append("<td>").append(product.getColorName()).append("</td>")
+                    .append("<td>").append(product.getSize()).append("</td>")
+                    .append("<td>").append(detail.getTotalPrice()).append(" VNĐ</td>")
+                    .append("</tr>");
+        }
+
+        html.append("</table>");
+        return html.toString();
+    }
+
 
 
 }
