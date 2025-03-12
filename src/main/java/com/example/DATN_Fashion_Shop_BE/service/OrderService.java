@@ -4,6 +4,8 @@ import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.config.GHNConfig;
 import com.example.DATN_Fashion_Shop_BE.dto.request.Ghn.PreviewOrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.order.OrderRequest;
+import com.example.DATN_Fashion_Shop_BE.dto.request.order.UpdateStoreOrderStatusRequest;
+import com.example.DATN_Fashion_Shop_BE.dto.request.order.UpdateStorePaymentMethodRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.store.StorePaymentRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.GhnPreviewResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.PreviewOrderResponse;
@@ -14,6 +16,7 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.order.HistoryOrderResponse;
 
 import com.example.DATN_Fashion_Shop_BE.dto.response.order.TotalOrderCancelTodayResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.order.TotalRevenueTodayResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.StorePaymentResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.model.*;
@@ -525,6 +528,72 @@ public class OrderService {
 
         return StorePaymentResponse.fromOrder(order);
     }
+
+    public Page<StoreOrderResponse> getStoreOrdersByFilters(
+            Long storeId,
+            Long orderStatusId,
+            Long paymentMethodId,
+            Long shippingMethodId,
+            Long customerId,
+            Long staffId,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            String languageCode,
+            Pageable pageable
+    ) {
+        Page<Order> orders = orderRepository.findOrdersByFilters(
+                storeId, orderStatusId, paymentMethodId, shippingMethodId, customerId, staffId, startDate, endDate, pageable
+        );
+
+        return orders.map(item -> StoreOrderResponse.fromOrder(item, languageCode));
+    }
+
+    public StoreOrderResponse getStoreOrderById(Long orderId, String languageCode)
+            throws DataNotFoundException {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new DataNotFoundException("Order not found with id: " + orderId));
+
+        return StoreOrderResponse.fromOrder(order, languageCode);
+    }
+
+    @Transactional
+    public void updateOrderStatus(Long orderId, UpdateStoreOrderStatusRequest request) throws DataNotFoundException {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new DataNotFoundException("Order not found"));
+
+        // Nếu đơn hàng đã hoàn thành (DONE) thì không được chỉnh sửa
+        if ("DONE".equals(order.getOrderStatus().getStatusName())) {
+            throw new IllegalStateException("Cannot update a completed order.");
+        }
+
+        // Tìm trạng thái mới
+        OrderStatus newStatus = orderStatusRepository.findByStatusName(request.getStatusName())
+                .orElseThrow(() -> new DataNotFoundException("Order status not found"));
+
+        order.setOrderStatus(newStatus);
+        orderRepository.save(order);
+    }
+
+    // Cập nhật phương thức thanh toán
+    @Transactional
+    public void updatePaymentMethod(Long orderId, UpdateStorePaymentMethodRequest request) throws DataNotFoundException {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new DataNotFoundException("Order not found"));
+
+        PaymentMethod paymentMethod = paymentMethodRepository.findByMethodName(request.getPaymentMethodName())
+                .orElseThrow(() -> new DataNotFoundException("Payment method not found"));
+
+        // Giả sử đơn hàng chỉ có một payment, cập nhật nó
+        if (!order.getPayments().isEmpty()) {
+            Payment payment = order.getPayments().get(0);
+            payment.setPaymentMethod(paymentMethod);
+        } else {
+            throw new IllegalStateException("No payment record found for this order.");
+        }
+
+        orderRepository.save(order);
+    }
+
 
 }
 

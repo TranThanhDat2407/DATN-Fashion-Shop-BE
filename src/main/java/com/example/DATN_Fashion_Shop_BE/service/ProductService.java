@@ -206,8 +206,8 @@ public class ProductService {
                     product.getTranslationByLanguage(languageCode)));
         } else {
             // Nếu không có điều kiện về giá, tìm sản phẩm theo các điều kiện khác
-            Page<Product> products = productRepository.findProductsByCategoryAndName(
-                    categoryId, isActive, name, pageable);
+            Page<Product> products = productRepository.findProductsByCategoryWithoutPrice(
+                    categoryId, isActive, name, promotionId,pageable);
 
             return products.map(product -> ProductListDTO.fromProduct(product,
                     product.getTranslationByLanguage(languageCode)));

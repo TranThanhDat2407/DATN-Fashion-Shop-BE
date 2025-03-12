@@ -19,7 +19,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT o FROM Order o WHERE o.user.id = :userId ORDER BY o.createdAt DESC")
     Page<Order> findByUserId(Long userId, Pageable pageable);
 
-   Optional<Order>findById(Long id);
+    Optional<Order> findById(Long id);
 
     Page<Order> findByOrderStatus_StatusName(String statusName, Pageable pageable);
 
@@ -34,7 +34,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> getTotalRevenueYesterday();
 
 
-
     @Query("SELECT o  FROM Order o " +
             "WHERE CAST(o.createdAt AS DATE) = CAST(GETDATE() AS DATE)  AND o.orderStatus.id = 6")
     List<Order> getTotalOrderCompleteToday();
@@ -46,7 +45,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> getTotalOrderYesterday();
 
 
-
     @Query("SELECT o  FROM Order o " +
             "WHERE CAST(o.createdAt AS DATE) = CAST(GETDATE() AS DATE)  AND o.orderStatus.id = 5")
     List<Order> getTotalOrderCancelToday();
@@ -56,4 +54,32 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             "AND o.status_id = 5",
             nativeQuery = true)
     List<Order> getTotalOrderCancelYesterday();
+
+    @Query("""
+                SELECT o FROM Order o
+                LEFT JOIN o.orderStatus os
+                LEFT JOIN o.payments p
+                LEFT JOIN p.paymentMethod pm
+                LEFT JOIN o.shippingMethod sm
+                LEFT JOIN o.user u
+                WHERE o.store.id = :storeId
+                AND (:orderStatusId IS NULL OR os.id = :orderStatusId)
+                AND (:paymentMethodId IS NULL OR pm.id = :paymentMethodId)
+                AND (:shippingMethodId IS NULL OR sm.id = :shippingMethodId)
+                AND (:customerId IS NULL OR u.id = :customerId)
+                AND (:staffId IS NULL OR o.createdBy = :staffId)
+                AND (:startDate IS NULL OR o.updatedAt >= :startDate)
+                AND (:endDate IS NULL OR o.updatedAt <= :endDate)
+            """)
+    Page<Order> findOrdersByFilters(
+            @Param("storeId") Long storeId,
+            @Param("orderStatusId") Long orderStatusId,
+            @Param("paymentMethodId") Long paymentMethodId,
+            @Param("shippingMethodId") Long shippingMethodId,
+            @Param("customerId") Long customerId,
+            @Param("staffId") Long staffId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            Pageable pageable
+    );
 }

@@ -4,12 +4,16 @@ import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.request.Ghn.GhnCreateOrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.Ghn.PreviewOrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.order.OrderRequest;
+import com.example.DATN_Fashion_Shop_BE.dto.request.order.UpdateStoreOrderStatusRequest;
+import com.example.DATN_Fashion_Shop_BE.dto.request.order.UpdateStorePaymentMethodRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.store.StorePaymentRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.GhnCreateOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.PreviewOrderResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.TotalOrderTodayResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.order.*;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.StorePaymentResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.vnpay.VnPayResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
@@ -32,6 +36,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -396,6 +402,84 @@ public class OrderController {
                 )
         );
     }
+
+    @GetMapping("/store/{storeId}")
+    public ResponseEntity<ApiResponse<PageResponse<StoreOrderResponse>>> getOrders(
+            @PathVariable Long storeId,
+            @RequestParam(required = false) Long orderStatusId,
+            @RequestParam(required = false) Long paymentMethodId,
+            @RequestParam(required = false) Long shippingMethodId,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) Long staffId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDateTime endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "updatedAt") String sortBy,
+            @RequestParam(defaultValue = "vi") String languageCode,
+            @RequestParam(defaultValue = "desc") String sortDir
+    ) {
+
+        Sort.Direction direction = sortDir.equalsIgnoreCase("asc")
+                ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        // Lấy danh sách đơn hàng đã chuyển đổi
+        Page<StoreOrderResponse> storeOrders = orderService.getStoreOrdersByFilters(
+                storeId, orderStatusId, paymentMethodId, shippingMethodId, customerId, staffId, startDate, endDate, languageCode, pageable
+        );
+
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        MessageKeys.ORDERS_SUCCESSFULLY,
+                        PageResponse.fromPage(storeOrders)
+                )
+        );
+    }
+
+    @GetMapping("store/order-detail/{orderId}")
+    public ResponseEntity<ApiResponse<StoreOrderResponse>> getStoreOrderById(
+            @PathVariable Long orderId,
+            @RequestParam(defaultValue = "vi") String languageCode
+    ) throws DataNotFoundException {
+        StoreOrderResponse response = orderService.getStoreOrderById(orderId, languageCode);
+
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        MessageKeys.ORDERS_SUCCESSFULLY,
+                        response
+                )
+        );
+    }
+
+    @PutMapping("store/{orderId}/status")
+    public ResponseEntity<ApiResponse<?>> updateOrderStatus(
+            @PathVariable Long orderId,
+            @RequestBody UpdateStoreOrderStatusRequest request) throws DataNotFoundException {
+        orderService.updateOrderStatus(orderId, request);
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        MessageKeys.ORDERS_SUCCESSFULLY,
+                        "success"
+                )
+        );
+    }
+
+    // Cập nhật phương thức thanh toán
+    @PutMapping("store/{orderId}/payment-method")
+    public ResponseEntity<ApiResponse<?>> updatePaymentMethod(
+            @PathVariable Long orderId,
+            @RequestBody UpdateStorePaymentMethodRequest request) throws DataNotFoundException {
+        orderService.updatePaymentMethod(orderId, request);
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        MessageKeys.ORDERS_SUCCESSFULLY,
+                        "success"
+                )
+        );
+    }
+
+
 }
 
 
