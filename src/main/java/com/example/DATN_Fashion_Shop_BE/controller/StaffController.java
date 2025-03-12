@@ -124,6 +124,15 @@ public class StaffController {
         }
     }
 
+    @GetMapping("/check-user-store")
+    public ResponseEntity<Boolean> checkUserInStore(
+            @RequestParam Long userId,
+            @RequestParam Long storeId) {
+
+        boolean isInStore = staffService.isUserInStore(userId, storeId);
+        return ResponseEntity.ok(isInStore);
+    }
+
     private boolean isMobileDevice(String userAgent) {
         // Kiểm tra User-Agent header để xác định thiết bị di động
         // Ví dụ đơn giản:

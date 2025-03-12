@@ -54,7 +54,7 @@ public class Order extends BaseEntity {
     @Column(name = "transaction_id")
     private String transactionId; // Lưu vnp_TxnRef
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<Payment> payments = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)

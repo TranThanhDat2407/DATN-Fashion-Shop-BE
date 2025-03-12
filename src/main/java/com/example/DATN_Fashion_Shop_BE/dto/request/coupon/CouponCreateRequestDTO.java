@@ -3,9 +3,7 @@ package com.example.DATN_Fashion_Shop_BE.dto.request.coupon;
 import com.example.DATN_Fashion_Shop_BE.dto.CategoryTranslationDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.CouponTranslationDTO;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
-import jakarta.validation.constraints.FutureOrPresent;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -17,23 +15,32 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CouponCreateRequestDTO {
-    @NotBlank(message = MessageKeys.COUPON_CODE_REQUIRED)
+
     private String code;
 
     @NotBlank(message = MessageKeys.DISCOUNT_TYPE_REQUIRED)
     private String discountType;
 
-    @Min(value = 0, message = MessageKeys.DISCOUNT_VALUE_INVALID)
+    @PositiveOrZero(message = MessageKeys.DISCOUNT_VALUE_INVALID)
     private Float discountValue;
 
-    @Min(value = 0, message = MessageKeys.MIN_ORDER_VALUE_INVALID)
+    @PositiveOrZero(message = MessageKeys.DISCOUNT_VALUE_INVALID)
     private Float minOrderValue;
 
     private String imageUrl;
 
 
-    @FutureOrPresent(message = MessageKeys.EXPIRATION_DATE_INVALID)
+
+
+//    @NotNull(message = MessageKeys.EXPIRATION_DATE_INVALID)  // ✅ Thêm kiểm tra null
+//    @FutureOrPresent(message = MessageKeys.EXPIRATION_DATE_INVALID)
     private LocalDateTime expirationDate;
+
+    @NotNull(message = MessageKeys.EXPIRATION_DATE_INVALID)
+    @Min(value = 1, message = MessageKeys.EXPIRATION_DATE_INVALID)
+    private Integer expirationDays; // Số ngày hết hạn, phải >= 1
+
+
     private Boolean isGlobal; // Nếu true, không cần userIds
     private List<Long> userIds; // Danh sách người dùng được chỉ định
 

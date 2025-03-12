@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 public class ProductMediaDetailResponse {
     private Long id;
     private String mediaUrl;
+    private Long colorId;
     private String mediaType;
     private Integer modelHeight;
 
@@ -22,6 +23,7 @@ public class ProductMediaDetailResponse {
         return ProductMediaDetailResponse.builder()
                 .id(media.getId())
                 .mediaUrl(media.getMediaUrl())
+                .colorId(media.getColorValue() != null ? media.getColorValue().getId() : null)
                 .mediaType(media.getMediaType())
                 .modelHeight(media.getModelHeight())
                 .build();

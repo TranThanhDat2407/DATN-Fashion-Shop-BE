@@ -20,7 +20,7 @@ public class ProductVariantDTO {
 
     public static ProductVariantDTO fromProductVariant(ProductVariant productVariant){
         Product product = productVariant.getProduct();
-        Double salePrice = productVariant.getSalePrice(); // Lấy giá salePrice từ ProductVariant
+        Double salePrice = productVariant.getAdjustedPrice(); // Lấy giá salePrice từ ProductVariant
 
         // Tính toán khuyến mãi dựa trên salePrice
         if (product.getPromotion() != null && product.getPromotion().getIsActive()) {
