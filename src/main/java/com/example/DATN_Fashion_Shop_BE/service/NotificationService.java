@@ -4,10 +4,7 @@ import com.example.DATN_Fashion_Shop_BE.dto.request.Notification.NotificationTra
 import com.example.DATN_Fashion_Shop_BE.dto.response.notification.NotificationResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.notification.TotalNotificationResponse;
 import com.example.DATN_Fashion_Shop_BE.model.*;
-import com.example.DATN_Fashion_Shop_BE.repository.LanguageRepository;
-import com.example.DATN_Fashion_Shop_BE.repository.NotificationRepository;
-import com.example.DATN_Fashion_Shop_BE.repository.NotificationTranslationRepository;
-import com.example.DATN_Fashion_Shop_BE.repository.UserRepository;
+import com.example.DATN_Fashion_Shop_BE.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +16,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.example.DATN_Fashion_Shop_BE.model.TransferStatus.*;
@@ -30,6 +29,7 @@ public class NotificationService {
     private final NotificationTranslationRepository notificationTranslationRepository;
     private final LanguageRepository languageRepository;
     private final UserRepository userRepository;
+    private final ProductRepository productRepository;
 
     public Page<NotificationResponse> getUserNotifications(Long userId, String langCode, Pageable pageable) {
         Page<Notification> notifications = notificationRepository.findAllByUserId(pageable,userId);
@@ -204,6 +204,37 @@ public class NotificationService {
     @Transactional
     public void deleteByUserId(Long userId) {
         notificationRepository.deleteByUserId(userId);
+    }
+
+    public List<NotificationTranslationRequest> createPromotionForStaff(Promotion promotion) {
+        // Lấy danh sách sản phẩm thuộc promotion
+        List<Product> products = productRepository.findByPromotion(promotion);
+
+        // Hàm lấy danh sách sản phẩm theo ngôn ngữ
+        Function<String, String> getProductNamesByLang = (langCode) -> products.stream()
+                .map(product -> {
+                    ProductsTranslation translation = product.getTranslationByLanguage(langCode);
+                    return  translation.getName();
+                })
+                .filter(Objects::nonNull) // Lọc ra các sản phẩm có tên hợp lệ
+                .collect(Collectors.joining(", "));
+
+        return List.of(
+                new NotificationTranslationRequest("vi", "Sản phẩm sắp giảm giá!",
+                        "Các mặt hàng sau đây sẽ được giảm **##" + promotion.getDiscountPercentage() + "%##** từ **"
+                                + formatDate(promotion.getStartDate(), "vi") + "** đến **" + formatDate(promotion.getEndDate(), "vi")
+                                + "**: " + getProductNamesByLang.apply("vi") + ". Đừng bỏ lỡ!"),
+
+                new NotificationTranslationRequest("en", "Upcoming Discount on Products!",
+                        "The following products will have a **##" + promotion.getDiscountPercentage() + "%##** discount from **"
+                                + formatDate(promotion.getStartDate(), "en") + "** to **" + formatDate(promotion.getEndDate(), "en")
+                                + "**: " + getProductNamesByLang.apply("en") + ". Don't miss out!"),
+
+                new NotificationTranslationRequest("jp", "まもなく割引開始！",
+                        "次の商品の割引が開始されます！ **##" + promotion.getDiscountPercentage() + "%##** の割引期間: **"
+                                + formatDate(promotion.getStartDate(), "jp") + "** から **" + formatDate(promotion.getEndDate(), "jp")
+                                + "** まで。対象商品: " + getProductNamesByLang.apply("jp") + "。 お見逃しなく！")
+        );
     }
 
 }

@@ -27,4 +27,8 @@ public interface PromotionRepository extends JpaRepository<Promotion, Long> {
 
     List<Promotion> findByStartDateBeforeAndEndDateAfter(LocalDateTime startDate, LocalDateTime endDate);
     List<Promotion> findByEndDateBefore(LocalDateTime endDate);
+
+    @Query("SELECT p FROM Promotion p WHERE p.startDate BETWEEN :startDate AND :endDate ORDER BY p.startDate ASC LIMIT 1")
+    Optional<Promotion> findPromotionBeforeStartDate(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+
 }
