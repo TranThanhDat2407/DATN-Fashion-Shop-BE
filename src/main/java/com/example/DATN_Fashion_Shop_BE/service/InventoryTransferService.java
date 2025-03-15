@@ -70,6 +70,7 @@ public class InventoryTransferService {
                 .status(TransferStatus.PENDING)
                 .isReturn(false)
                 .transferItems(new ArrayList<>())
+                .message(request.getMessage())
                 .build();
 
         InventoryTransfer savedTransfer = inventoryTransferRepository.save(transfer);
@@ -101,10 +102,12 @@ public class InventoryTransferService {
             Inventory warehouseInventory = inventoryRepository.findByProductVariantIdAndWarehouseNotNull(productVariant.getId())
                     .stream().findFirst().orElseThrow(() -> new IllegalStateException("No inventory found in warehouse"));
 
-            if (warehouseInventory.getQuantityInStock() < item.getQuantity()) {
+            int warehouseStock = warehouseInventory.getQuantityInStock() != null
+                    ? warehouseInventory.getQuantityInStock() : 0;
+            if (warehouseStock < item.getQuantity()) {
                 throw new IllegalStateException("Not enough stock in warehouse to confirm transfer");
             }
-            warehouseInventory.setQuantityInStock(warehouseInventory.getQuantityInStock() - item.getQuantity());
+            warehouseInventory.setQuantityInStock(warehouseStock - item.getQuantity());
             inventoryRepository.save(warehouseInventory);
 
             Inventory storeInventory = inventoryRepository.findByProductVariantIdAndStoreNotNull(productVariant.getId())
@@ -112,7 +115,9 @@ public class InventoryTransferService {
 
             storeInventory.setProductVariant(productVariant);
             storeInventory.setStore(transfer.getStore());
-            storeInventory.setQuantityInStock(storeInventory.getQuantityInStock() + item.getQuantity());
+            int storeStock = storeInventory.getQuantityInStock() != null ? storeInventory.getQuantityInStock() : 0;
+            storeInventory.setQuantityInStock(storeStock + item.getQuantity());
+
 
             inventoryRepository.save(storeInventory);
         }
