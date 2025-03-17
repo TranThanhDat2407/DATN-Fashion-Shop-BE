@@ -1,6 +1,8 @@
 package com.example.DATN_Fashion_Shop_BE.repository;
 
 import com.example.DATN_Fashion_Shop_BE.model.ProductVariant;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -35,7 +37,9 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
             "(SELECT p.id FROM Product p JOIN p.translations t " +
             "WHERE (:name IS NULL OR :name = '' OR LOWER(t.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
             "AND t.language.code = :languageCode)")
-    List<ProductVariant> findByProductNameAndLanguage(@Param("name") String name,
-                                                      @Param("languageCode") String languageCode);
+    Page<ProductVariant> findByProductNameAndLanguage(@Param("name") String name,
+                                                      @Param("languageCode") String languageCode,
+                                                      Pageable pageable
+                                                      );
 
 }

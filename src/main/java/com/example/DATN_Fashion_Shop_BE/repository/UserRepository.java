@@ -69,4 +69,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByIdAndIsActiveTrue(Long id);
 
     List<User> findByGender(String female);
+
+    @Query("SELECT u FROM User u WHERE u.role.id = 2")
+    List<User> findByRoleCustomer();
+
+    @Query("SELECT u FROM User u WHERE u.role.id = 3")
+    List<User> findByRoleStaff();
 }

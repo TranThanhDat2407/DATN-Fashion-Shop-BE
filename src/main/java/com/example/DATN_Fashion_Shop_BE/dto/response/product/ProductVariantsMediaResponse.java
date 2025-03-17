@@ -29,7 +29,7 @@ public class ProductVariantsMediaResponse {
                     .filter(media -> media.getColorValue() != null && color != null && media.getColorValue().getId().equals(color.getId())) // So sánh bằng ID thay vì equals()
                     .map(ProductMedia::getMediaUrl)
                     .findFirst()
-                    .orElse(product.getMedias().get(0).getMediaUrl()); // Nếu không có, lấy ảnh đầu tiên
+                    .orElse(product.getMedias().getFirst().getMediaUrl()); // Nếu không có, lấy ảnh đầu tiên
         }
 
         ProductVariantsMediaResponse response = ProductVariantsMediaResponse.builder()

@@ -5,6 +5,9 @@ import lombok.*;
 import org.hibernate.envers.Audited;
 import org.hibernate.envers.NotAudited;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "inventory_transfers")
 @Getter
@@ -28,16 +31,14 @@ public class InventoryTransfer extends BaseEntity{
     @NotAudited
     private Store store;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_variant_id", nullable = false)
-    @NotAudited
-    private ProductVariant productVariant;
-
-    @Column(nullable = false)
-    private Integer quantity;
-
     @Enumerated(EnumType.STRING)
     private TransferStatus status;
 
-    private Boolean isReturn = false; // Mặc định là false (chỉ trả hàng nếu true)
+    private String message;
+
+    private Boolean isReturn = false;
+
+    @OneToMany(mappedBy = "inventoryTransfer", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<InventoryTransferItem> transferItems = new ArrayList<>();
+
 }

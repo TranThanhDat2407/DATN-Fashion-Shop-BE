@@ -27,18 +27,18 @@ public class ProductVariantDetailDTO {
 
     public static ProductVariantDetailDTO fromProductVariant(ProductVariant productVariant, String langCode){
         Product product = productVariant.getProduct();
-        Double salePrice = productVariant.getSalePrice(); // Lấy giá salePrice từ ProductVariant
+        Double salePrice = productVariant.getAdjustedPrice(); // Lấy giá salePrice từ ProductVariant
 
         // Tính toán khuyến mãi dựa trên salePrice
-        if (product.getPromotion() != null && product.getPromotion().getIsActive()) {
-            Promotion promotion = product.getPromotion();
-
-            if (promotion.getDiscountPercentage() != null) {
-                salePrice *= (1 - promotion.getDiscountPercentage() / 100); // Áp dụng giảm giá theo %
-            }
-            // Đảm bảo salePrice không âm
-            salePrice = Math.max(salePrice, 0);
-        }
+//        if (product.getPromotion() != null && product.getPromotion().getIsActive()) {
+//            Promotion promotion = product.getPromotion();
+//
+//            if (promotion.getDiscountPercentage() != null) {
+//                salePrice *= (1 - promotion.getDiscountPercentage() / 100); // Áp dụng giảm giá theo %
+//            }
+//            // Đảm bảo salePrice không âm
+//            salePrice = Math.max(salePrice, 0);
+//        }
 
         String variantImage = product.getMedias().stream()
                 .filter(media -> "IMAGE".equals(media.getMediaType())
@@ -64,18 +64,18 @@ public class ProductVariantDetailDTO {
 
     public static ProductVariantDetailDTO fromProductVariantAndWishList(ProductVariant productVariant, String langCode, boolean isInWishlist) {
         Product product = productVariant.getProduct();
-        Double salePrice = productVariant.getSalePrice(); // Lấy giá salePrice từ ProductVariant
+        Double salePrice = productVariant.getAdjustedPrice(); // Lấy giá salePrice từ ProductVariant
 
         // Tính toán khuyến mãi dựa trên salePrice
-        if (product.getPromotion() != null && product.getPromotion().getIsActive()) {
-            Promotion promotion = product.getPromotion();
-
-            if (promotion.getDiscountPercentage() != null) {
-                salePrice *= (1 - promotion.getDiscountPercentage() / 100); // Áp dụng giảm giá theo %
-            }
-            // Đảm bảo salePrice không âm
-            salePrice = Math.max(salePrice, 0);
-        }
+//        if (product.getPromotion() != null && product.getPromotion().getIsActive()) {
+//            Promotion promotion = product.getPromotion();
+//
+//            if (promotion.getDiscountPercentage() != null) {
+//                salePrice *= (1 - promotion.getDiscountPercentage() / 100); // Áp dụng giảm giá theo %
+//            }
+//            // Đảm bảo salePrice không âm
+//            salePrice = Math.max(salePrice, 0);
+//        }
 
         String variantImage = product.getMedias().stream()
                 .filter(media -> "IMAGE".equals(media.getMediaType())

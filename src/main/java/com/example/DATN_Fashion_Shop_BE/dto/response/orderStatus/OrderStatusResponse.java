@@ -19,6 +19,9 @@ public class OrderStatusResponse {
     private String statusName;
 
     public static OrderStatusResponse fromOrderStatus(OrderStatus orderStatus) {
+        if (orderStatus == null) {
+            return null;
+        }
         return OrderStatusResponse.builder()
                 .id(orderStatus.getId())
                 .statusName(orderStatus.getStatusName())
