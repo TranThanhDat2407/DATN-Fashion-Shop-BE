@@ -1,5 +1,6 @@
 package com.example.DATN_Fashion_Shop_BE.model;
 
+import com.example.DATN_Fashion_Shop_BE.dto.response.BaseResponse;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -10,7 +11,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Staff {
+public class Staff extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
