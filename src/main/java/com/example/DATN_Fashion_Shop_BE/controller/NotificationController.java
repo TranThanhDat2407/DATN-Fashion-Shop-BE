@@ -17,6 +17,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("${api.prefix}/notify")
 @RequiredArgsConstructor
@@ -63,14 +66,24 @@ public class NotificationController {
     }
 
     @DeleteMapping("/delete/{notificationId}")
-    public ResponseEntity<String> deleteNotificationById(@PathVariable Long notificationId) {
+    public ResponseEntity<Map<String, String>> deleteNotificationById(@PathVariable Long notificationId) {
         notificationService.deleteById(notificationId);
-        return ResponseEntity.ok("Notification with ID " + notificationId + " has been deleted.");
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Notification with ID " + notificationId + " has been deleted.");
+
+        return ResponseEntity.ok().body(response);
     }
 
+
     @DeleteMapping("/delete/user/{userId}")
-    public ResponseEntity<String> deleteNotificationsByUserId(@PathVariable Long userId) {
+    public ResponseEntity<Map<String, String>> deleteNotificationsByUserId(@PathVariable Long userId) {
         notificationService.deleteByUserId(userId);
-        return ResponseEntity.ok("All notifications for user " + userId + " have been deleted.");
+
+        // Trả về JSON hợp lệ
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "All notifications for user " + userId + " have been deleted.");
+        return ResponseEntity.ok(response);
     }
+
 }

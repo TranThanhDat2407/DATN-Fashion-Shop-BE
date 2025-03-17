@@ -85,6 +85,9 @@ public class StaffService {
         return jwtTokenUtil.generateToken(existingUser);
     }
 
+    public boolean isUserInStore(Long userId, Long storeId) {
+        return staffRepository.existsByUser_IdAndStore_Id(userId, storeId);
+    }
 
 
 }

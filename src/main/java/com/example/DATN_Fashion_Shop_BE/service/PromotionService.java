@@ -196,11 +196,40 @@ public class PromotionService {
                     user.getId(),
                     "PROMOTION",
                     null, // redirectUrl không cần backend xử lý
-                    null, // Không cần imageUrl
+                    "promotion.jpg", // Không cần imageUrl
                     translations
             );
         });
     }
 
+    @Transactional
+    //@Scheduled(cron = "0 * * * * ?")
+    @Scheduled(cron = "0 0 0 * * ?")
+    public void sendPromotionsBeforeStartDateForStaff() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime tomorrow = now.plusDays(1); // Ngày mai
+
+        List<User> staff = userRepository.findByRoleStaff();
+
+        Optional<Promotion> promotionOpt = promotionRepository.findPromotionBeforeStartDate(now, tomorrow);
+
+        promotionOpt.ifPresent(promotion -> {
+            sendPromotionForStaff(promotion, staff);
+        });
+    }
+
+    private void sendPromotionForStaff(Promotion promotion, List<User> users) {
+        List<NotificationTranslationRequest> translations = notificationService.createPromotionForStaff(promotion);
+
+        users.forEach(user -> {
+            notificationService.createNotification(
+                    user.getId(),
+                    "PROMOTION",
+                    null, // redirectUrl không cần backend xử lý
+                    "promotion.jpg", // Không cần imageUrl
+                    translations
+            );
+        });
+    }
 
 }

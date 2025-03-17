@@ -1,33 +1,22 @@
 package com.example.DATN_Fashion_Shop_BE.controller;
 
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
-import com.example.DATN_Fashion_Shop_BE.dto.request.attribute_values.CreateColorRequest;
-import com.example.DATN_Fashion_Shop_BE.dto.request.attribute_values.CreateSizeRequest;
+import com.example.DATN_Fashion_Shop_BE.dto.request.inventory_transfer.InventoryTransferRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.attribute_values.*;
 import com.example.DATN_Fashion_Shop_BE.dto.response.inventory_transfer.InventoryTransferResponse;
 import com.example.DATN_Fashion_Shop_BE.model.InventoryTransfer;
-import com.example.DATN_Fashion_Shop_BE.service.AttributeValuesService;
+import com.example.DATN_Fashion_Shop_BE.model.TransferStatus;
 import com.example.DATN_Fashion_Shop_BE.service.InventoryTransferService;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import lombok.AllArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
 @RestController
@@ -37,74 +26,70 @@ public class InventoryTransferController {
 
     private final LocalizationUtils localizationUtils;
     private final InventoryTransferService inventoryTransferService;
-    private static final Logger logger = LoggerFactory.getLogger(InventoryTransferController.class);
 
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<InventoryTransferResponse>> createTransfer(
-            @RequestParam Long warehouseId,
-            @RequestParam Long storeId,
-            @RequestParam Long productVariantId,
-            @RequestParam Integer quantity) {
-        InventoryTransfer transfer = inventoryTransferService.createTransfer(warehouseId, storeId, productVariantId, quantity);
+            @RequestBody InventoryTransferRequest request,
+            @RequestParam(defaultValue = "vi") String langCode) {
+        InventoryTransfer transfer = inventoryTransferService.createTransfer(request);
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
-                InventoryTransferResponse.fromInventoryTransfer(transfer)
+                InventoryTransferResponse.fromInventoryTransfer(transfer, langCode)
         ));
     }
 
     @PutMapping("/confirm/{transferId}")
-    public ResponseEntity<ApiResponse<InventoryTransferResponse>> confirmTransfer(@PathVariable Long transferId) {
+    public ResponseEntity<ApiResponse<InventoryTransferResponse>> confirmTransfer(
+            @PathVariable Long transferId,
+            @RequestParam(defaultValue = "vi") String langCode) {
         InventoryTransfer transfer = inventoryTransferService.confirmTransfer(transferId);
-
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
-                InventoryTransferResponse.fromInventoryTransfer(transfer)
+                InventoryTransferResponse.fromInventoryTransfer(transfer, langCode)
         ));
     }
 
     @PutMapping("/cancel/{transferId}")
-    public ResponseEntity<ApiResponse<InventoryTransferResponse>> cancelTransfer(@PathVariable Long transferId) {
+    public ResponseEntity<ApiResponse<InventoryTransferResponse>> cancelTransfer(
+            @PathVariable Long transferId,
+            @RequestParam(defaultValue = "vi") String langCode) {
         InventoryTransfer transfer = inventoryTransferService.cancelTransfer(transferId);
-
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
-                InventoryTransferResponse.fromInventoryTransfer(transfer)
-        ));
-    }
-
-    @PostMapping("/return")
-    public ResponseEntity<ApiResponse<InventoryTransferResponse>> returnToWarehouse(
-            @RequestParam Long storeId,
-            @RequestParam Long warehouseId,
-            @RequestParam Long productVariantId,
-            @RequestParam Integer quantity) {
-        InventoryTransfer transfer = inventoryTransferService.returnToWarehouse(storeId, warehouseId, productVariantId, quantity);
-
-        return ResponseEntity.ok(ApiResponseUtils.successResponse(
-                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
-                InventoryTransferResponse.fromInventoryTransfer(transfer)
-        ));
-    }
-
-    @PutMapping("/confirm-return/{transferId}")
-    public ResponseEntity<ApiResponse<InventoryTransferResponse>> confirmReturnTransfer(@PathVariable Long transferId) {
-        InventoryTransfer transfer = inventoryTransferService.confirmReturnTransfer(transferId);
-
-        return ResponseEntity.ok(ApiResponseUtils.successResponse(
-                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
-                InventoryTransferResponse.fromInventoryTransfer(transfer)
+                InventoryTransferResponse.fromInventoryTransfer(transfer, langCode)
         ));
     }
 
     @GetMapping("/store/{storeId}")
-    public List<InventoryTransfer> getAllTransfersByStore(@PathVariable Long storeId) {
-        return inventoryTransferService.getAllTransfersByStore(storeId);
+    public ResponseEntity<ApiResponse<PageResponse<InventoryTransferResponse>>> getAllTransfersByStore(
+            @PathVariable Long storeId,
+            @RequestParam(required = false) TransferStatus status,
+            @RequestParam(required = false) Boolean isReturn,
+            @RequestParam(defaultValue = "vi") String langCode,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                PageResponse.fromPage(inventoryTransferService
+                        .getAllTransfersByStore(storeId, status, isReturn, pageable, langCode))
+        ));
     }
 
-    // Lấy lịch sử thay đổi số lượng của tất cả bản ghi liên quan đến store_id
+    @GetMapping("/{id}")
+    public ResponseEntity<InventoryTransferResponse> getInventoryTransferById(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "vi") String langCode) {
+        InventoryTransferResponse response = inventoryTransferService.getInventoryTransferById(id, langCode);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/store/{storeId}/history")
     public List<Object[]> getInventoryTransferHistoryByStore(@PathVariable Long storeId) {
         return inventoryTransferService.getInventoryTransferHistoryByStore(storeId);
     }
-
 }

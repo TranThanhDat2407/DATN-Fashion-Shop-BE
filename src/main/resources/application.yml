@@ -18,9 +18,9 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:sqlserver://localhost:1433;databaseName=DATN_FASHION_SHOP;encrypt=false;trustServerCertificate=true;}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     username: ${SPRING_DATASOURCE_USERNAME:sa}
-    password: ${SPRING_DATASOURCE_PASSWORD:songlong}
+    password: ${SPRING_DATASOURCE_PASSWORD:123}
   jpa:
-    show-sql: true
+    show-sql: true  
     hibernate:
       ddl-auto: update #chỗ này mà sửa thành drop-create thì rất nguy
       #ddl-auto: validate

@@ -67,17 +67,20 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             "FROM Product p " +
             "JOIN p.categories c " +
             "JOIN p.translations t " +
-            "WHERE (:categoryId is NULL OR c.id = :categoryId " +
+            "LEFT JOIN p.promotion pr " +
+            "WHERE (:categoryId IS NULL OR c.id = :categoryId " +
             "   OR c.parentCategory.id = :categoryId " +
             "   OR c.parentCategory.id IN (" +
             "       SELECT sc.id FROM Category sc WHERE sc.parentCategory.id = :categoryId" +
             "   )) " +
             "AND p.isActive = :isActive " +
-            "AND (:nameKeyword IS NULL OR :nameKeyword = '' OR LOWER(t.name) LIKE LOWER(CONCAT('%', :nameKeyword, '%')))")
-    Page<Product> findProductsByCategoryAndName(
+            "AND (:nameKeyword IS NULL OR LOWER(t.name) LIKE LOWER(CONCAT('%', :nameKeyword, '%'))) " +
+            "AND (:promotionId IS NULL OR pr.id = :promotionId)")
+    Page<Product> findProductsByCategoryWithoutPrice(
             @Param("categoryId") Long categoryId,
             @Param("isActive") Boolean isActive,
             @Param("nameKeyword") String nameKeyword,
+            @Param("promotionId") Long promotionId,
             Pageable pageable
     );
 
@@ -87,7 +90,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             "JOIN p.variants pv " +
             "JOIN p.translations t " +
             "LEFT JOIN p.promotion pr " +
-            "WHERE (:categoryId is NULL OR c.id = :categoryId " +
+            "WHERE (:categoryId IS NULL OR c.id = :categoryId " +
             "   OR c.parentCategory.id = :categoryId " +
             "   OR c.parentCategory.id IN (" +
             "       SELECT sc.id FROM Category sc WHERE sc.parentCategory.id = :categoryId" +
@@ -95,7 +98,8 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             "AND p.isActive = :isActive " +
             "AND (:nameKeyword IS NULL OR LOWER(t.name) LIKE LOWER(CONCAT('%', :nameKeyword, '%'))) " +
             "AND (SELECT MIN(v.salePrice) FROM p.variants v) BETWEEN :minPrice AND :maxPrice " +
-            "AND (:promotionId IS NULL OR pr.id = :promotionId)")
+            "AND (:promotionId IS NULL OR pr.id = :promotionId)")  // Chỉ lọc khi promotionId có giá trị
+
     Page<Product> findProductsByCategoryAndLowestPrice(
             @Param("categoryId") Long categoryId,
             @Param("isActive") Boolean isActive,
@@ -105,6 +109,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             @Param("promotionId") Long promotionId,
             Pageable pageable
     );
+
 
     List<Product> findByPromotion(Promotion promotion);
 

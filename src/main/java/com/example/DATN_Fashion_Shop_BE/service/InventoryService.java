@@ -3,12 +3,17 @@ package com.example.DATN_Fashion_Shop_BE.service;
 
 import com.example.DATN_Fashion_Shop_BE.dto.response.audit.CategoryAudResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.inventory.InventoryAudResponse;
+import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.model.Category;
 import com.example.DATN_Fashion_Shop_BE.model.Inventory;
+import com.example.DATN_Fashion_Shop_BE.model.ProductVariant;
+import com.example.DATN_Fashion_Shop_BE.model.Store;
 import com.example.DATN_Fashion_Shop_BE.repository.InventoryRepository;
 import com.example.DATN_Fashion_Shop_BE.repository.ProductVariantRepository;
+import com.example.DATN_Fashion_Shop_BE.repository.StoreRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.envers.AuditReader;
 import org.hibernate.envers.AuditReaderFactory;
@@ -34,15 +39,39 @@ import java.util.Map;
 public class InventoryService {
     private final InventoryRepository inventoryRepository;
     private final ProductVariantRepository productVariantRepository;
-    private final CategoryService categoryService; // ✅ Gọi Service thay vì Repo
+    private final CategoryService categoryService;
 
     private static final Logger logger = LoggerFactory.getLogger(InventoryService.class);
+    private final StoreRepository storeRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
 
     private AuditReader getAuditReader() {
         return AuditReaderFactory.get(entityManager);
+    }
+
+
+    @Transactional
+    public void reduceInventory(Long variantId, Integer quantity, Long storeId) throws DataNotFoundException {
+
+        ProductVariant variant = productVariantRepository.findById(variantId)
+                .orElseThrow(() -> new DataNotFoundException("Product variant not found"));
+
+        Store store = storeRepository.findById(storeId)
+                .orElseThrow(() -> new DataNotFoundException("store not found"));
+
+        Inventory inventory = inventoryRepository.findByStoreIdAndProductVariantId( storeId, variantId)
+                .orElseThrow(() -> new DataNotFoundException("Inventory record not found for this store"));
+
+        if (inventory.getQuantityInStock() < quantity) {
+            throw new IllegalStateException("Not enough stock available for this product variant!");
+        }
+
+        inventory.setQuantityInStock(inventory.getQuantityInStock() - quantity);
+        inventoryRepository.save(inventory);
+
+        logger.info("✅ Successfully deducted {} items of variant {} from store {}", quantity, variantId, storeId);
     }
 
     public Page<InventoryAudResponse> getInventoryHistoryByStore(

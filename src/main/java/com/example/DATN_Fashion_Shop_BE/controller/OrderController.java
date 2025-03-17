@@ -3,13 +3,18 @@ package com.example.DATN_Fashion_Shop_BE.controller;
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.request.Ghn.GhnCreateOrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.Ghn.PreviewOrderRequest;
+import com.example.DATN_Fashion_Shop_BE.dto.request.order.ClickAndCollectOrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.order.OrderRequest;
+import com.example.DATN_Fashion_Shop_BE.dto.request.order.UpdateStoreOrderStatusRequest;
+import com.example.DATN_Fashion_Shop_BE.dto.request.order.UpdateStorePaymentMethodRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.store.StorePaymentRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.GhnCreateOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.Ghn.PreviewOrderResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.TotalOrderTodayResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.order.*;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.orderDetail.OrderDetailResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.StorePaymentResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.userAddressResponse.UserAddressResponse;
@@ -31,6 +36,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -422,6 +429,168 @@ public class OrderController {
                 )
         );
     }
+
+    @GetMapping("/store/{storeId}")
+    public ResponseEntity<ApiResponse<PageResponse<StoreOrderResponse>>> getOrders(
+            @PathVariable Long storeId,
+            @RequestParam(required = false) Long orderStatusId,
+            @RequestParam(required = false) Long paymentMethodId,
+            @RequestParam(required = false) Long shippingMethodId,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) Long staffId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDateTime endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "updatedAt") String sortBy,
+            @RequestParam(defaultValue = "vi") String languageCode,
+            @RequestParam(defaultValue = "desc") String sortDir
+    ) {
+
+        Sort.Direction direction = sortDir.equalsIgnoreCase("asc")
+                ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        // Lấy danh sách đơn hàng đã chuyển đổi
+        Page<StoreOrderResponse> storeOrders = orderService.getStoreOrdersByFilters(
+                storeId, orderStatusId, paymentMethodId, shippingMethodId, customerId, staffId, startDate, endDate, languageCode, pageable
+        );
+
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        MessageKeys.ORDERS_SUCCESSFULLY,
+                        PageResponse.fromPage(storeOrders)
+                )
+        );
+    }
+
+    @GetMapping("store/order-detail/{orderId}")
+    public ResponseEntity<ApiResponse<StoreOrderResponse>> getStoreOrderById(
+            @PathVariable Long orderId,
+            @RequestParam(defaultValue = "vi") String languageCode
+    ) throws DataNotFoundException {
+        StoreOrderResponse response = orderService.getStoreOrderById(orderId, languageCode);
+
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        MessageKeys.ORDERS_SUCCESSFULLY,
+                        response
+                )
+        );
+    }
+
+    @PutMapping("store/{orderId}/status")
+    public ResponseEntity<ApiResponse<?>> updateOrderStatus(
+            @PathVariable Long orderId,
+            @RequestBody UpdateStoreOrderStatusRequest request) throws DataNotFoundException {
+        orderService.updateOrderStatus(orderId, request);
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        MessageKeys.ORDERS_SUCCESSFULLY,
+                        "success"
+                )
+        );
+    }
+
+    // Cập nhật phương thức thanh toán
+    @PutMapping("store/{orderId}/payment-method")
+    public ResponseEntity<ApiResponse<?>> updatePaymentMethod(
+            @PathVariable Long orderId,
+            @RequestBody UpdateStorePaymentMethodRequest request) throws DataNotFoundException {
+        orderService.updatePaymentMethod(orderId, request);
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        MessageKeys.ORDERS_SUCCESSFULLY,
+                        "success"
+                )
+        );
+    }
+
+    @Operation(
+            summary = "Đặt hàng Click & Collect",
+            description = "API này cho phép người dùng đặt hàng Click & Collect, kiểm tra tồn kho và xử lý thanh toán.",
+            tags = "Orders"
+    )
+    @PostMapping("/create-click-and-collect-order")
+    public ResponseEntity<ApiResponse<?>> createClickAndCollectOrder(
+            HttpServletRequest request,
+            @RequestBody @Valid ClickAndCollectOrderRequest orderRequest,
+            BindingResult bindingResult) {
+
+        // 1️⃣ Kiểm tra lỗi đầu vào
+        if (bindingResult.hasErrors()) {
+            log.debug("Validation errors: " + bindingResult.getAllErrors());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    ApiResponseUtils.generateValidationErrorResponse(
+                            bindingResult,
+                            localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_CREATE_FAILED),
+                            localizationUtils
+                    )
+            );
+        }
+
+        // 2️⃣ Gọi service để tạo đơn hàng Click & Collect
+        ResponseEntity<?> response = orderService.createClickAndCollectOrder(orderRequest, request);
+        Object responseBody = response.getBody();
+
+        // 3️⃣ Nếu response body null => thất bại
+        if (responseBody == null) {
+            log.error("Click & Collect order creation failed, response body is null");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    ApiResponseUtils.errorResponse(
+                            HttpStatus.BAD_REQUEST,
+                            localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_CREATE_FAILED),
+                            "clickAndCollectOrder",
+                            null,
+                            "Không thể tạo đơn hàng Click & Collect, vui lòng thử lại sau."
+                    )
+            );
+        }
+
+        // 4️⃣ Nếu VNPay trả về Map (Link thanh toán)
+        if (responseBody instanceof Map<?, ?> paymentResponse) {
+            log.info("VNPay payment link response detected.");
+            return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                    localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_SUCCESSFULLY),
+                    paymentResponse
+            ));
+        }
+
+        // 5️⃣ Nếu đơn hàng tạo thành công theo phương thức thanh toán tại cửa hàng
+        if (responseBody instanceof Order order) {
+            log.info("Click & Collect order with Pay in Store detected. Converting to CreateOrderResponse.");
+            CreateOrderResponse createOrderResponse = CreateOrderResponse.fromOrder(order);
+            log.debug("Converted CreateOrderResponse: " + createOrderResponse);
+
+            return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                    localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_SUCCESSFULLY),
+                    createOrderResponse
+            ));
+        }
+
+        // 6️⃣ Nếu response là CreateOrderResponse
+        if (responseBody instanceof CreateOrderResponse createOrderResponse) {
+            log.info("CreateOrderResponse detected, returning success response.");
+            return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                    localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_SUCCESSFULLY),
+                    createOrderResponse
+            ));
+        }
+
+        // 7️⃣ Nếu không khớp bất kỳ điều kiện nào
+        log.error("Unexpected response type: " + responseBody.getClass().getName());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ApiResponseUtils.errorResponse(
+                        HttpStatus.BAD_REQUEST,
+                        localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_CREATE_FAILED),
+                        "clickAndCollectOrder",
+                        null,
+                        "Không thể tạo đơn hàng Click & Collect, vui lòng thử lại sau."
+                )
+        );
+    }
+
+
 }
 
 

@@ -15,6 +15,7 @@ public class StorePaymentResponse extends BaseResponse {
 
     private Long orderId;
     private Long userId; // Thêm thông tin chi tiết User
+    private String customerName;
     private Long couponId; // Thêm thông tin chi tiết Coupon
     private String shippingMethodName; // Thêm thông tin chi tiết Shipping Method
     private String shippingAddress;
@@ -27,6 +28,8 @@ public class StorePaymentResponse extends BaseResponse {
         StorePaymentResponse response = StorePaymentResponse.builder()
                 .orderId(order.getId())
                 .userId(order.getUser() != null ? order.getUser().getId() : null)
+                .customerName(order.getUser() != null ? order.getUser().getFirstName()
+                        + " " +order.getUser().getLastName() : null)
                 .couponId(order.getCoupon() != null ? order.getCoupon().getId() : null)
                 .shippingMethodName(order.getShippingMethod() != null ? order.getShippingMethod().getMethodName() : null)
                 .shippingAddress(order.getShippingAddress())
@@ -34,7 +37,7 @@ public class StorePaymentResponse extends BaseResponse {
                 .tax_amount(order.getTaxAmount())
                 .paymentMethodName(
                         (order.getPayments() != null && !order.getPayments().isEmpty()) ?
-                                order.getPayments().get(0).getPaymentMethod().getMethodName() : null
+                                order.getPayments().getFirst().getPaymentMethod().getMethodName() : null
                 )
                 .orderStatusName(order.getOrderStatus() != null ? order.getOrderStatus().getStatusName() : null)
                 .build();
