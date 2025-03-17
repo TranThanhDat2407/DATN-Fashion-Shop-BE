@@ -4,6 +4,7 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.payment.PaymentMethodRespon
 import com.example.DATN_Fashion_Shop_BE.dto.response.product.ProductVariantResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.userAddressResponse.UserAddressResponse;
 import com.example.DATN_Fashion_Shop_BE.model.*;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -29,9 +30,12 @@ public class OrderDetailAdminResponse {
     private String paymentMethod;
     private String paymentStatus;
     private String orderStatus;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss", shape = JsonFormat.Shape.STRING)
     private LocalDateTime createTime;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss", shape = JsonFormat.Shape.STRING)
     private LocalDateTime updateTime;
     private Double couponPrice;
+    private String storeName;
     private Double tax;
     private Double shippingFee;
     private Double totalAmount;
@@ -104,6 +108,7 @@ public class OrderDetailAdminResponse {
                 .createTime(order.getCreatedAt())
                 .updateTime(order.getUpdatedAt())
                 .tax(order.getTaxAmount())
+                .storeName(order.getStore() != null ? order.getStore().getName() : null)
                 .shippingFee(order.getShippingFee())
                 .totalAmount(order.getTotalPrice())
                 .imageUrl(productImage)

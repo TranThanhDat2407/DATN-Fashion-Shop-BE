@@ -3,6 +3,7 @@ package com.example.DATN_Fashion_Shop_BE.dto.response.order;
 import com.example.DATN_Fashion_Shop_BE.dto.response.BaseResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.userAddressResponse.UserAddressResponse;
 import com.example.DATN_Fashion_Shop_BE.model.*;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -19,6 +20,7 @@ public class GetAllOrderAdmin {
     private Double totalPrice;
     private Double totalAmount;
     private String orderStatus;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss", shape = JsonFormat.Shape.STRING)
     private LocalDateTime orderTime;
     private String shippingAddress;
     private String paymentStatus;

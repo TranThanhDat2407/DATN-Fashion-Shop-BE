@@ -198,7 +198,7 @@ public class OrderController {
     public ResponseEntity<ApiResponse<Page<HistoryOrderResponse>>> getOrderHistory(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "5") int size) {
 
         Page<HistoryOrderResponse> historyOrders = orderService.getOrderHistoryByUserId(userId, page, size);
 
@@ -313,7 +313,7 @@ public class OrderController {
 
 
     @Operation(
-            summary = "Lọc đơn hàng theo trạng thái",
+            summary = "Lọc đơn hàng theo trạng thái (dùng cho Customers)" ,
             description = "API này cho phép người dùng xem danh sách đơn hàng theo trạng thái",
             tags = "Orders"
     )
@@ -353,130 +353,33 @@ public class OrderController {
     }
 
     @Operation(
-            summary = "Lọc đơn hàng theo trạng thái (dùng cho ADMIN)",
+            summary = " ✅ Lọc và lấy danh sách đơn hàng theo nhiều tiêu chí (dùng cho Admin)",
             description = "API này cho phép người dùng xem danh sách đơn hàng theo trạng thái",
             tags = "Orders"
     )
-    @GetMapping("/admin/history/orders")
-    public ResponseEntity<ApiResponse<Page<GetAllOrderAdmin>>> getAllOrderAdmin(
+    @GetMapping("/filter")
+    public ResponseEntity<ApiResponse<Page<GetAllOrderAdmin>>> getFilteredOrders(
+            @RequestParam(required = false) Long orderId,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String shippingAddress,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime fromDate,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime toDate,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime updateFromDate,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime updateToDate,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDirection) {
-
-        Sort sort = sortDirection.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        Page<GetAllOrderAdmin> historyOrders;
-
-        if (status == null || status.isEmpty()) {
-            historyOrders = orderService.getAllOrdersAdmin(pageable);
-        } else {
-            historyOrders = orderService.getOrdersByStatusAdmin(status, pageable);
-        }
-
-        if (historyOrders.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    ApiResponseUtils.errorResponse(
-                            HttpStatus.NOT_FOUND,
-                            localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_HISTORY_NOT_FOUND),
-                            null
-                    )
-            );
-        }
-
-        return ResponseEntity.ok(
-                ApiResponseUtils.successResponse(
-                        localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_HISTORY_SUCCESS),
-                        historyOrders
-                )
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDirection
+    ) {
+        Page<GetAllOrderAdmin> orders = orderService.getFilteredOrders(
+                orderId, status, shippingAddress, minPrice, maxPrice,
+                fromDate, toDate, updateFromDate, updateToDate,
+                page, size, sortBy, sortDirection
         );
-    }
-
-
-
-    @Operation(
-            summary = " ✅ Lọc đơn hàng theo trạng thái (dùng cho Admin)",
-            description = "API này cho phép người dùng xem danh sách đơn hàng theo trạng thái",
-            tags = "Orders"
-    )
-    // Lọc theo trạng thái đơn hàng (status)
-    @GetMapping("/filter/status")
-    public ResponseEntity<ApiResponse<Page<GetAllOrderAdmin>>> filterByStatus(
-            @RequestParam String status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size) {
-
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<GetAllOrderAdmin> orders = orderService.filterByStatus(status, pageable);
-        return buildResponse(orders, MessageKeys.ORDERS_HISTORY_SUCCESS, MessageKeys.ORDERS_HISTORY_NOT_FOUND);
-    }
-    @Operation(
-            summary = " ✅ Lọc đơn hàng theo địa chỉ giao hàng (dùng cho Admin)",
-            description = "API này cho phép người dùng xem danh sách đơn hàng theo trạng thái",
-            tags = "Orders"
-    )
-    @GetMapping("/filter/address")
-    public ResponseEntity<ApiResponse<Page<GetAllOrderAdmin>>> filterByAddress(
-            @RequestParam String shippingAddress,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size) {
-
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<GetAllOrderAdmin> orders = orderService.filterByAddress(shippingAddress, pageable);
-        return buildResponse(orders, MessageKeys.ORDERS_HISTORY_SUCCESS, MessageKeys.ORDERS_HISTORY_NOT_FOUND);
-    }
-
-
-    @Operation(
-            summary = " ✅ Lọc đơn hàng theo khoảng giá (dùng cho Admin)",
-            description = "API này cho phép người dùng xem danh sách đơn hàng theo trạng thái",
-            tags = "Orders"
-    )
-    @GetMapping("/filter/price-range")
-    public ResponseEntity<ApiResponse<Page<GetAllOrderAdmin>>> filterByPriceRange(
-            @RequestParam Double minPrice,
-            @RequestParam Double maxPrice,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size) {
-
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<GetAllOrderAdmin> orders = orderService.filterByPriceRange(minPrice, maxPrice, pageable);
-        return buildResponse(orders, MessageKeys.ORDERS_HISTORY_SUCCESS, MessageKeys.ORDERS_HISTORY_NOT_FOUND);
-    }
-
-    @Operation(
-            summary = " ✅ Lọc đơn hàng theo ngày tạo (dùng cho Admin)",
-            description = "API này cho phép người dùng xem danh sách đơn hàng theo trạng thái",
-            tags = "Orders"
-    )
-    @GetMapping("/filter/created-date")
-    public ResponseEntity<ApiResponse<Page<GetAllOrderAdmin>>> filterByCreatedDate(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size) {
-
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<GetAllOrderAdmin> orders = orderService.filterByCreatedDate(fromDate, toDate, pageable);
-        return buildResponse(orders, MessageKeys.ORDERS_HISTORY_SUCCESS, MessageKeys.ORDERS_HISTORY_NOT_FOUND);
-    }
-
-    @Operation(
-            summary = " ✅ Lọc đơn hàng theo ngày cập nhật (dùng cho Admin)",
-            description = "API này cho phép người dùng xem danh sách đơn hàng theo trạng thái",
-            tags = "Orders"
-    )
-    @GetMapping("/filter/updated-date")
-    public ResponseEntity<ApiResponse<Page<GetAllOrderAdmin>>> filterByUpdatedDate(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime updateFromDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime updateToDate,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size) {
-
-        Pageable pageable = PageRequest.of(page, size, Sort.by("updatedAt").descending());
-        Page<GetAllOrderAdmin> orders = orderService.filterByUpdatedDate(updateFromDate, updateToDate, pageable);
+        log.info("Received fromDate: " + fromDate);
+        log.info("Received toDate: " + toDate);
         return buildResponse(orders, MessageKeys.ORDERS_HISTORY_SUCCESS, MessageKeys.ORDERS_HISTORY_NOT_FOUND);
     }
 
@@ -499,9 +402,18 @@ public class OrderController {
     @PutMapping("/{orderId}/status")
     public ResponseEntity<ApiResponse<GetAllOrderAdmin>> updateOrderStatus(
             @PathVariable Long orderId,
-            @RequestParam String newStatus) {
+            @RequestBody Map<String, String> request) {
+        log.info("Received request body: {}", request);
 
-        GetAllOrderAdmin updatedOrder = orderService.updateOrderStatus(orderId, newStatus);
+        String status = request.get("status");
+        if (status == null || status.isEmpty()) {
+            log.error("Status is missing in request body!");
+            return ResponseEntity.badRequest().body(ApiResponseUtils.errorResponse(
+                    HttpStatus.BAD_REQUEST,
+                    "Status is required",null));
+        }
+
+        GetAllOrderAdmin updatedOrder = orderService.updateOrderStatus(orderId, status);
 
         return ResponseEntity.ok(
                 ApiResponseUtils.successResponse(

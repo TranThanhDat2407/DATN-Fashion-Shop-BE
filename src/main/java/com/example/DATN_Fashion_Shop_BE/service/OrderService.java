@@ -33,6 +33,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -191,6 +192,10 @@ public class OrderService {
 
             orderDetailRepository.saveAll(orderDetails);
             log.info("✅ Đã lưu {} sản phẩm vào OrderDetail.", orderDetails.size());
+
+
+
+
 
             try {
                 String vnp_TxnRef = String.valueOf(savedOrder.getId());
@@ -445,75 +450,69 @@ public class OrderService {
     }
 
 
-    public Page<GetAllOrderAdmin> getAllOrdersAdmin(Pageable pageable) {
+    public Page<GetAllOrderAdmin> getFilteredOrders(
+            Long orderId,
+            String status,
+            String shippingAddress,
+            Double minPrice,
+            Double maxPrice,
+            LocalDateTime fromDate,
+            LocalDateTime toDate,
+            LocalDateTime updateFromDate,
+            LocalDateTime updateToDate,
+            int page,
+            int size,
+            String sortBy,
+            String sortDirection
+    ) {
+        Specification<Order> spec = OrderSpecification.filterOrders(orderId, status, shippingAddress, minPrice, maxPrice, fromDate, toDate, updateFromDate, updateToDate);
 
-        Page<Order> orders = orderRepository.findAll(pageable);
+        // Tạo `Sort` theo sortBy và sortDirection
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
 
-        return orders.map(GetAllOrderAdmin::fromGetAllOrderAdmin);
+        return orderRepository.findAll(spec, pageable).map(GetAllOrderAdmin::fromGetAllOrderAdmin);
     }
 
-    public Page<GetAllOrderAdmin> getOrdersByStatusAdmin(String status, Pageable pageable) {
 
-        return orderRepository.findByOrderStatus_StatusName(status, pageable)
-
-                .map(GetAllOrderAdmin::fromGetAllOrderAdmin);
-    }
-
-    public Page<GetAllOrderAdmin> filterByStatus(String status, Pageable pageable) {
-        return orderRepository.findByOrderStatus_StatusName(status, pageable)
-                .map(GetAllOrderAdmin::fromGetAllOrderAdmin);
-    }
-
-    public Page<GetAllOrderAdmin> filterByAddress(String shippingAddress, Pageable pageable) {
-        return orderRepository.findByShippingAddressContainingIgnoreCase(shippingAddress, pageable)
-                .map(GetAllOrderAdmin::fromGetAllOrderAdmin);
-    }
-
-    public Page<GetAllOrderAdmin> filterByPriceRange(Double minPrice, Double maxPrice, Pageable pageable) {
-        return orderRepository.findByTotalPriceBetween(minPrice, maxPrice, pageable)
-                .map(GetAllOrderAdmin::fromGetAllOrderAdmin);
-    }
-
-    public Page<GetAllOrderAdmin> filterByCreatedDate(LocalDateTime fromDate, LocalDateTime toDate, Pageable pageable) {
-        if (toDate == null) {
-            toDate = LocalDateTime.now();
-        }
-        return orderRepository.findByCreatedAtBetween(fromDate, toDate, pageable)
-                .map(GetAllOrderAdmin::fromGetAllOrderAdmin);
-    }
-
-    public Page<GetAllOrderAdmin> filterByUpdatedDate(LocalDateTime updateFromDate, LocalDateTime updateToDate, Pageable pageable) {
-        if (updateToDate == null) {
-            updateToDate = LocalDateTime.now();
-        }
-        return orderRepository.findByUpdatedAtBetween(updateFromDate, updateToDate, pageable)
-                .map(GetAllOrderAdmin::fromGetAllOrderAdmin);
-    }
     @Transactional
-    public GetAllOrderAdmin updateOrderStatus(Long orderId, String newStatus) {
+    public GetAllOrderAdmin updateOrderStatus(Long orderId, String status) {
+        log.info("Updating order {} to status: {}", orderId, status);
+
         // 1️⃣ Kiểm tra đơn hàng có tồn tại không
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new NotFoundException("Order not found with id: " + orderId));
 
+        // 2️⃣ Lấy trạng thái thanh toán của đơn hàng
+        Payment orderPayment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new NotFoundException("Payment information not found for order: " + orderId));
 
-        // 2️⃣ Kiểm tra trạng thái có hợp lệ không
-        OrderStatus currentStatus = order.getOrderStatus();
-        OrderStatus updatedStatus = orderStatusRepository.findByStatusName(newStatus)
-                .orElseThrow(() -> new BadRequestException("Invalid order status: " + newStatus));
+        String paymentStatus = orderPayment.getStatus(); // Lấy trạng thái thanh toán
 
-        // 3️⃣ Kiểm tra trạng thái mới không được cập nhật ngược
-        if (!isValidStatusTransition(currentStatus.getStatusName(), newStatus)) {
-            throw new BadRequestException("Cannot update order status from " +
-                    currentStatus.getStatusName() + " to " + newStatus);
+        // 3️⃣ Nếu paymentStatus là UNPAID và muốn cập nhật thành DONE -> Chặn cập nhật
+        if ("UNPAID".equals(paymentStatus) && "DONE".equals(status)) {
+            throw new BadRequestException("Cannot update order to DONE when payment is UNPAID.");
         }
 
-        // 4️⃣ Cập nhật trạng thái
+        // 4️⃣ Kiểm tra trạng thái có hợp lệ không
+        OrderStatus currentStatus = order.getOrderStatus();
+        OrderStatus updatedStatus = orderStatusRepository.findByStatusName(status)
+                .orElseThrow(() -> new BadRequestException("Invalid order status: " + status));
+
+        // 5️⃣ Kiểm tra trạng thái mới có hợp lệ không
+        if (!isValidStatusTransition(currentStatus.getStatusName(), status)) {
+            throw new BadRequestException("Cannot update order status from " +
+                    currentStatus.getStatusName() + " to " + status);
+        }
+
+        // 6️⃣ Cập nhật trạng thái
         order.setOrderStatus(updatedStatus);
         order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
 
         return GetAllOrderAdmin.fromGetAllOrderAdmin(order);
     }
+
 
     private boolean isValidStatusTransition(String currentStatus, String newStatus) {
         List<String> statusFlow = List.of("PENDING", "PROCESSING", "SHIPPED", "DELIVERED","CANCELLED", "DONE");

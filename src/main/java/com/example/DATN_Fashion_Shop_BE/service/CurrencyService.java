@@ -28,8 +28,8 @@ public class CurrencyService {
 
     private static final String EXCHANGE_API_URL = "https://v6.exchangerate-api.com/v6/{apiKey}/latest/VND";
 
-    //@Scheduled(cron = "0 * * * * ?")
-    @Scheduled(cron = "0 0 1 * * ?") //1h sáng
+    @Scheduled(cron = "0 * * * * ?")
+//    @Scheduled(cron = "0 0 1 * * ?") //1h sáng
     public void fetchAndSaveExchangeRates() {
 
         RestTemplate restTemplate = new RestTemplate();
