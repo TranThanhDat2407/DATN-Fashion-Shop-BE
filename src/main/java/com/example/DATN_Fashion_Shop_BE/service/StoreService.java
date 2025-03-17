@@ -2,13 +2,15 @@ package com.example.DATN_Fashion_Shop_BE.service;
 
 import com.example.DATN_Fashion_Shop_BE.dto.request.store.CreateStoreRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.orderDetail.OrderDetailResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreInventoryResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreOrderDetailResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreStockResponse;
-import com.example.DATN_Fashion_Shop_BE.model.Address;
-import com.example.DATN_Fashion_Shop_BE.model.Inventory;
-import com.example.DATN_Fashion_Shop_BE.model.Role;
-import com.example.DATN_Fashion_Shop_BE.model.Store;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.LatestOrderResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.StoreMonthlyRevenueResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.TopProductsInStoreResponse;
+import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -16,15 +18,15 @@ import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class StoreService {
     private final StoreRepository storeRepository;
+    private final OrderDetailRepository orderDetailRepository;
+    private final OrderRepository orderRepository;
     private final AddressRepository addressRepository;
     private final InventoryRepository inventoryRepository;
     private final CategoryRepository categoryRepository;
@@ -201,5 +203,33 @@ public class StoreService {
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
         return EARTH_RADIUS * c;
+    }
+
+    public Page<TopProductsInStoreResponse> getTopProductsInStore(
+            Long storeId, String languageCode, Pageable pageable) {
+        return orderDetailRepository.findTopProductsByStoreId(storeId, languageCode, pageable);
+    }
+
+    public Page<LatestOrderResponse> getLatestOrderDetails(Long storeId, String languageCode, Pageable pageable) {
+        Page<OrderDetail> orderDetails =
+                orderDetailRepository
+                        .findLatestDoneOrderDetails
+                                (storeId, pageable);
+
+        return orderDetails.map(item -> LatestOrderResponse.fromOrderDetail(item,languageCode));
+    }
+
+    public List<StoreMonthlyRevenueResponse> getRevenueByMonth(Long storeId) {
+        List<StoreMonthlyRevenueResponse> revenues = orderRepository.getMonthlyRevenueByStore(storeId);
+
+        // Điền dữ liệu cho các tháng chưa có đơn hàng
+        Map<Integer, Double> revenueMap = new HashMap<>();
+        revenues.forEach(r -> revenueMap.put(r.getMonth(), r.getTotalRevenue()));
+
+        List<StoreMonthlyRevenueResponse> fullRevenueList = new ArrayList<>();
+        for (int i = 1; i <= 12; i++) {
+            fullRevenueList.add(new StoreMonthlyRevenueResponse(i, revenueMap.getOrDefault(i, 0.0)));
+        }
+        return fullRevenueList;
     }
 }

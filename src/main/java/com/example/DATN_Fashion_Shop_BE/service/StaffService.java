@@ -5,6 +5,7 @@ import com.example.DATN_Fashion_Shop_BE.component.JwtTokenUtil;
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.UpdateUserDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.UserDTO;
+import com.example.DATN_Fashion_Shop_BE.dto.response.staff.StaffResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.*;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
@@ -12,8 +13,7 @@ import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -88,6 +89,37 @@ public class StaffService {
     public boolean isUserInStore(Long userId, Long storeId) {
         return staffRepository.existsByUser_IdAndStore_Id(userId, storeId);
     }
+
+
+    public Page<StaffResponse> getStaffList(
+            Long storeId, Long id, String name, LocalDateTime startDate, LocalDateTime endDate, Long roleId,
+            String sortBy, String sortDir, int page, int size) {
+
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc")
+                ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Sort sort = Sort.by(direction, sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<Staff> staffPage = staffRepository.findByFilters(storeId, id, name, startDate, endDate, roleId, pageable);
+
+        List<StaffResponse> staffResponses = staffPage.getContent().stream()
+                .map(StaffResponse::fromStaff)
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(staffResponses, pageable, staffPage.getTotalElements());
+    }
+
+    public void updateStaffStatus(Long userId, boolean isActive) throws Exception {
+        Staff staff = staffRepository.findByUserId(userId)
+                .orElseThrow(() -> new Exception(
+                        localizationUtils.getLocalizedMessage(MessageKeys.STAFF_NOT_FOUND)
+                ));
+
+        staff.getUser().setIsActive(isActive);
+        userRepository.save(staff.getUser());
+    }
+
+
 
 
 }
