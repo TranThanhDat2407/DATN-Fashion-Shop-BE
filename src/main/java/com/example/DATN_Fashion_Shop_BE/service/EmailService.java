@@ -39,7 +39,7 @@ import java.util.Optional;
 public class EmailService {
     private final JavaMailSender mailSender;
     private final QRCodeService qrCodeService;
-    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
+    static final Logger log = LoggerFactory.getLogger(EmailService.class);
     private final HolidayCouponTranslationService holidayCouponTranslationService;
     public void sendEmail(String to, String subject, String text) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
