@@ -5,8 +5,12 @@ import com.example.DATN_Fashion_Shop_BE.dto.request.store.CreateStoreRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreInventoryResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreOrderDetailResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreStockResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.LatestOrderResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.StoreMonthlyRevenueResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.TopProductsInStoreResponse;
 import com.example.DATN_Fashion_Shop_BE.model.Inventory;
 import com.example.DATN_Fashion_Shop_BE.service.StoreService;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
@@ -14,8 +18,13 @@ import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import lombok.AllArgsConstructor;
 import org.apache.coyote.Response;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("${api.prefix}/store")
@@ -107,4 +116,46 @@ public class StoreController {
                         .getInventoryByStoreId(storeId, languageCode, productName, categoryId, page, size, sortBy, sortDir))
         ));
     }
+
+    @GetMapping("/dashboard/{storeId}/top-products")
+    public ResponseEntity<ApiResponse<PageResponse<TopProductsInStoreResponse>>> getTopProducts(
+            @PathVariable Long storeId,
+            @RequestParam(defaultValue = "vi") String languageCode,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<TopProductsInStoreResponse> topProducts =
+                storeService.getTopProductsInStore(storeId, languageCode, pageable);
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_RETRIEVED_SUCCESSFULLY),
+                PageResponse.fromPage(topProducts)
+        ));
+    }
+
+    @GetMapping("/dashboard/{storeId}/latest-orders")
+    public ResponseEntity<ApiResponse<PageResponse<LatestOrderResponse>>> getLatestOrders(
+            @PathVariable Long storeId,
+            @RequestParam(defaultValue = "vi") String languageCode,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<LatestOrderResponse> latestOrders =
+                storeService.getLatestOrderDetails(storeId, languageCode, pageable);
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Orders retrieved successfully",
+                PageResponse.fromPage(latestOrders)
+        ));
+    }
+
+    @GetMapping("/dashboard/monthlyRevenue")
+    public ResponseEntity<List<StoreMonthlyRevenueResponse>> getMonthlyRevenue(@RequestParam Long storeId) {
+        return ResponseEntity.ok(storeService.getRevenueByMonth(storeId));
+    }
+
 }

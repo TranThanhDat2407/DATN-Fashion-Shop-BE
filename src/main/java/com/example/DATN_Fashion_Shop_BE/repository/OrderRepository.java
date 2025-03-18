@@ -1,5 +1,6 @@
 package com.example.DATN_Fashion_Shop_BE.repository;
 
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.StoreMonthlyRevenueResponse;
 import com.example.DATN_Fashion_Shop_BE.model.Cart;
 import com.example.DATN_Fashion_Shop_BE.model.Order;
 import org.springframework.data.domain.Page;
@@ -82,4 +83,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("endDate") LocalDateTime endDate,
             Pageable pageable
     );
+
+    @Query("SELECT NEW com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.StoreMonthlyRevenueResponse(" +
+            "MONTH(o.createdAt), SUM(o.totalPrice)) " +
+            "FROM Order o " +
+            "WHERE YEAR(o.createdAt) = YEAR(CURRENT_DATE) " +
+            "AND o.orderStatus.statusName = 'DONE' " +
+            "AND o.store.id = :storeId " +  // Lọc theo storeId
+            "GROUP BY MONTH(o.createdAt) " +
+            "ORDER BY MONTH(o.createdAt)")
+    List<StoreMonthlyRevenueResponse> getMonthlyRevenueByStore(@Param("storeId") Long storeId);
 }
