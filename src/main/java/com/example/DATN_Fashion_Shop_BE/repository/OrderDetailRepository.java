@@ -16,7 +16,6 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
     @Query("SELECT od FROM OrderDetail od " +
             "JOIN od.order o " +
             "WHERE o.store.id = :storeId " +
-            "AND o.orderStatus.statusName = 'DONE' " +
             "ORDER BY od.updatedAt DESC")
     Page<OrderDetail> findLatestDoneOrderDetails(@Param("storeId") Long storeId, Pageable pageable);
 
@@ -46,5 +45,6 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
             @Param("languageCode") String languageCode,
             Pageable pageable
             );
+
 
 }
