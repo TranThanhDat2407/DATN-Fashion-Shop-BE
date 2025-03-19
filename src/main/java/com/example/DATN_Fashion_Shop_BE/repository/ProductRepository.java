@@ -113,4 +113,5 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     List<Product> findByPromotion(Promotion promotion);
 
+
 }

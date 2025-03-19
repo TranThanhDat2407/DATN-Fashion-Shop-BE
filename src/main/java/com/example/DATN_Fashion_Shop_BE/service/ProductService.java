@@ -9,6 +9,7 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.product.*;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,8 @@ public class ProductService {
     private final FileStorageService fileStorageService;
     private final LocalizationUtils localizationUtils;
     private final LanguageRepository languageRepository;
+    private final CategoryRepository categoryRepository;
+    private final EntityManager entityManager;
 
     public List<ProductCategoryDTO> getCategoriesByProductIdAndLangCode(Long productId, String langCode) {
         // Lấy Product dựa trên ID
@@ -626,6 +629,50 @@ public class ProductService {
             return fileName.substring(lastDotIndex + 1).toLowerCase();
         }
         return "";
+    }
+
+
+    @Transactional
+    public void setCategoriesForProduct(SetCategoryProductRequest request) {
+        // Tìm sản phẩm
+        Product product = productRepository.findById(request.getId())
+                .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + request.getId()));
+
+        // Tìm danh mục
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + request.getCategoryId()));
+
+        // Kiểm tra xem quan hệ product - category đã tồn tại chưa
+        Number count = (Number) entityManager.createNativeQuery(
+                        "SELECT COUNT(*) FROM products_categories WHERE product_id = ? AND category_id = ?")
+                .setParameter(1, product.getId())
+                .setParameter(2, category.getId())
+                .getSingleResult();
+
+        if (count.intValue() > 0) {
+            throw new IllegalStateException("This category is already assigned to the product.");
+        }
+
+        // Nếu chưa tồn tại, thêm mới vào bảng products_categories
+        entityManager.createNativeQuery("INSERT INTO products_categories (product_id, category_id) VALUES (?, ?)")
+                .setParameter(1, product.getId())
+                .setParameter(2, category.getId())
+                .executeUpdate();
+    }
+
+
+
+    @Transactional
+    public void removeCategoryFromProduct(Long productId, Long categoryId) {
+        int rowsAffected = entityManager.createNativeQuery(
+                        "DELETE FROM products_categories WHERE product_id = ? AND category_id = ?")
+                .setParameter(1, productId)
+                .setParameter(2, categoryId)
+                .executeUpdate();
+
+        if (rowsAffected == 0) {
+            throw new EntityNotFoundException("No matching category found for this product.");
+        }
     }
 
 }

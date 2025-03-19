@@ -3,18 +3,17 @@ package com.example.DATN_Fashion_Shop_BE.service;
 import com.example.DATN_Fashion_Shop_BE.config.CouponConfig;
 import com.example.DATN_Fashion_Shop_BE.dto.CouponTranslationDTO;
 import com.example.DATN_Fashion_Shop_BE.model.Coupon;
+import com.example.DATN_Fashion_Shop_BE.model.Holiday;
 import com.example.DATN_Fashion_Shop_BE.model.User;
 import com.example.DATN_Fashion_Shop_BE.repository.CouponRepository;
+import com.example.DATN_Fashion_Shop_BE.repository.HolidayRepository;
 import com.example.DATN_Fashion_Shop_BE.repository.UserRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,7 +27,8 @@ public class ScheduledCouponService {
     private final CouponService couponService;
     private final EmailService emailService;
     private final FileStorageService fileStorageService;
-
+    private  final HolidayRepository holidayRepository;
+    private final HolidayCouponTranslationService holidayCouponTranslationService;
 
     @Scheduled(cron = "0 0 0 * * ?")
 //   @Scheduled(cron = "0 * * * * ?")
@@ -43,125 +43,135 @@ public class ScheduledCouponService {
         generateBirthdayCoupons(today);
     }
 
-
     private void generateHolidayCoupons(LocalDate today) {
-        List<LocalDate> holidaysForAllUsers = List.of(
-                LocalDate.of(today.getYear(), 03, 11),  // Tết Dương Lịch
-                LocalDate.of(today.getYear(), 4, 30), // Giải phóng miền Nam
-                LocalDate.of(today.getYear(), 9, 2)   // Quốc khánh
-        );
-        List<LocalDate> holidaysForWomenOnly = List.of(
-                LocalDate.of(today.getYear(), 3, 8),  // Ngày Quốc tế Phụ nữ
-                LocalDate.of(today.getYear(), 10, 20) // Ngày Nhà giáo Việt Nam
-        );
-        if (holidaysForAllUsers.contains(today)) {
-            // 🎉 Mã giảm giá cho tất cả người dùng
-            String couponCode = "HOLIDAY_" + today;
-            CouponConfig config = couponConfigService.getCouponConfig("holiday");
+        List<Holiday> holidaysToday = holidayRepository.findByDate(today);
+        List<User> allUsers = userRepository.findAll();
+        List<User> femaleUsers = userRepository.findByGender("FEMALE");
+
+        for (Holiday holiday : holidaysToday) {
+            String holidayKey = couponConfigService.normalizeString(holiday.getHolidayName());
+            String couponCode = holidayKey + "_" + today;
+
+            CouponConfig config = couponConfigService.getCouponConfig(holidayKey);
             if (config == null) {
-                log.error("⚠️ Không tìm thấy cấu hình mã giảm giá ngày lễ!");
-                return;
-            }
-            if (config == null) {
-                log.warn("⚠️ Không tìm thấy cấu hình mã giảm giá holiday! Bỏ qua việc tạo mã.");
-                return; // ❌ Không tạo mã nếu không có config
+                log.warn("⚠️ Không tìm thấy cấu hình mã giảm giá cho {}! Bỏ qua.", holiday.getHolidayName());
+                continue;
             }
 
-            if (!couponRepository.existsByCode(couponCode)) {
-                Coupon coupon = couponService.createCouponForAllUser(
-                        couponCode,
-                        config.getDiscountType(),
-                        config.getDiscountValue(),
-                        config.getMinOrderValue(),
-                        config.getExpirationDays(),
-                        true,
-                        config.getImageUrl(),
-                        COUPON_TRANSLATIONS.get("HOLIDAY")
-
-                );
-                log.info("🎊 Đã tạo mã giảm giá ngày lễ: {}!", coupon.getCode());
-
-                // Lấy danh sách tất cả người dùng
-                List<User> allUsers = userRepository.findAll();
-                for (User user : allUsers) {
-                    emailService.sendCouponEmail(user.getEmail(), coupon.getCode(),
-                            "/uploads/coupons/holidayCoupon.png", 3, "HOLIDAY");
-                }
-            }
-        }
-        if (holidaysForWomenOnly.contains(today)) {
-            CouponConfig config = couponConfigService.getCouponConfig("women_day");
-            if (config == null) {
-                log.warn("⚠️ Không tìm thấy cấu hình mã giảm giá women_day! Bỏ qua việc tạo mã.");
-                return; // ❌ Không tạo mã nếu không có config
+            // ✅ Lấy bản dịch từ bảng history_translation
+            List<CouponTranslationDTO> translations = holidayCouponTranslationService.getTranslationsByType(holidayKey);
+            if (translations.isEmpty()) {
+                translations = holidayCouponTranslationService.getTranslationsByType("HOLIDAY"); // Lấy mặc định
             }
 
-            // 🎀 Mã giảm giá chỉ cho người dùng nữ
-            String couponCode = "WOMEN_DAY_" + today;
-
-            if (!couponRepository.existsByCode(couponCode)) {
-                List<User> femaleUsers = userRepository.findByGender("FEMALE"); // Lấy danh sách nữ
-                for (User user : femaleUsers) {
-                    Coupon coupon = couponService.createCouponForUser(
+            // Nếu KHÔNG phải ngày lễ dành riêng cho phụ nữ => tạo mã giảm giá cho tất cả
+            if (!isWomenHoliday(holiday.getHolidayName())) {
+                if (!couponRepository.existsByCode(couponCode)) {
+                    Coupon coupon = couponService.createCouponForAllUser(
                             couponCode,
                             config.getDiscountType(),
                             config.getDiscountValue(),
                             config.getMinOrderValue(),
-                            config.getExpirationDays() ,
-                            user,
-                            config.getImageUrl(),COUPON_TRANSLATIONS.get("HOLIDAY")
-                            );
-                    log.info("💖 Đã tạo mã giảm giá {} cho user: {}", coupon.getCode(), user.getEmail());
-                    emailService.sendCouponEmail(user.getEmail(), coupon.getCode(),
-                            "/uploads/coupons/wonmendayCoupon.png", 5, "WOMEN_DAY");
+                            config.getExpirationDays(),
+                            true,
+                            config.getImageUrl(),
+                            translations // ✅ Sử dụng bản dịch từ DB
+                    );
+                    log.info("🎊 Đã tạo mã giảm giá ngày lễ: {}!", coupon.getCode());
+
+                    for (User user : allUsers) {
+                        emailService.sendCouponEmail(user.getEmail(), coupon.getCode(), config.getExpirationDays(), holidayKey,"vi");
+                    }
+                }
+            }
+
+            // Nếu là ngày lễ dành cho phụ nữ, chỉ tạo mã cho nữ
+            if (isWomenHoliday(holiday.getHolidayName())) {
+                String womenCouponCode = "WOMEN_" + holidayKey + "_" + today;
+                if (!couponRepository.existsByCode(womenCouponCode)) {
+                    for (User user : femaleUsers) {
+                        Coupon coupon = couponService.createCouponForUser(
+                                womenCouponCode,
+                                config.getDiscountType(),
+                                config.getDiscountValue(),
+                                config.getMinOrderValue(),
+                                config.getExpirationDays(),
+                                user,
+                                config.getImageUrl(),
+                                translations // ✅ Sử dụng bản dịch từ DB
+                        );
+                        log.info("💖 Đã tạo mã giảm giá {} cho user: {}", coupon.getCode(), user.getEmail());
+
+                        emailService.sendCouponEmail(user.getEmail(), coupon.getCode() , config.getExpirationDays(), holidayKey,"vi");
+                    }
                 }
             }
         }
     }
+
+
+
+    public boolean isWomenHoliday(String holidayName) {
+        List<String> womenHolidays = List.of("Ngày Quốc tế Phụ nữ", "Ngày Phụ nữ Việt Nam");
+        return womenHolidays.contains(holidayName);
+    }
+
     public void generateBirthdayCoupons(LocalDate today) {
         List<User> usersWithBirthday = userRepository.findByDateOfBirth(today);
-        CouponConfig config = couponConfigService.getCouponConfig("birthday");
-
+        CouponConfig config = couponConfigService.getCouponConfig("sinhnhat");
         if (config == null) {
             log.warn("⚠️ Không tìm thấy cấu hình mã giảm giá sinh nhật! Bỏ qua việc tạo mã.");
-            return; // ❌ Không tạo mã nếu không có config
+            return;
+        }
+
+        // ✅ Lấy danh sách bản dịch từ bảng history_translation
+        List<CouponTranslationDTO> translations = holidayCouponTranslationService.getTranslationsByType("sinhnhat");
+        if (translations.isEmpty()) {
+            translations = holidayCouponTranslationService.getTranslationsByType("sinhnhat"); // Lấy mặc định nếu không có
         }
 
         String imageUrl = config.getImageUrl() != null ? config.getImageUrl() : "/uploads/coupons/BdayCoupon.png";
 
         for (User user : usersWithBirthday) {
-            String couponCode = "BDAY_" + user.getId();
+            String couponCode = "BDAY_" + user.getId() + "_" + today.getYear();
             if (!couponRepository.existsByCode(couponCode)) {
                 Coupon coupon = couponService.createCouponForUser(
-                        couponCode, config.getDiscountType(), config.getDiscountValue(),
-                        config.getMinOrderValue(), config.getExpirationDays(),
-                        user, imageUrl, COUPON_TRANSLATIONS.get("BIRTHDAY")
+                        couponCode,
+                        config.getDiscountType(),
+                        config.getDiscountValue(),
+                        config.getMinOrderValue(),
+                        config.getExpirationDays(),
+                        user,
+                        imageUrl,
+                        translations // ✅ Sử dụng bản dịch từ DB
                 );
 
                 log.info("🎂 Đã tạo mã giảm giá sinh nhật {} cho user {}!", coupon.getCode(), user.getEmail());
-                emailService.sendCouponEmail(user.getEmail(), coupon.getCode(), imageUrl, config.getExpirationDays(), "BIRTHDAY");
+                emailService.sendCouponEmail(user.getEmail(), coupon.getCode(),  config.getExpirationDays(), "sinhnhat","vi");
             }
         }
     }
 
 
-    static final Map<String, List<CouponTranslationDTO>> COUPON_TRANSLATIONS = Map.of(
-            "BIRTHDAY", List.of(
-                    new CouponTranslationDTO("Mã giảm giá sinh nhật", "Giảm giá nhân dịp sinh nhật", "vi"),
-                    new CouponTranslationDTO("Birthday Discount", "Discount for your birthday", "en"),
-                    new CouponTranslationDTO("誕生日割引", "誕生日の割引", "jp")
-            ),
-            "HOLIDAY", List.of(
-                    new CouponTranslationDTO("Mã giảm giá ngày lễ", "Ưu đãi đặc biệt cho ngày lễ", "vi"),
-                    new CouponTranslationDTO("Holiday Discount", "Special offer for the holiday", "en"),
-                    new CouponTranslationDTO("祝日割引", "祝日の特別オファー", "jp")
-            ),
-            "WELCOME", List.of(
-                    new CouponTranslationDTO("Mã giảm giá chào mừng", "Ưu đãi cho khách hàng mới", "vi"),
-                    new CouponTranslationDTO("Welcome Discount", "Special offer for new users", "en"),
-                    new CouponTranslationDTO("ウェルカム割引", "新規ユーザー向けの特別オファー", "jp")
-            )
-    );
+
+
+//    static final Map<String, List<CouponTranslationDTO>> COUPON_TRANSLATIONS = Map.of(
+//            "BIRTHDAY", List.of(
+//                    new CouponTranslationDTO("Mã giảm giá sinh nhật", "Giảm giá nhân dịp sinh nhật", "vi"),
+//                    new CouponTranslationDTO("Birthday Discount", "Discount for your birthday", "en"),
+//                    new CouponTranslationDTO("誕生日割引", "誕生日の割引", "jp")
+//            ),
+//            "HOLIDAY", List.of(
+//                    new CouponTranslationDTO("Mã giảm giá ngày lễ", "Ưu đãi đặc biệt cho ngày lễ", "vi"),
+//                    new CouponTranslationDTO("Holiday Discount", "Special offer for the holiday", "en"),
+//                    new CouponTranslationDTO("祝日割引", "祝日の特別オファー", "jp")
+//            ),
+//            "WELCOME", List.of(
+//                    new CouponTranslationDTO("Mã giảm giá chào mừng", "Ưu đãi cho khách hàng mới", "vi"),
+//                    new CouponTranslationDTO("Welcome Discount", "Special offer for new users", "en"),
+//                    new CouponTranslationDTO("ウェルカム割引", "新規ユーザー向けの特別オファー", "jp")
+//            )
+//    );
 
 }
 
