@@ -3,6 +3,8 @@ package com.example.DATN_Fashion_Shop_BE.service;
 
 import com.example.DATN_Fashion_Shop_BE.component.JwtTokenUtil;
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
+import com.example.DATN_Fashion_Shop_BE.config.CouponConfig;
+import com.example.DATN_Fashion_Shop_BE.dto.CouponTranslationDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.UpdateUserDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.UserDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
@@ -44,7 +46,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.example.DATN_Fashion_Shop_BE.service.ScheduledCouponService.COUPON_TRANSLATIONS;
+import static com.example.DATN_Fashion_Shop_BE.service.EmailService.log;
 
 
 @RequiredArgsConstructor
@@ -62,6 +64,8 @@ public class UserService{
     private final LocalizationUtils localizationUtils;
     private final CouponService couponService;
     private final SecureTokenService secureTokenService;
+    private final CouponConfigService couponConfigService;
+    private final HolidayCouponTranslationService holidayCouponTranslationService;
 
 
     public User createUser(UserDTO userDTO) throws Exception {
@@ -140,17 +144,41 @@ public class UserService{
             staffRepository.save(staff);
         }
 
-        Coupon welcomeCoupon = couponService.createCouponForUser(
-                "WELCOME",
-                "FIXED",
-                50000f, // Giảm 50.000 VND
-                200000f, // Đơn hàng tối thiểu 200.000 VND
-                14,
-                savedUser,
-                "/uploads/coupons/welcomeCoupon.png",
-                COUPON_TRANSLATIONS.get("BIRTHDAY")
-        );
-        System.out.println("Id user: " + savedUser.getId());
+        // === Tạo mã giảm giá chào mừng thành viên mới ===
+        CouponConfig config = couponConfigService.getCouponConfig("chaomungthanhvienmoi");
+        if (config == null) {
+            log.warn("⚠️ Không tìm thấy cấu hình mã giảm giá chào mừng! Bỏ qua việc tạo mã.");
+        } else {
+            // Lấy bản dịch từ DB
+            List<CouponTranslationDTO> translations = holidayCouponTranslationService.getTranslationsByType("chaomungthanhvienmoi");
+
+            // Nếu không có bản dịch, lấy bản dịch mặc định
+            if (translations.isEmpty()) {
+                log.warn("⚠️ Không tìm thấy bản dịch, sử dụng bản dịch mặc định.");
+                translations = holidayCouponTranslationService.getTranslationsByType("chaomungthanhvienmoi");
+            }
+
+            // Tạo mã coupon dựa trên User ID và năm hiện tại
+            LocalDate today = LocalDate.now();
+            String couponCode = "WELCOME_" + savedUser.getId() + "_" + today.getYear();
+
+            // Lấy ảnh từ config hoặc ảnh mặc định
+            String imageUrl = (config.getImageUrl() != null) ? config.getImageUrl() : "/uploads/coupons/WelcomeCoupon.png";
+
+            // Tạo mã giảm giá
+            Coupon coupon = couponService.createCouponForUser(
+                    couponCode,
+                    config.getDiscountType(),
+                    config.getDiscountValue(),
+                    config.getMinOrderValue(),
+                    config.getExpirationDays(),
+                    savedUser,
+                    imageUrl,
+                    translations
+            );
+
+            log.info("✅ Đã tạo mã giảm giá chào mừng cho user {}: {}", savedUser.getEmail(), coupon.getCode());
+        }
         sendRegistrationConfirmationEmail(savedUser);
 
         return savedUser;

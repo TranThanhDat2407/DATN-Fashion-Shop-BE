@@ -30,7 +30,6 @@ public class GHNService {
     private static final String BASE_URL = "https://dev-online-gateway.ghn.vn/shiip/public-api/master-data/";
     private static final String TOKEN = "6b3b4d35-e5f0-11ef-b2e4-6ec7c647cc27";
 
-
     private HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");

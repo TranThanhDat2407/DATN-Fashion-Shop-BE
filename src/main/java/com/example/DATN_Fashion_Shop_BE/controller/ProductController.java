@@ -244,7 +244,7 @@ public class ProductController {
     public ResponseEntity<ApiResponse<PageResponse<ProductListDTO>>> getFilteredProducts(
             @PathVariable String languageCode,
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false, defaultValue = "true") Boolean isActive,
+            @RequestParam(required = false) Boolean isActive,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
@@ -598,5 +598,33 @@ public class ProductController {
             default:
                 return MediaType.APPLICATION_OCTET_STREAM; // Dùng loại này nếu không nhận diện được
         }
+    }
+
+    @PostMapping("/set-categories")
+    public ResponseEntity<ApiResponse<String>> setCategoriesForProduct(@RequestBody SetCategoryProductRequest request) {
+        productService.setCategoriesForProduct(request);
+        ApiResponse<String> response = ApiResponse.<String>builder()
+                .message(localizationUtils.getLocalizedMessage(MessageKeys.PRODUCT_VARIANTS_RETRIEVED_SUCCESSFULLY))
+                .status(HttpStatus.OK.value())
+                .data(null)
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/remove-category")
+    public ResponseEntity<ApiResponse<String>> removeCategoryFromProduct(
+            @RequestParam Long productId,
+            @RequestParam Long categoryId) {
+
+        productService.removeCategoryFromProduct(productId, categoryId);
+
+        ApiResponse<String> response = ApiResponse.<String>builder()
+                .message(localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY))
+                .status(HttpStatus.OK.value())
+                .data(null)
+                .build();
+
+        return ResponseEntity.ok(response);
     }
 }

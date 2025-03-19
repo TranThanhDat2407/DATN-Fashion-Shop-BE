@@ -20,6 +20,7 @@ public class LatestOrderResponse extends BaseResponse {
     private String colorName;
     private String sizeName;
     private String colorImage;
+    private String status;
     private Integer quantity;
     private Double unitPrice;
     private Double totalPrice;
@@ -42,12 +43,14 @@ public class LatestOrderResponse extends BaseResponse {
 
         LatestOrderResponse response = LatestOrderResponse.builder()
                 .orderId(orderDetail.getOrder().getId())
-                .user(UserResponse.fromUser(orderDetail.getOrder().getUser()))
+                .user(orderDetail.getOrder().getUser() != null ?
+                        UserResponse.fromUser(orderDetail.getOrder().getUser()) : null)
                 .productImage(productImage)
                 .productName(product.getTranslationByLanguage(languageCode).getName()) // Giả sử Product có thuộc tính name
                 .colorName(color != null ? color.getValueName() : "N/A")
                 .sizeName(size != null ? size.getValueName() : "N/A")
-                .colorImage(color != null ? color.getValueImg() : null) // Nếu có ảnh màu, lấy nó
+                .colorImage(color != null ? color.getValueImg() : null)
+                .status(orderDetail.getOrder().getOrderStatus().getStatusName())
                 .quantity(orderDetail.getQuantity())
                 .unitPrice(orderDetail.getUnitPrice())
                 .totalPrice(orderDetail.getTotalPrice())
