@@ -28,8 +28,8 @@ public class OrderSpecification {
             if (status != null && !status.isEmpty()) {
                 predicates.add(cb.equal(root.get("orderStatus").get("statusName"), status));
             }
-            if (shippingAddress != null && !shippingAddress.isEmpty()) {
-                predicates.add(cb.like(cb.lower(root.get("shippingAddress")), "%" + shippingAddress.toLowerCase() + "%"));
+            if (shippingAddress != null && !shippingAddress.trim().isEmpty()) {
+                predicates.add(cb.like(cb.lower(root.get("shippingAddress")), "%" + shippingAddress.trim().toLowerCase() + "%"));
             }
             if (minPrice != null && maxPrice != null) {
                 predicates.add(cb.between(root.get("totalPrice"), minPrice, maxPrice));

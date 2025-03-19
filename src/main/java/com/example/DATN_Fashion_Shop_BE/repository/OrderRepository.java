@@ -11,6 +11,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -37,7 +39,16 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     // Lọc theo ngày cập nhật
     Page<Order> findByUpdatedAtBetween(LocalDateTime updateFromDate, LocalDateTime updateToDate, Pageable pageable);
 
+    @Query(value = "SELECT SUM(o.total_price) FROM orders o WHERE CAST(o.created_at AS DATE) = :date", nativeQuery = true)
+    Optional<BigDecimal> findTotalRevenueByDay(@Param("date") LocalDate date);
 
+
+
+    @Query("SELECT SUM(o.totalPrice) FROM Order o WHERE YEAR(o.createdAt) = :year AND MONTH(o.createdAt) = :month")
+    Optional<BigDecimal> findTotalRevenueByMonth(int year, int month);
+
+    @Query("SELECT SUM(o.totalPrice) FROM Order o WHERE YEAR(o.createdAt) = :year")
+    Optional<BigDecimal> findTotalRevenueByYear(int year);
 
 
 

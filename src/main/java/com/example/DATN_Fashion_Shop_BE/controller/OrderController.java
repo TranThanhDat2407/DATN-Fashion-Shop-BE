@@ -369,10 +369,10 @@ public class OrderController {
             @RequestParam(required = false) String shippingAddress,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime fromDate,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime toDate,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime updateFromDate,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime updateToDate,
+            @RequestParam(required = false)@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)  LocalDateTime fromDate,
+            @RequestParam(required = false)@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)  LocalDateTime toDate,
+            @RequestParam(required = false)@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)  LocalDateTime updateFromDate,
+            @RequestParam(required = false)@DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDateTime updateToDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
@@ -383,8 +383,8 @@ public class OrderController {
                 fromDate, toDate, updateFromDate, updateToDate,
                 page, size, sortBy, sortDirection
         );
-        log.info("Received fromDate: " + fromDate);
-        log.info("Received toDate: " + toDate);
+        log.info("Received shippingAddress: " + shippingAddress);
+
         return buildResponse(orders, MessageKeys.ORDERS_HISTORY_SUCCESS, MessageKeys.ORDERS_HISTORY_NOT_FOUND);
     }
 

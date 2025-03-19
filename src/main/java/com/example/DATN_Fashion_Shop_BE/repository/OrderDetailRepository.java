@@ -1,5 +1,6 @@
 package com.example.DATN_Fashion_Shop_BE.repository;
 
+import com.example.DATN_Fashion_Shop_BE.dto.response.revenue.Top10Products;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.TopProductsInStoreResponse;
 import com.example.DATN_Fashion_Shop_BE.model.OrderDetail;
 import org.springframework.data.domain.Page;
@@ -46,5 +47,40 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, Long> 
             @Param("languageCode") String languageCode,
             Pageable pageable
             );
+
+
+
+    @Query("""
+    SELECT new com.example.DATN_Fashion_Shop_BE.dto.response.revenue.Top10Products(
+        od.productVariant.id,
+        (SELECT pt.name FROM ProductsTranslation pt 
+         WHERE pt.product = od.productVariant.product AND pt.language.code = :languageCode),
+        od.productVariant.colorValue.valueName,
+        od.productVariant.colorValue.valueImg,
+        od.productVariant.sizeValue.valueName,
+        (SELECT pm.mediaUrl FROM ProductMedia pm 
+         WHERE pm.product = od.productVariant.product AND pm.colorValue.id = od.productVariant.colorValue.id 
+         ORDER BY pm.id ASC LIMIT 1),
+        SUM(od.quantity),  
+        SUM(od.totalPrice) 
+    )
+    FROM OrderDetail od 
+    JOIN od.order o 
+    WHERE o.orderStatus.statusName = 'DONE' 
+    GROUP BY od.productVariant.id, 
+             od.productVariant.colorValue.valueName, 
+             od.productVariant.colorValue.valueImg, 
+             od.productVariant.sizeValue.valueName, 
+             od.productVariant.product, 
+             od.productVariant.colorValue.id 
+    ORDER BY SUM(od.quantity) DESC
+""")
+    Page<Top10Products> findTopSellingProducts(
+            @Param("languageCode") String languageCode,
+            Pageable pageable
+    );
+
+
+
 
 }
