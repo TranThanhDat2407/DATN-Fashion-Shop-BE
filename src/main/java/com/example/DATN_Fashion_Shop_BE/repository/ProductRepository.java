@@ -65,7 +65,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     @Query("SELECT DISTINCT p " +
             "FROM Product p " +
-            "JOIN p.categories c " +
+            "LEFT JOIN p.categories c " +
             "JOIN p.translations t " +
             "LEFT JOIN p.promotion pr " +
             "WHERE (:categoryId IS NULL OR c.id = :categoryId " +
@@ -112,5 +112,6 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
 
     List<Product> findByPromotion(Promotion promotion);
+
 
 }

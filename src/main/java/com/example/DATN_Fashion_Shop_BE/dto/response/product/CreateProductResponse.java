@@ -25,16 +25,16 @@ public class CreateProductResponse {
         List<ProductTranslationResponse> translationResponses = product.getTranslations().stream()
                 .map(ProductTranslationResponse::fromProductsTranslation)
                 .collect(Collectors.toList());
-        List<ProductMediaResponse> media = product.getMedias().stream()
-                .map(ProductMediaResponse::fromProductMedia)
-                .collect(Collectors.toList());
+//        List<ProductMediaResponse> media = product.getMedias().stream()
+//                .map(ProductMediaResponse::fromProductMedia)
+//                .collect(Collectors.toList());
         return CreateProductResponse.builder()
                 .id(product.getId())
                 .status(product.getStatus())
                 .basePrice(product.getBasePrice())
                 .isActive(product.getIsActive())
                 .translations(translationResponses)
-                .media(media)
+                //.media(media)
                 .build();
     }
 }
