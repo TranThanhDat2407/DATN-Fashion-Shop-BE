@@ -244,7 +244,7 @@ public class ProductController {
     public ResponseEntity<ApiResponse<PageResponse<ProductListDTO>>> getFilteredProducts(
             @PathVariable String languageCode,
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false, defaultValue = "true") Boolean isActive,
+            @RequestParam(required = false) Boolean isActive,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
