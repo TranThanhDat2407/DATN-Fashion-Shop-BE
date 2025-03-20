@@ -1,5 +1,9 @@
 package com.example.DATN_Fashion_Shop_BE.repository;
 
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.StoreDailyRevenueResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.StoreMonthlyRevenueResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.StoreRevenueByDateRangeResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.StoreWeeklyRevenueResponse;
 import com.example.DATN_Fashion_Shop_BE.model.Cart;
 import com.example.DATN_Fashion_Shop_BE.model.Order;
 import org.springframework.data.domain.Page;
@@ -82,4 +86,91 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("endDate") LocalDateTime endDate,
             Pageable pageable
     );
+
+    @Query("SELECT NEW com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.StoreMonthlyRevenueResponse(" +
+            "MONTH(o.updatedAt), SUM(o.totalPrice)) " +
+            "FROM Order o " +
+            "WHERE YEAR(o.updatedAt) = YEAR(CURRENT_DATE) " +
+            "AND o.orderStatus.statusName = 'DONE' " +
+            "AND o.store.id = :storeId " +
+            "GROUP BY MONTH(o.updatedAt) " +
+            "ORDER BY MONTH(o.updatedAt)")
+    List<StoreMonthlyRevenueResponse> getMonthlyRevenueByStore(@Param("storeId") Long storeId);
+
+    List<Order> findByStoreIdAndOrderStatus_StatusNameAndUpdatedAtBetween(
+            Long storeId, String statusName, LocalDateTime startOfWeek, LocalDateTime endOfWeek);
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.store.id = :storeId " +
+            "AND o.user IS NOT NULL AND YEAR(o.createdAt) = :currentYear " +
+            "AND o.orderStatus.statusName = 'DONE'")
+    long countByStoreIdAndUserIsNotNull(@Param("storeId") Long storeId,
+                                        @Param("currentYear") int currentYear);
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.store.id = :storeId " +
+            "AND o.user IS NULL AND YEAR(o.createdAt) = :currentYear " +
+            "AND o.orderStatus.statusName = 'DONE'")
+    long countByStoreIdAndUserIsNull(@Param("storeId") Long storeId,
+                                     @Param("currentYear") int currentYear);
+
+    @Query("SELECT COUNT(p) FROM Payment p WHERE p.order.store.id = :storeId " +
+            "AND p.paymentMethod.id = :paymentMethodId " +
+            "AND p.order.orderStatus.statusName = 'DONE'")
+    long countByStoreIdAndPaymentMethod(@Param("storeId") Long storeId,
+                                        @Param("paymentMethodId") Long paymentMethodId);
+
+    @Query("SELECT COALESCE(SUM(o.totalPrice), 0) FROM Order o " +
+            "WHERE CAST(o.createdAt AS date) = CURRENT_DATE " +
+            "AND o.store.id = :storeId " +
+            "AND o.orderStatus.statusName = 'DONE'")
+    Long getTotalRevenueToday(@Param("storeId") Long storeId);
+
+    @Query("SELECT COALESCE(SUM(o.totalPrice), 0) FROM Order o " +
+            "WHERE YEAR(o.updatedAt) = YEAR(CURRENT_DATE) " +
+            "AND MONTH(o.updatedAt) = MONTH(CURRENT_DATE) " +
+            "AND o.store.id = :storeId " +
+            "AND o.orderStatus.statusName = 'DONE'")
+    Long getTotalRevenueThisMonth(@Param("storeId") Long storeId);
+
+    @Query("SELECT COUNT(o) FROM Order o " +
+            "WHERE CAST(o.updatedAt AS date) = CURRENT_DATE " +
+            "AND o.store.id = :storeId " +
+            "AND o.orderStatus.statusName = 'DONE'")
+    Long getTotalOrdersToday(@Param("storeId") Long storeId);
+
+    @Query("SELECT COUNT(o) FROM Order o " +
+            "WHERE YEAR(o.updatedAt) = YEAR(CURRENT_DATE) " +
+            "AND MONTH(o.updatedAt) = MONTH(CURRENT_DATE) " +
+            "AND o.store.id = :storeId " +
+            "AND o.orderStatus.statusName = 'DONE'")
+    Long getTotalOrdersThisMonth(@Param("storeId") Long storeId);
+
+    @Query("SELECT NEW com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.StoreRevenueByDateRangeResponse(" +
+            "MONTH(o.updatedAt), YEAR(o.updatedAt), SUM(o.totalPrice)) " +
+            "FROM Order o " +
+            "WHERE o.updatedAt BETWEEN :startDate AND :endDate " +
+            "AND o.orderStatus.statusName = 'DONE' " +
+            "AND o.store.id = :storeId " +
+            "GROUP BY MONTH(o.updatedAt), YEAR(o.updatedAt) " +
+            "ORDER BY YEAR(o.updatedAt), MONTH(o.updatedAt)")
+    List<StoreRevenueByDateRangeResponse> getRevenueByDateRange(
+            @Param("storeId") Long storeId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
+
+    @Query("SELECT NEW com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.StoreDailyRevenueResponse(" +
+            "DAY(o.updatedAt), MONTH(o.updatedAt), YEAR(o.updatedAt), SUM(o.totalPrice)) " +
+            "FROM Order o " +
+            "WHERE MONTH(o.updatedAt) = :month " +
+            "AND YEAR(o.updatedAt) = :year " +
+            "AND o.orderStatus.statusName = 'DONE' " +
+            "AND o.store.id = :storeId " +
+            "GROUP BY DAY(o.updatedAt), MONTH(o.updatedAt), YEAR(o.updatedAt) " +
+            "ORDER BY DAY(o.updatedAt)")
+    List<StoreDailyRevenueResponse> getDailyRevenueByMonthAndYear(
+            @Param("storeId") Long storeId,
+            @Param("month") Integer month,
+            @Param("year") Integer year
+    );
+
 }

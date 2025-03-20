@@ -117,6 +117,8 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/products/**", apiPrefix), "DELETE"),
                 Pair.of(String.format("%s/products**", apiPrefix), "DELETE"),
                 Pair.of(String.format("%s/products/**", apiPrefix), "POST"),
+                Pair.of(String.format("%s/products/set-categories", apiPrefix), "POST"),
+                Pair.of(String.format("%s/products/remove-category", apiPrefix), "DELETE"),
                 Pair.of(String.format("%s/categories**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/users/register", apiPrefix), "POST"),
                 Pair.of(String.format("%s/users/register/verify**", apiPrefix), "GET"),
@@ -131,6 +133,11 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/users/refreshToken", apiPrefix), "POST"),
                 Pair.of(String.format("%s/users/reset-password-email/**", apiPrefix), "POST"),
 
+
+                Pair.of(String.format("%s/holidays/**", apiPrefix), "GET"),
+                Pair.of(String.format("%s/holidays/**", apiPrefix), "POST"),
+                Pair.of(String.format("%s/holidays/**", apiPrefix), "DELETE"),
+                Pair.of(String.format("%s/holidays/**", apiPrefix), "PUT"),
 
                 Pair.of(String.format("%s/address/**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/address/**", apiPrefix), "POST"),
@@ -155,9 +162,9 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/currencies**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/attribute_values/**", apiPrefix), "GET"),
                 Pair.of(String.format("%s/attribute_values/**", apiPrefix), "POST"),
-//                Pair.of(String.format("%s/orders/**", apiPrefix), "POST"),
+                Pair.of(String.format("%s/orders/**", apiPrefix), "POST"),
                 Pair.of(String.format("%s/orders/**", apiPrefix), "GET"),
-                Pair.of(String.format("%s/orders/**", apiPrefix), "PUT"),
+//                Pair.of(String.format("%s/orders/**", apiPrefix), "PUT"),
                 Pair.of(String.format("%s/orders/**", apiPrefix), "PATCH"),
                 Pair.of(String.format("%s/attribute_values/**", apiPrefix), "PUT"),
                 Pair.of(String.format("%s/attribute_values/**", apiPrefix), "DELETE"),
@@ -194,6 +201,8 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/vnpay/**", apiPrefix), "DELETE"),
 
                 Pair.of(String.format("%s/staff/login", apiPrefix), "POST"),
+
+//                Pair.of(String.format("%s/staff/**", apiPrefix), "GET"),
 
 
                 Pair.of(String.format("%s/order-details/**", apiPrefix), "GET"),

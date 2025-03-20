@@ -34,7 +34,7 @@ public class CreateProductResponse {
                 .basePrice(product.getBasePrice())
                 .isActive(product.getIsActive())
                 .translations(translationResponses)
-//                .media(media)
+                .media(media)
                 .build();
     }
 }

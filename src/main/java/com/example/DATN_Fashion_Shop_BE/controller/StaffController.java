@@ -5,6 +5,7 @@ import com.example.DATN_Fashion_Shop_BE.dto.StoreLoginDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.UserLoginDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.LoginResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.StaffResponse;
 import com.example.DATN_Fashion_Shop_BE.model.Staff;
 import com.example.DATN_Fashion_Shop_BE.model.Token;
@@ -19,11 +20,14 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("${api.prefix}/staff")
@@ -36,7 +40,7 @@ public class StaffController {
 
     @PostMapping("/details")
     @PreAuthorize("hasRole('ROLE_ADMIN') " +
-            "or hasRole('ROLE_STORE_STAFF')" +
+            "or hasRole('ROLE_STAFF')" +
             "or hasRole('ROLE_STORE_MANAGER')")
     @Operation(security = { @SecurityRequirement(name = "bearer-key") })
     public ResponseEntity<ApiResponse<StaffResponse>> getUserDetails(
@@ -131,6 +135,81 @@ public class StaffController {
 
         boolean isInStore = staffService.isUserInStore(userId, storeId);
         return ResponseEntity.ok(isInStore);
+    }
+
+    @GetMapping("/list-staff")
+    public ResponseEntity<ApiResponse<PageResponse<com.example.DATN_Fashion_Shop_BE.dto
+            .response.staff.StaffResponse>>> getStaffList(
+            @RequestParam(required = false) Long storeId,
+            @RequestParam(required = false) Long id,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) LocalDateTime startDate,
+            @RequestParam(required = false) LocalDateTime endDate,
+            @RequestParam(required = false) Long roleId,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Page<com.example.DATN_Fashion_Shop_BE.dto.response.staff.StaffResponse>
+                staffPage = staffService
+                .getStaffList(storeId, id, name, startDate, endDate, roleId, sortBy, sortDir, page, size);
+
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.LOGIN_SUCCESSFULLY),
+                        PageResponse.fromPage(staffPage)
+                )
+        );
+    }
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<ApiResponse<com.example.DATN_Fashion_Shop_BE.dto.response.staff.StaffResponse>>
+    getStaffByUserId(@PathVariable Long userId) {
+        try {
+            Staff staff = staffService.getStaffByUserId(userId);
+            return ResponseEntity.ok(
+                    ApiResponseUtils.successResponse(
+                            localizationUtils.getLocalizedMessage(MessageKeys.USER_DETAILS_RETRIEVED_SUCCESSFULLY),
+                            com.example.DATN_Fashion_Shop_BE.dto.response.staff.StaffResponse.fromStaff(staff)
+                    )
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    ApiResponseUtils.errorResponse(
+                            HttpStatus.BAD_REQUEST,
+                            localizationUtils.getLocalizedMessage(MessageKeys.STAFF_NOT_FOUND),
+                            null,
+                            null,
+                            e.getMessage()
+                    )
+            );
+        }
+    }
+
+    @PatchMapping("/{userId}/status")
+    public ResponseEntity<ApiResponse<String>> updateStaffStatus(
+            @PathVariable Long userId,
+            @RequestParam boolean isActive) {
+        try {
+            staffService.updateStaffStatus(userId, isActive);
+            return ResponseEntity.ok(
+                    ApiResponseUtils.successResponse(
+                            localizationUtils.getLocalizedMessage(MessageKeys.USER_DETAILS_RETRIEVED_SUCCESSFULLY),
+                            "Staff status updated successfully."
+                    )
+            );
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    ApiResponseUtils.errorResponse(
+                            HttpStatus.BAD_REQUEST,
+                            localizationUtils.getLocalizedMessage(MessageKeys.STAFF_NOT_FOUND),
+                            null,
+                            null,
+                            e.getMessage()
+                    )
+            );
+        }
     }
 
     private boolean isMobileDevice(String userAgent) {

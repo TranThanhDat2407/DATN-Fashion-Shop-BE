@@ -24,7 +24,7 @@ public class NotificationResponse extends BaseResponse {
                 .id(notification.getId())
                 .imageUrl(notification.getImageUrl())
                 .message(notification.getTranslationByLanguage(languageCode).getMessage())
-                .title(notification.getTranslationByLanguage(languageCode).getMessage())
+                .title(notification.getTranslationByLanguage(languageCode).getTitle())
                 .type(notification.getType())
                 .redirectUrl(notification.getRedirectUrl())
                 .isRead(notification.getIsRead())

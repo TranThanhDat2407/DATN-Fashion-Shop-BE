@@ -18,6 +18,8 @@ public class InventoryTransferRequest {
     @NotNull(message = "Store ID is required")
     private Long storeId;
 
+    private String message;
+
     @NotNull(message = "Transfer items cannot be empty")
     private List<InventoryTransferItemRequest> transferItems;
 }

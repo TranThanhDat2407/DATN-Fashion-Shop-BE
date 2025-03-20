@@ -3,6 +3,7 @@ package com.example.DATN_Fashion_Shop_BE.controller;
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.request.Ghn.GhnCreateOrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.Ghn.PreviewOrderRequest;
+import com.example.DATN_Fashion_Shop_BE.dto.request.order.ClickAndCollectOrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.order.OrderRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.order.UpdateStoreOrderStatusRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.order.UpdateStorePaymentMethodRequest;
@@ -501,6 +502,90 @@ public class OrderController {
                 ApiResponseUtils.successResponse(
                         MessageKeys.ORDERS_SUCCESSFULLY,
                         "success"
+                )
+        );
+    }
+
+    @Operation(
+            summary = "Đặt hàng Click & Collect",
+            description = "API này cho phép người dùng đặt hàng Click & Collect, kiểm tra tồn kho và xử lý thanh toán.",
+            tags = "Orders"
+    )
+    @PostMapping("/create-click-and-collect-order")
+    public ResponseEntity<ApiResponse<?>> createClickAndCollectOrder(
+            HttpServletRequest request,
+            @RequestBody @Valid ClickAndCollectOrderRequest orderRequest,
+            BindingResult bindingResult) {
+
+        // 1️⃣ Kiểm tra lỗi đầu vào
+        if (bindingResult.hasErrors()) {
+            log.debug("Validation errors: " + bindingResult.getAllErrors());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    ApiResponseUtils.generateValidationErrorResponse(
+                            bindingResult,
+                            localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_CREATE_FAILED),
+                            localizationUtils
+                    )
+            );
+        }
+
+        // 2️⃣ Gọi service để tạo đơn hàng Click & Collect
+        ResponseEntity<?> response = orderService.createClickAndCollectOrder(orderRequest, request);
+        Object responseBody = response.getBody();
+
+        // 3️⃣ Nếu response body null => thất bại
+        if (responseBody == null) {
+            log.error("Click & Collect order creation failed, response body is null");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    ApiResponseUtils.errorResponse(
+                            HttpStatus.BAD_REQUEST,
+                            localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_CREATE_FAILED),
+                            "clickAndCollectOrder",
+                            null,
+                            "Không thể tạo đơn hàng Click & Collect, vui lòng thử lại sau."
+                    )
+            );
+        }
+
+        // 4️⃣ Nếu VNPay trả về Map (Link thanh toán)
+        if (responseBody instanceof Map<?, ?> paymentResponse) {
+            log.info("VNPay payment link response detected.");
+            return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                    localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_SUCCESSFULLY),
+                    paymentResponse
+            ));
+        }
+
+        // 5️⃣ Nếu đơn hàng tạo thành công theo phương thức thanh toán tại cửa hàng
+        if (responseBody instanceof Order order) {
+            log.info("Click & Collect order with Pay in Store detected. Converting to CreateOrderResponse.");
+            CreateOrderResponse createOrderResponse = CreateOrderResponse.fromOrder(order);
+            log.debug("Converted CreateOrderResponse: " + createOrderResponse);
+
+            return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                    localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_SUCCESSFULLY),
+                    createOrderResponse
+            ));
+        }
+
+        // 6️⃣ Nếu response là CreateOrderResponse
+        if (responseBody instanceof CreateOrderResponse createOrderResponse) {
+            log.info("CreateOrderResponse detected, returning success response.");
+            return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                    localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_SUCCESSFULLY),
+                    createOrderResponse
+            ));
+        }
+
+        // 7️⃣ Nếu không khớp bất kỳ điều kiện nào
+        log.error("Unexpected response type: " + responseBody.getClass().getName());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ApiResponseUtils.errorResponse(
+                        HttpStatus.BAD_REQUEST,
+                        localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_CREATE_FAILED),
+                        "clickAndCollectOrder",
+                        null,
+                        "Không thể tạo đơn hàng Click & Collect, vui lòng thử lại sau."
                 )
         );
     }

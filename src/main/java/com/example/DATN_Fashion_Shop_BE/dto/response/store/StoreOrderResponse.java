@@ -39,7 +39,7 @@ public class StoreOrderResponse extends BaseResponse {
                 .orderId(order.getId())
                 .totalPrice(order.getTotalPrice())
                 .totalAmount(order.getTotalAmount())
-                .shippingAddress(order.getShippingAddress())
+                .shippingAddress(order.getShippingAddress() != null ? order.getShippingAddress() : null)
                 .shippingFee(order.getShippingFee())
                 .taxAmount(order.getTaxAmount())
                 .transactionId(order.getTransactionId())
