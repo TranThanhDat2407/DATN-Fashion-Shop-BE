@@ -73,7 +73,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             "   OR c.parentCategory.id IN (" +
             "       SELECT sc.id FROM Category sc WHERE sc.parentCategory.id = :categoryId" +
             "   )) " +
-            "AND p.isActive = :isActive " +
+            "AND (:isActive IS NULL OR p.isActive = :isActive) " +
             "AND (:nameKeyword IS NULL OR LOWER(t.name) LIKE LOWER(CONCAT('%', :nameKeyword, '%'))) " +
             "AND (:promotionId IS NULL OR pr.id = :promotionId)")
     Page<Product> findProductsByCategoryWithoutPrice(
@@ -86,7 +86,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     @Query("SELECT DISTINCT p " +
             "FROM Product p " +
-            "JOIN p.categories c " +
+            "LEFT JOIN p.categories c " +
             "JOIN p.variants pv " +
             "JOIN p.translations t " +
             "LEFT JOIN p.promotion pr " +
@@ -95,7 +95,7 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
             "   OR c.parentCategory.id IN (" +
             "       SELECT sc.id FROM Category sc WHERE sc.parentCategory.id = :categoryId" +
             "   )) " +
-            "AND p.isActive = :isActive " +
+            "AND (:isActive IS NULL OR p.isActive = :isActive) " +
             "AND (:nameKeyword IS NULL OR LOWER(t.name) LIKE LOWER(CONCAT('%', :nameKeyword, '%'))) " +
             "AND (SELECT MIN(v.salePrice) FROM p.variants v) BETWEEN :minPrice AND :maxPrice " +
             "AND (:promotionId IS NULL OR pr.id = :promotionId)")  // Chỉ lọc khi promotionId có giá trị
