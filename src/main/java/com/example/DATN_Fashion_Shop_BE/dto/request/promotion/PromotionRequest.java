@@ -15,7 +15,6 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PromotionRequest {
-    private String name;
     private String description;
     private Double discountRate;
     private LocalDateTime startDate;

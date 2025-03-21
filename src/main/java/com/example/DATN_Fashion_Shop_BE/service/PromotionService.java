@@ -1,13 +1,19 @@
 package com.example.DATN_Fashion_Shop_BE.service;
 
+import com.example.DATN_Fashion_Shop_BE.dto.ProductVariantDetailDTO;
 import com.example.DATN_Fashion_Shop_BE.dto.request.Notification.NotificationTranslationRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.request.promotion.PromotionRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.promotion.PromotionResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.promotion.PromotionSimpleResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.model.Product;
+import com.example.DATN_Fashion_Shop_BE.model.ProductVariant;
 import com.example.DATN_Fashion_Shop_BE.model.Promotion;
 import com.example.DATN_Fashion_Shop_BE.model.User;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
@@ -17,8 +23,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -27,6 +36,15 @@ public class PromotionService {
     private final ProductRepository productRepository;
     private final NotificationService notificationService;
     private final UserRepository userRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    public Page<PromotionSimpleResponse> getAllPromotions(Pageable pageable) {
+        Page<Promotion> promotions = promotionRepository.getAllPromotions(pageable);
+
+        return promotions.map(PromotionSimpleResponse::fromPromotion);
+    }
 
     public PromotionResponse getActivePromotion() throws DataNotFoundException {
         Promotion promotion = promotionRepository.findByIsActiveTrue()
@@ -52,6 +70,7 @@ public class PromotionService {
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
                 .isActive(request.getStartDate().isBefore(LocalDateTime.now()) || request.getStartDate().isEqual(LocalDateTime.now()))
+                .products(new HashSet<>())
                 .build();
 
         // Lưu Promotion vào DB
@@ -63,6 +82,7 @@ public class PromotionService {
             for (Product product : products) {
                 product.setPromotion(savedPromotion);
                 productRepository.save(product);
+                savedPromotion.getProducts().add(product);
             }
         }
 
@@ -84,6 +104,8 @@ public class PromotionService {
         // Cập nhật Promotion trong DB
         Promotion savedPromotion = promotionRepository.save(promotion);
 
+        removeAllProductsFromPromotion(savedPromotion.getId());
+
         // Thêm hoặc cập nhật Products vào Promotion
         if (request.getProductIds() != null && !request.getProductIds().isEmpty()) {
             List<Product> products = productRepository.findAllById(request.getProductIds());
@@ -96,8 +118,13 @@ public class PromotionService {
         return PromotionResponse.fromPromotion(savedPromotion);
     }
 
+
+
+
     @Transactional
     public void deletePromotion(Long promotionId) {
+        removeAllProductsFromPromotion(promotionId);
+        
         Promotion promotion = promotionRepository.findById(promotionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Promotion not found with id: " + promotionId));
 
@@ -232,4 +259,52 @@ public class PromotionService {
         });
     }
 
+    // Lấy danh sách productIds từ promotionId
+    public List<Long> getProductIdsByPromotionId(Long promotionId) {
+        return productRepository.findProductIdsByPromotionId(promotionId);
+    }
+
+    // Xóa sản phẩm khỏi promotion
+    public void removeProductFromPromotion(Long promotionId, Long productId) {
+        // Lấy promotion theo promotionId
+        Promotion promotion = promotionRepository.findById(promotionId)
+                .orElseThrow(() -> new EntityNotFoundException("Promotion not found with id: " + promotionId));
+
+        // Lấy sản phẩm theo productId
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new EntityNotFoundException("Product not found with id: " + productId));
+
+        // Kiểm tra xem sản phẩm có đang thuộc promotion này không
+        if (product.getPromotion() != null && product.getPromotion().getId().equals(promotionId)) {
+            // Xóa sản phẩm khỏi promotion
+            product.setPromotion(null);
+            productRepository.save(product); // Cập nhật lại sản phẩm trong DB
+        } else {
+            throw new IllegalStateException("Product is not assigned to this promotion.");
+        }
+    }
+
+    @Transactional
+    public void removeAllProductsFromPromotion(Long promotionId) {
+
+        // Lấy tất cả các sản phẩm liên kết với Promotion (EAGER fetching hoặc lấy bằng JPQL)
+        List<Product> products = productRepository.findProducByPromotionId(promotionId);
+
+        // Xóa liên kết của các sản phẩm với Promotion
+        if (products != null && !products.isEmpty()) {
+            for (Product product : products) {
+                product.setPromotion(null); // Xóa liên kết promotion với product
+                productRepository.save(product); // Cập nhật lại sản phẩm trong DB
+            }
+        }
+    }
+
+    public PromotionSimpleResponse getPromotionSimpleResponse(Long promotionId) {
+        // Tìm Promotion theo promotionId
+        Promotion promotion = promotionRepository.findById(promotionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Promotion not found with id: " + promotionId));
+
+        // Chuyển đổi Promotion thành PromotionSimpleResponse
+        return PromotionSimpleResponse.fromPromotion(promotion);
+    }
 }

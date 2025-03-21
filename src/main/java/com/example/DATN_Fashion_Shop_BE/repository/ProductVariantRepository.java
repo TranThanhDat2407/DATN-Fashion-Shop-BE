@@ -42,4 +42,7 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
                                                       Pageable pageable
                                                       );
 
+
+    @Query("SELECT pv FROM ProductVariant pv WHERE pv.product.promotion.id = :promotionId")
+    List<ProductVariant> findByPromotionId(@Param("promotionId") Long promotionId);
 }
