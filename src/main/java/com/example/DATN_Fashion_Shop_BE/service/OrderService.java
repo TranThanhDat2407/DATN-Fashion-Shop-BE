@@ -24,7 +24,9 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.orderDetail.OrderDetailResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.StorePaymentResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.userAddressResponse.UserAddressResponse;
+import com.example.DATN_Fashion_Shop_BE.exception.BadRequestException;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
+import com.example.DATN_Fashion_Shop_BE.exception.NotFoundException;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
@@ -40,6 +42,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -160,7 +163,7 @@ public class OrderService {
 
         // 🛒 Nếu là COD, tạo luôn đơn hàng
         if ("COD".equalsIgnoreCase(paymentMethod.getMethodName())) {
-            return processCodOrder(orderRequest, cart, cartItems, coupon, finalAmount, fullShippingAddress, shippingFee,shippingMethod, paymentMethod);
+            return processCodOrder(orderRequest, cart, cartItems, coupon, finalAmount, fullShippingAddress, shippingFee, shippingMethod, paymentMethod);
         }
 
         // 💳 Nếu là VNPay, tạo đơn hàng trước khi tạo URL thanh toán
@@ -200,10 +203,12 @@ public class OrderService {
             ).collect(Collectors.toList());
 
             orderDetailRepository.saveAll(orderDetails);
-
-
-
             log.info("✅ Đã lưu {} sản phẩm vào OrderDetail.", orderDetails.size());
+
+
+
+
+
             try {
                 String vnp_TxnRef = String.valueOf(savedOrder.getId());
                 long vnp_Amount = (long) (finalAmount * 100);
@@ -265,10 +270,7 @@ public class OrderService {
         ).collect(Collectors.toList());
 
         orderDetailRepository.saveAll(orderDetails);
-
-
         log.info("✅ Đã lưu {} sản phẩm vào OrderDetail.", orderDetails.size());
-
 
         Product product = orderDetails.getFirst().getProductVariant().getProduct();
         ProductVariant variant = orderDetails.getFirst().getProductVariant();
@@ -297,12 +299,15 @@ public class OrderService {
                 translations
         );
 
+
+
+
         Payment payment = Payment.builder()
                 .order(savedOrder)
                 .paymentMethod(paymentMethod)
                 .paymentDate(new Date())
                 .amount(finalAmount)
-                .status("PENDING")
+                .status("UNPAID")
                 .transactionCode(UUID.randomUUID().toString())
                 .build();
 
@@ -454,6 +459,133 @@ public class OrderService {
 
         return ordersPage.map(HistoryOrderResponse::fromHistoryOrder);
     }
+
+
+    public Page<GetAllOrderAdmin> getFilteredOrders(
+            Long orderId,
+            String status,
+            String shippingAddress,
+            Double minPrice,
+            Double maxPrice,
+            LocalDateTime fromDate,
+            LocalDateTime toDate,
+            LocalDateTime updateFromDate,
+            LocalDateTime updateToDate,
+            int page,
+            int size,
+            String sortBy,
+            String sortDirection
+    ) {
+        Specification<Order> spec = OrderSpecification
+                .filterOrders(orderId, status, shippingAddress, minPrice,
+                        maxPrice, fromDate, toDate, updateFromDate, updateToDate);
+
+//        Specification<Order> spec = OrderSpecification.filterOrders(orderId, status, shippingAddress, minPrice, maxPrice, fromDate, toDate, updateFromDate, updateToDate)
+//                .and((root, query, criteriaBuilder) -> criteriaBuilder.isNotNull(root.get("user")));
+
+        // Tạo `Sort` theo sortBy và sortDirection
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        return orderRepository.findAll(spec, pageable).map(GetAllOrderAdmin::fromGetAllOrderAdmin);
+    }
+
+
+    @Transactional
+    public GetAllOrderAdmin updateOrderStatus(Long orderId, String status) {
+        log.info("Updating order {} to status: {}", orderId, status);
+
+        // 1️⃣ Kiểm tra đơn hàng có tồn tại không
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found with id: " + orderId));
+
+        // 2️⃣ Lấy trạng thái thanh toán của đơn hàng
+        Payment orderPayment = paymentRepository.findTopByOrderId(orderId)
+                .orElseThrow(() -> new NotFoundException("Payment information not found for order: " + orderId));
+
+        String paymentStatus = orderPayment.getStatus(); // Lấy trạng thái thanh toán
+
+        // 3️⃣ Nếu paymentStatus là UNPAID và muốn cập nhật thành DONE -> Chặn cập nhật
+        if ("UNPAID".equals(paymentStatus) && "DONE".equals(status)) {
+            throw new BadRequestException("Cannot update order to DONE when payment is UNPAID.");
+        }
+
+        // 4️⃣ Kiểm tra trạng thái có hợp lệ không
+        OrderStatus currentStatus = order.getOrderStatus();
+        OrderStatus updatedStatus = orderStatusRepository.findByStatusName(status)
+                .orElseThrow(() -> new BadRequestException("Invalid order status: " + status));
+
+        // 5️⃣ Kiểm tra trạng thái mới có hợp lệ không
+        if (!isValidStatusTransition(currentStatus.getStatusName(), status)) {
+            throw new BadRequestException("Cannot update order status from " +
+                    currentStatus.getStatusName() + " to " + status);
+        }
+
+        // 6️⃣ Cập nhật trạng thái
+        order.setOrderStatus(updatedStatus);
+        order.setUpdatedAt(LocalDateTime.now());
+        orderRepository.save(order);
+
+        return GetAllOrderAdmin.fromGetAllOrderAdmin(order);
+    }
+
+
+    private boolean isValidStatusTransition(String currentStatus, String newStatus) {
+        List<String> statusFlow = List.of("PENDING", "PROCESSING", "SHIPPED", "DELIVERED","CANCELLED", "DONE");
+
+        int currentIndex = statusFlow.indexOf(currentStatus);
+        int newIndex = statusFlow.indexOf(newStatus);
+
+        // Cho phép cập nhật trực tiếp từ PENDING → DONE
+        if ("PENDING".equals(currentStatus) && "DONE".equals(newStatus)) {
+            return true;
+        }
+
+        // Cho phép cập nhật trực tiếp từ PROCESSING → DONE
+        if ("PROCESSING".equals(currentStatus) && "DONE".equals(newStatus)) {
+            return true;
+        }
+
+        // Cho phép cập nhật trực tiếp từ PENDING → CANCELLED
+        if ("PENDING".equals(currentStatus) && "CANCELLED".equals(newStatus)) {
+            return true;
+        }
+
+        return currentIndex < newIndex;
+    }
+
+    @Transactional
+    public GetAllOrderAdmin updatePaymentStatus(Long orderId, String paymentStatus) {
+        // 1️⃣ Kiểm tra đơn hàng có tồn tại không
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found with id: " + orderId));
+
+        // 2️⃣ Lấy phương thức thanh toán từ danh sách Payment
+        String paymentMethod = order.getPayments().stream()
+                .findFirst()
+                .map(payment -> payment.getPaymentMethod().getMethodName()) // Lấy tên phương thức thanh toán
+                .orElseThrow(() -> new BadRequestException("Payment method not found for order ID: " + orderId));
+
+        // 3️⃣ Kiểm tra phương thức thanh toán có phải là COD không
+        if (!"COD".equalsIgnoreCase(paymentMethod)) {
+            throw new BadRequestException("Only COD orders can update payment status manually.");
+        }
+
+        // 4️⃣ Kiểm tra trạng thái thanh toán có hợp lệ không
+        List<String> validPaymentStatuses = List.of("PAID", "UNPAID");
+        if (!validPaymentStatuses.contains(paymentStatus.toUpperCase())) {
+            throw new BadRequestException("Invalid payment status: " + paymentStatus);
+        }
+
+        // 5️⃣ Cập nhật trạng thái thanh toán
+        order.getPayments().forEach(payment -> payment.setStatus(paymentStatus.toUpperCase()));
+        orderRepository.save(order);
+
+        return GetAllOrderAdmin.fromGetAllOrderAdmin(order);
+    }
+
+
+
 
 
 
@@ -687,7 +819,7 @@ public class OrderService {
                     order.getUser().getEmail(),
                     StoreOrderResponse.fromOrder(order,"vi")
             );
-            
+
                 for (OrderDetail detail : order.getOrderDetails()) {
                     inventoryService.reduceInventory(
                             detail.getProductVariant().getId(),

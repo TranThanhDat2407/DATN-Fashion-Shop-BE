@@ -1,5 +1,6 @@
 package com.example.DATN_Fashion_Shop_BE.service;
 
+import com.example.DATN_Fashion_Shop_BE.dto.response.orderDetail.OrderDetailAdminResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.userAddressResponse.UserAddressResponse;
 import com.example.DATN_Fashion_Shop_BE.repository.OrderRepository;
 import com.example.DATN_Fashion_Shop_BE.repository.UserAddressRepository;
@@ -22,7 +23,7 @@ public class OrderDetailService {
     private final UserAddressRepository userAddressRepository;
 
     /**
-     * Lấy danh sách chi tiết đơn hàng theo orderId
+     * Lấy danh sách chi tiết đơn hàng theo orderId (Customer)
      */
     public List<OrderDetailResponse> getOrderDetailsByOrderId(Long orderId) {
         List<OrderDetail> orderDetails = orderDetailRepository.findByOrderId(orderId);
@@ -45,4 +46,25 @@ public class OrderDetailService {
                 .map(orderDetail -> OrderDetailResponse.fromOrderDetail(orderDetail, userAddressResponses))
                 .collect(Collectors.toList());
     }
+
+    /**
+     * Lấy danh sách chi tiết đơn hàng theo orderId (Admin)
+     */
+    public List<OrderDetailAdminResponse> getOrderDetailsByOrderIdAdmin(Long orderId) {
+
+        List<OrderDetail> orderDetails = orderDetailRepository.findByOrderId(orderId);
+
+        if (orderDetails.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+
+        return orderDetails.stream()
+                .map(OrderDetailAdminResponse::fromOrderDetailAdmin)
+                .collect(Collectors.toList());
+    }
+
+
+
+
 }

@@ -1,5 +1,6 @@
 package com.example.DATN_Fashion_Shop_BE.repository;
 
+import com.example.DATN_Fashion_Shop_BE.dto.response.revenue.InventoryStatistics;
 import com.example.DATN_Fashion_Shop_BE.model.Inventory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -51,6 +52,46 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     Optional<Inventory> findByStoreIdAndProductVariantId(Long storeId, Long productVariantId);
 
     List<Inventory> findByStoreId(Long storeId);
+
+
+
+
+    @Query("""
+    SELECT new com.example.DATN_Fashion_Shop_BE.dto.response.revenue.InventoryStatistics(
+        pv.id, 
+        pt.name, 
+        avColor.valueName, 
+        avColor.valueImg, 
+        avSize.valueName, 
+        pm.mediaUrl, 
+        SUM(i.quantityInStock)
+    )
+    FROM Inventory i
+    JOIN i.productVariant pv
+    JOIN pv.product p
+    JOIN p.translations pt
+    LEFT JOIN pv.colorValue avColor
+    LEFT JOIN pv.sizeValue avSize
+    LEFT JOIN ProductMedia pm ON pm.product = p AND pm.colorValue.id = pv.colorValue.id
+    WHERE i.store.id = :storeId
+    AND pt.language.code = 'vi'  
+    AND (:productName IS NULL OR LOWER(pt.name) LIKE LOWER(CONCAT('%', :productName, '%')))
+    AND (:color IS NULL OR LOWER(avColor.valueName) LIKE LOWER(CONCAT('%', :color, '%')))
+    AND (:size IS NULL OR LOWER(avSize.valueName) LIKE LOWER(CONCAT('%', :size, '%')))
+    GROUP BY pv.id, pt.name, avColor.valueName, avColor.valueImg, avSize.valueName, pm.mediaUrl
+    ORDER BY pv.id ASC
+""")
+    Page<InventoryStatistics> findInventoryByStore(
+            @Param("storeId") Long storeId,
+            @Param("productName") String productName,
+            @Param("color") String color,
+            @Param("size") String size,
+            Pageable pageable);
+
+
+
+
+
 
     Page<Inventory> findByWarehouseIdAndProductVariant_Product_Translations_LanguageCodeAndProductVariant_Product_Translations_NameContainingIgnoreCaseAndProductVariant_Product_Categories_IdIn(
             Long warehouseId, String languageCode, String productName, List<Long> categoryIds, Pageable pageable);

@@ -111,6 +111,7 @@ public class MessageKeys {
     public static final String ORDERS_PREVIEW_FAILED = "orders.preview_failed";
     public static final String ORDERS_HISTORY_NOT_FOUND = "orders.history_not_found";
     public static final String ORDERS_HISTORY_SUCCESS = "orders.history_successful";
+    public static final String ORDER_NOT_FOUND = "orders.not_found";
 
 
     //orderDetail
@@ -183,6 +184,9 @@ public class MessageKeys {
     // shipping_method
     public static final String SHIPPING_METHOD_NOT_VALID= "shipping_method_not_valid";
 
+
+    //payment
+    public static final String PAYMENT_STATUS_UPDATED_SUCCESS = "payment.status_updated_success";
 
     // payment_method
     public static final String PAYMENT_METHOD_NOT_VALID = "payment_method_not_valid";

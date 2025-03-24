@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 
@@ -26,7 +27,7 @@ public class VNPayService  {
     private static final String vnp_TmnCode = "IQUTYPIQ";
     private static final String vnp_HashSecret = "HJF2G7EHCHPX0K446LBH17FKQUF56MB5";
     private static final String vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"; // URL VNPay
-    private static final String vnp_ReturnUrl = "http://localhost:4200/client/usd/en/payment_success"; // URL trả về sau khi thanh toán
+    private static final String vnp_ReturnUrl = "http://localhost:4200/client/vnd/vi/payment_success"; // URL trả về sau khi thanh toán
     private static final String vnp_IpnUrl = "https://tai.kesug.com/api/v1/payment/vnpay_ipn";
 
 
@@ -62,10 +63,18 @@ public class VNPayService  {
         params.put("vnp_OrderType", "other");
         params.put("vnp_Locale", "vn");
         params.put("vnp_ReturnUrl", vnp_ReturnUrl);
-//        params.put("vnp_IpnUrl", vnp_IpnUrl);
-//        log.info("✅ vnp_IpnUrl sử dụng: {}", vnp_IpnUrl);
         params.put("vnp_IpAddr", ipAddr);
-        params.put("vnp_CreateDate", new java.text.SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
+
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+        Date now = new Date();
+        params.put("vnp_CreateDate", dateFormat.format(now));
+
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(now);
+        calendar.add(Calendar.MINUTE, 5);
+        params.put("vnp_ExpireDate", dateFormat.format(calendar.getTime()));
 
         StringBuilder data = new StringBuilder();
         for (Map.Entry<String, String> entry : params.entrySet()) {
