@@ -51,4 +51,18 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     Optional<Inventory> findByStoreIdAndProductVariantId(Long storeId, Long productVariantId);
 
     List<Inventory> findByStoreId(Long storeId);
+
+    Page<Inventory> findByWarehouseIdAndProductVariant_Product_Translations_LanguageCodeAndProductVariant_Product_Translations_NameContainingIgnoreCaseAndProductVariant_Product_Categories_IdIn(
+            Long warehouseId, String languageCode, String productName, List<Long> categoryIds, Pageable pageable);
+
+    Page<Inventory> findByWarehouseIdAndProductVariant_Product_Translations_LanguageCodeAndProductVariant_Product_Categories_IdIn(
+            Long warehouseId, String languageCode, List<Long> categoryIds, Pageable pageable);
+
+    Page<Inventory> findByWarehouseIdAndProductVariant_Product_Translations_LanguageCodeAndProductVariant_Product_Translations_NameContainingIgnoreCase(
+            Long warehouseId, String languageCode, String productName, Pageable pageable);
+
+    Page<Inventory> findByWarehouseIdAndProductVariant_Product_Translations_LanguageCode(
+            Long warehouseId, String languageCode, Pageable pageable);
+
+    Optional<Inventory> findByWarehouseIdAndProductVariantId(Long warehouseId, Long productVariantId);
 }

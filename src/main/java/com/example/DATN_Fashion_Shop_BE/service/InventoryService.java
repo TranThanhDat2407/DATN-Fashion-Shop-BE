@@ -3,11 +3,13 @@ package com.example.DATN_Fashion_Shop_BE.service;
 
 import com.example.DATN_Fashion_Shop_BE.dto.response.audit.CategoryAudResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.inventory.InventoryAudResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.inventory.WarehouseStockResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.model.Category;
 import com.example.DATN_Fashion_Shop_BE.model.Inventory;
 import com.example.DATN_Fashion_Shop_BE.model.ProductVariant;
 import com.example.DATN_Fashion_Shop_BE.model.Store;
+import com.example.DATN_Fashion_Shop_BE.repository.CategoryRepository;
 import com.example.DATN_Fashion_Shop_BE.repository.InventoryRepository;
 import com.example.DATN_Fashion_Shop_BE.repository.ProductVariantRepository;
 import com.example.DATN_Fashion_Shop_BE.repository.StoreRepository;
@@ -23,9 +25,7 @@ import org.hibernate.envers.query.AuditEntity;
 import org.hibernate.envers.query.AuditQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -33,12 +33,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class InventoryService {
     private final InventoryRepository inventoryRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final CategoryRepository categoryRepository;
     private final CategoryService categoryService;
 
     private static final Logger logger = LoggerFactory.getLogger(InventoryService.class);
@@ -145,5 +147,36 @@ public class InventoryService {
     }
 
 
+    public Page<WarehouseStockResponse> getInventoryByWarehouseId(Long warehouseId, String languageCode,
+                                                                  String productName, Long categoryId, int page, int size, String sortBy, String sortDir) {
+
+        Sort sort = Sort.by(sortBy);
+        sort = sortDir.equalsIgnoreCase("desc") ? sort.descending() : sort.ascending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<Inventory> inventoryPage;
+        List<Long> categoryIds = (categoryId != null) ? categoryRepository.findChildCategoryIds(categoryId) : new ArrayList<>();
+
+        if (productName != null && categoryId != null) {
+            inventoryPage = inventoryRepository.findByWarehouseIdAndProductVariant_Product_Translations_LanguageCodeAndProductVariant_Product_Translations_NameContainingIgnoreCaseAndProductVariant_Product_Categories_IdIn(
+                    warehouseId, languageCode, productName, categoryIds, pageable);
+        } else if (categoryId != null) {
+            inventoryPage = inventoryRepository.findByWarehouseIdAndProductVariant_Product_Translations_LanguageCodeAndProductVariant_Product_Categories_IdIn(
+                    warehouseId, languageCode, categoryIds, pageable);
+        } else if (productName != null) {
+            inventoryPage = inventoryRepository.findByWarehouseIdAndProductVariant_Product_Translations_LanguageCodeAndProductVariant_Product_Translations_NameContainingIgnoreCase(
+                    warehouseId, languageCode, productName, pageable);
+        } else {
+            inventoryPage = inventoryRepository.findByWarehouseIdAndProductVariant_Product_Translations_LanguageCode(
+                    warehouseId, languageCode, pageable);
+        }
+
+        List<WarehouseStockResponse> stockResponses = inventoryPage.getContent()
+                .stream()
+                .map(inventory -> WarehouseStockResponse.fromInventory(inventory, languageCode))
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(stockResponses, pageable, inventoryPage.getTotalElements());
+    }
 
 }

@@ -4,6 +4,8 @@ import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.inventory.InventoryAudResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.inventory.WarehouseStockResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreStockResponse;
 import com.example.DATN_Fashion_Shop_BE.service.InventoryService;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
@@ -52,4 +54,25 @@ public class InventoryController {
                 localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
                 PageResponse.fromPage(history)));
     }
+
+    @GetMapping("/warehouse-inventory/{warehouseId}")
+    public ResponseEntity<ApiResponse<PageResponse<WarehouseStockResponse>>> getInventoryByStore(
+            @PathVariable Long warehouseId,
+            @RequestParam(defaultValue = "vi") String languageCode,
+            @RequestParam(required = false) String productName,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir
+    ) {
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_RETRIEVED_SUCCESSFULLY),
+                PageResponse.fromPage(inventoryService
+                        .getInventoryByWarehouseId(warehouseId, languageCode, productName,
+                                categoryId, page, size, sortBy, sortDir))
+        ));
+    }
+
 }
