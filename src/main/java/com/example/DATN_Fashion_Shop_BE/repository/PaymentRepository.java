@@ -14,6 +14,9 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     void updatePaymentStatus(@Param("orderId") Long orderId, @Param("status") String status);
 
 
-    Optional<Payment> findByOrderId(Long orderId);
+
+
+    @Query("SELECT p FROM Payment p WHERE p.order.id = :orderId ORDER BY p.id DESC")
+    Optional<Payment> findTopByOrderId(@Param("orderId") Long orderId);
 
 }

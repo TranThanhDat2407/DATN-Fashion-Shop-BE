@@ -1,18 +1,18 @@
 package com.example.DATN_Fashion_Shop_BE.controller;
 
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.revenue.CountStartAndWishList;
+import com.example.DATN_Fashion_Shop_BE.dto.response.revenue.InventoryStatistics;
 import com.example.DATN_Fashion_Shop_BE.dto.response.revenue.Top10Products;
 import com.example.DATN_Fashion_Shop_BE.service.RevenueService;
+import com.example.DATN_Fashion_Shop_BE.service.WishlistService;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -26,6 +26,7 @@ import java.util.List;
 public class RevenueController {
 
     private final RevenueService revenueService;
+
 
     @GetMapping("/daily")
     public ResponseEntity<BigDecimal> getDailyRevenue(@RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
@@ -58,4 +59,54 @@ public class RevenueController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/count/start-wishlist")
+    public ResponseEntity<ApiResponse<Page<CountStartAndWishList>>> getProductStats(
+            @RequestParam String languageCode,
+            @RequestParam(required = false) Long productId,
+            @RequestParam(required = false) String productName,
+            @RequestParam(required = false) Integer minStars,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "wishlist") String sortBy) {  // Thêm sortBy vào API
+
+        Page<CountStartAndWishList> productStats = revenueService.getSortedProductStats(
+                languageCode, productId, productName, minStars, page, size, sortBy);
+
+        ApiResponse<Page<CountStartAndWishList>> response = ApiResponse.<Page<CountStartAndWishList>>builder()
+                .timestamp(LocalDateTime.now().toString())
+                .status(HttpStatus.OK.value())
+                .message("Success")
+                .data(productStats)
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
+
+
+
+
+
+    @GetMapping("/inventory")
+    public ResponseEntity<ApiResponse<Page<InventoryStatistics>>> getInventory(
+            @RequestParam Long storeId,
+            @RequestParam(required = false) String productName,
+            @RequestParam(required = false) String color,
+            @RequestParam(required = false) String sizes,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Page<InventoryStatistics> inventory = revenueService.getInventoryStatistics(storeId, productName, color, sizes, page, size);
+
+        ApiResponse<Page<InventoryStatistics>> response = ApiResponse.<Page<InventoryStatistics>>builder()
+                .timestamp(LocalDateTime.now().toString())
+                .status(HttpStatus.OK.value())
+                .message("Success")
+                .data(inventory)
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
+
+
 }

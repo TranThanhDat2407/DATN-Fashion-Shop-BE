@@ -29,21 +29,31 @@ public class GetAllOrderAdmin {
 
     public static GetAllOrderAdmin fromGetAllOrderAdmin(Order order) {
 
+
+
         String paymentStatus = order.getPayments().stream()
                 .findFirst()
                 .map(Payment::getStatus)
                 .orElse("");
 
-        User user = order.getUser();
-        UserAddress shippingAddress = user.getUserAddresses().stream()
-                .filter(UserAddress::getIsDefault)
-                .findFirst()
-                .orElse(null);
 
-        String customerName = (shippingAddress != null) ? shippingAddress.getFirstName() + " "
-                + shippingAddress.getLastName() : "Tạm thời khách hàng chưa cập nhật tên";
-        String customerPhone = (shippingAddress != null) ? shippingAddress.getPhone() :
-                "Tạm thời không có số điện thoại";
+
+        User user = order.getUser();
+        boolean isGuest = (user == null);
+
+        UserAddress shippingAddress = (!isGuest && user.getUserAddresses() != null) ?
+                user.getUserAddresses().stream()
+                        .filter(UserAddress::getIsDefault)
+                        .findFirst()
+                        .orElse(null)
+                : null;
+
+        String customerName = isGuest ? "Guest" :
+                (shippingAddress != null ? shippingAddress.getFirstName() + " " + shippingAddress.getLastName() : "Unknown");
+
+
+        String customerPhone = (shippingAddress != null) ? shippingAddress.getPhone() : "Guest";
+
 
 
         return GetAllOrderAdmin.builder()
@@ -53,7 +63,7 @@ public class GetAllOrderAdmin {
                 .orderTime(order.getCreatedAt())
                 .orderStatus(order.getOrderStatus().getStatusName())
                 .paymentStatus(paymentStatus)
-                .shippingAddress(order.getShippingAddress())
+                .shippingAddress(order.getShippingAddress() != null ? order.getShippingAddress() : "Không có địa chỉ")
                 .customerName(customerName)
                 .customerPhone(customerPhone)
                 .build();

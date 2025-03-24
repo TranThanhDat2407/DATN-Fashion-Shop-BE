@@ -59,20 +59,27 @@ public class OrderDetailAdminResponse {
                     .findFirst()
                     .orElse(product.getMedias().get(0).getMediaUrl());
         }
-
-        List<UserAddressResponse> userAddressResponses = order.getUser().getUserAddresses().stream()
+        User user = order.getUser();
+        List<UserAddressResponse> userAddressResponses = (user != null && user.getUserAddresses() != null)
+                ? user.getUserAddresses().stream()
                 .map(UserAddressResponse::fromUserAddress)
-                .collect(Collectors.toList());
+                .collect(Collectors.toList())
+                : List.of();
 
-        UserAddressResponse defaultAddress = (userAddressResponses != null && !userAddressResponses.isEmpty())
+        UserAddressResponse defaultAddress = (!userAddressResponses.isEmpty())
                 ? userAddressResponses.stream()
                 .filter(UserAddressResponse::getIsDefault)
                 .findFirst()
                 .orElse(userAddressResponses.get(0))
                 : null;
 
-        String customerName = (defaultAddress != null) ? defaultAddress.getFirstName() + " " + defaultAddress.getLastName() : null;
-        String customerPhone = (defaultAddress != null) ? defaultAddress.getPhone() : null;
+
+        String customerName = (defaultAddress != null)
+                ? defaultAddress.getFirstName() + " " + defaultAddress.getLastName()
+                : "Guest";
+        String customerPhone = (defaultAddress != null)
+                ? defaultAddress.getPhone()
+                : "N/A";
 
 
         // 🛠️ Xử lý phương thức thanh toán
@@ -87,10 +94,9 @@ public class OrderDetailAdminResponse {
                 : "Thanh toán khi nhận hàng";
 
         // 🛠️ Xử lý trạng thái thanh toán
-        String paymentStatus = order.getPayments().stream()
-                .map(Payment::getStatus)
-                .findFirst()
-                .orElse("Chưa thanh toán");
+        String paymentStatus = (order.getPayments() != null && !order.getPayments().isEmpty())
+                ? order.getPayments().stream().map(Payment::getStatus).findFirst().orElse("Chưa thanh toán")
+                : "Chưa thanh toán";
 
         return OrderDetailAdminResponse.builder()
                 .orderDetailId(orderDetail.getId())
@@ -101,7 +107,7 @@ public class OrderDetailAdminResponse {
                 .productVariant(ProductVariantResponse.fromProductVariant(orderDetail.getProductVariant()))
                 .customerName(customerName)
                 .customerPhone(customerPhone)
-                .shippingAddress(order.getShippingAddress())
+                .shippingAddress(order.getShippingAddress() != null ? order.getShippingAddress() : "Không có địa chỉ")
                 .paymentMethod(paymentMethodNames)
                 .paymentStatus(paymentStatus)
                 .orderStatus(order.getOrderStatus().getStatusName())

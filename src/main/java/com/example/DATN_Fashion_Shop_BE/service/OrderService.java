@@ -476,7 +476,12 @@ public class OrderService {
             String sortBy,
             String sortDirection
     ) {
-        Specification<Order> spec = OrderSpecification.filterOrders(orderId, status, shippingAddress, minPrice, maxPrice, fromDate, toDate, updateFromDate, updateToDate);
+        Specification<Order> spec = OrderSpecification
+                .filterOrders(orderId, status, shippingAddress, minPrice,
+                        maxPrice, fromDate, toDate, updateFromDate, updateToDate);
+
+//        Specification<Order> spec = OrderSpecification.filterOrders(orderId, status, shippingAddress, minPrice, maxPrice, fromDate, toDate, updateFromDate, updateToDate)
+//                .and((root, query, criteriaBuilder) -> criteriaBuilder.isNotNull(root.get("user")));
 
         // Tạo `Sort` theo sortBy và sortDirection
         Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy);
@@ -495,7 +500,7 @@ public class OrderService {
                 .orElseThrow(() -> new NotFoundException("Order not found with id: " + orderId));
 
         // 2️⃣ Lấy trạng thái thanh toán của đơn hàng
-        Payment orderPayment = paymentRepository.findByOrderId(orderId)
+        Payment orderPayment = paymentRepository.findTopByOrderId(orderId)
                 .orElseThrow(() -> new NotFoundException("Payment information not found for order: " + orderId));
 
         String paymentStatus = orderPayment.getStatus(); // Lấy trạng thái thanh toán
