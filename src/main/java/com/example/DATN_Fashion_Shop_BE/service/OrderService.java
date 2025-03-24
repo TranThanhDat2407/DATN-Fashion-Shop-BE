@@ -766,6 +766,26 @@ public class OrderService {
         return orders.map(item -> StoreOrderResponse.fromOrder(item, languageCode));
     }
 
+    public List<StoreOrderResponse> getStoreOrdersByFilters(
+            Long storeId,
+            Long orderStatusId,
+            Long paymentMethodId,
+            Long shippingMethodId,
+            Long customerId,
+            Long staffId,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            String languageCode
+    ) {
+        List<Order> orders = orderRepository.findOrdersByFilters(
+                storeId, orderStatusId, paymentMethodId, shippingMethodId, customerId, staffId, startDate, endDate
+        );
+
+        return orders.stream()
+                .map(order -> StoreOrderResponse.fromOrder(order, languageCode))
+                .collect(Collectors.toList());
+    }
+
     public StoreOrderResponse getStoreOrderById(Long orderId, String languageCode)
             throws DataNotFoundException {
         Order order = orderRepository.findById(orderId)
@@ -827,6 +847,7 @@ public class OrderService {
         if (!order.getPayments().isEmpty()) {
             Payment payment = order.getPayments().get(0);
             payment.setPaymentMethod(paymentMethod);
+            payment.setStatus("PAID");
         } else {
             throw new IllegalStateException("No payment record found for this order.");
         }
@@ -945,7 +966,7 @@ public class OrderService {
                 .paymentMethod(paymentMethod)
                 .amount(finalAmount)
                 .paymentDate(new Date())
-                .status("PENDING")
+                .status("UNPAID")
                 .transactionCode("")
                 .build();
 
@@ -1014,6 +1035,8 @@ public class OrderService {
                 String paymentUrl = vnPayService.createPaymentUrl(vnp_Amount, vnp_OrderInfo, vnp_TxnRef, vnp_IpAddr);
                 log.info("💳 URL thanh toán VNPay: {}", paymentUrl);
 
+                payment.setStatus("PAID");
+                paymentRepository.save(payment);
                 return ResponseEntity.ok(Collections.singletonMap("paymentUrl", paymentUrl));
             } catch (Exception e) {
                 log.error("❌ Lỗi khi tạo URL thanh toán VNPay: {}", e.getMessage());

@@ -115,6 +115,33 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
             Pageable pageable
     );
 
+    @Query("""
+                SELECT o FROM Order o
+                LEFT JOIN o.orderStatus os
+                LEFT JOIN o.payments p
+                LEFT JOIN p.paymentMethod pm
+                LEFT JOIN o.shippingMethod sm
+                LEFT JOIN o.user u
+                WHERE o.store.id = :storeId
+                AND (:orderStatusId IS NULL OR os.id = :orderStatusId)
+                AND (:paymentMethodId IS NULL OR pm.id = :paymentMethodId)
+                AND (:shippingMethodId IS NULL OR sm.id = :shippingMethodId)
+                AND (:customerId IS NULL OR u.id = :customerId)
+                AND (:staffId IS NULL OR o.createdBy = :staffId)
+                AND (:startDate IS NULL OR o.updatedAt >= :startDate)
+                AND (:endDate IS NULL OR o.updatedAt <= :endDate)
+            """)
+    List<Order> findOrdersByFilters(
+            @Param("storeId") Long storeId,
+            @Param("orderStatusId") Long orderStatusId,
+            @Param("paymentMethodId") Long paymentMethodId,
+            @Param("shippingMethodId") Long shippingMethodId,
+            @Param("customerId") Long customerId,
+            @Param("staffId") Long staffId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
+
     @Query("SELECT NEW com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.StoreMonthlyRevenueResponse(" +
             "MONTH(o.updatedAt), SUM(o.totalPrice)) " +
             "FROM Order o " +
