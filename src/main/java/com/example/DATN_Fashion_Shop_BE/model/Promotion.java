@@ -36,6 +36,6 @@ public class Promotion extends BaseEntity{
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
-    @OneToMany(mappedBy = "promotion", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "promotion", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private Set<Product> products = new HashSet<>();
 }
