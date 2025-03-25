@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class WarehouseStockResponse extends BaseResponse {
+   private Long inventoryId;
    private Long ProductId;
    private Long productVariantId;
    private String productImage;
@@ -42,6 +43,7 @@ public class WarehouseStockResponse extends BaseResponse {
       }
 
       WarehouseStockResponse response = WarehouseStockResponse.builder()
+              .inventoryId(inventory.getId())
               .ProductId(inventory.getProductVariant().getProduct().getId())
               .productName(inventory.getProductVariant().getProduct().getTranslationByLanguage(languageCode).getName())
               .sizeName(inventory.getProductVariant().getSizeValue().getValueName())

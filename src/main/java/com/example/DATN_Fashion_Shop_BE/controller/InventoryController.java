@@ -1,11 +1,15 @@
 package com.example.DATN_Fashion_Shop_BE.controller;
 
 import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
+import com.example.DATN_Fashion_Shop_BE.dto.request.inventory.WarehouseInventoryRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.inventory.InventoryAudResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.inventory.WarehouseInventoryResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.inventory.WarehouseStockResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.product.InventoryResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreStockResponse;
+import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.service.InventoryService;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
@@ -72,6 +76,30 @@ public class InventoryController {
                 PageResponse.fromPage(inventoryService
                         .getInventoryByWarehouseId(warehouseId, languageCode, productName,
                                 categoryId, page, size, sortBy, sortDir))
+        ));
+    }
+
+    @PostMapping("/warehouse-inventory/insert")
+    public ResponseEntity<ApiResponse<WarehouseInventoryResponse>> addInventoryToWarehouse(
+            @RequestBody WarehouseInventoryRequest request) {
+        WarehouseInventoryResponse response = inventoryService.addWarehouseInventory(request);
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_RETRIEVED_SUCCESSFULLY),
+                response
+        ));
+    }
+
+    @PutMapping("/warehouse-inventory/{inventoryId}")
+    public ResponseEntity<ApiResponse<WarehouseInventoryResponse>> addInventoryToWarehouse(
+            @PathVariable Long inventoryId,
+            @RequestParam Integer newQuantity) throws DataNotFoundException {
+        WarehouseInventoryResponse response =
+                inventoryService.updateWarehouseInventory(inventoryId,newQuantity);
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_RETRIEVED_SUCCESSFULLY),
+                response
         ));
     }
 
