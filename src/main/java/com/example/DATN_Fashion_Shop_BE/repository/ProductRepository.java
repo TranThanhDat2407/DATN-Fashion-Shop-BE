@@ -113,5 +113,9 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     List<Product> findByPromotion(Promotion promotion);
 
+    @Query("SELECT p.id FROM Product p WHERE p.promotion.id = :promotionId")
+    List<Long> findProductIdsByPromotionId(Long promotionId);
 
+
+    List<Product> findProducByPromotionId(Long promotionId);
 }

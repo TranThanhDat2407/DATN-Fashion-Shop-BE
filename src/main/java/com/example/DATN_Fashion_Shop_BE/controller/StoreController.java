@@ -4,16 +4,15 @@ import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.request.store.CreateStoreRequest;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreInventoryResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreOrderDetailResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreStockResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.*;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.*;
 import com.example.DATN_Fashion_Shop_BE.model.Inventory;
 import com.example.DATN_Fashion_Shop_BE.service.ExcelService;
+import com.example.DATN_Fashion_Shop_BE.service.OrderService;
 import com.example.DATN_Fashion_Shop_BE.service.StoreService;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import org.apache.coyote.Response;
 import org.springframework.core.io.InputStreamResource;
@@ -41,6 +40,7 @@ public class StoreController {
     private final StoreService storeService;
     private final ExcelService excelService;
     private final LocalizationUtils localizationUtils;
+    private final OrderService orderService;
 
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<StoreResponse>>> searchStores(
@@ -248,7 +248,8 @@ public class StoreController {
 
             return ResponseEntity.ok()
                     .headers(headers)
-                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .contentType(MediaType
+                            .parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                     .body(resource);
         } catch (IOException e) {
             return ResponseEntity.internalServerError().body(null);
@@ -276,10 +277,51 @@ public class StoreController {
 
             return ResponseEntity.ok()
                     .headers(headers)
+                    .contentType(MediaType
+                            .parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(resource);
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().body(null);
+        }
+    }
+
+    @GetMapping("/export-store-orders")
+    public ResponseEntity<InputStreamResource> exportStoreOrders(
+            @RequestParam Long storeId,
+            @RequestParam(required = false) Long orderStatusId,
+            @RequestParam(required = false) Long paymentMethodId,
+            @RequestParam(required = false) Long shippingMethodId,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) Long staffId,
+            @RequestParam(required = false) LocalDateTime startDate,
+            @RequestParam(required = false) LocalDateTime endDate,
+            @RequestParam String languageCode
+    ) {
+        try {
+            // Lấy dữ liệu từ service
+            List<StoreOrderResponse> storeOrders = orderService.getStoreOrdersByFilters(
+                    storeId, orderStatusId, paymentMethodId, shippingMethodId, customerId, staffId, startDate, endDate, languageCode
+            );
+            storeOrders.sort((o1, o2) -> o2.getUpdatedAt().compareTo(o1.getUpdatedAt()));
+            // Tạo file Excel trong bộ nhớ
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            excelService.exportStoreOrdersToExcel(storeOrders, outputStream);
+
+            // Chuyển đổi thành InputStreamResource
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
+            InputStreamResource resource = new InputStreamResource(inputStream);
+
+            // Thiết lập headers để tải về file
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=store_orders.xlsx");
+
+            return ResponseEntity.ok()
+                    .headers(headers)
                     .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                     .body(resource);
         } catch (IOException e) {
             return ResponseEntity.internalServerError().body(null);
         }
     }
+
 }

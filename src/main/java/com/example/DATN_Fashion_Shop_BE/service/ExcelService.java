@@ -1,5 +1,6 @@
 package com.example.DATN_Fashion_Shop_BE.service;
 
+import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreOrderResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.StoreDailyRevenueResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.StoreRevenueByDateRangeResponse;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 @Service
 @RequiredArgsConstructor
@@ -146,5 +148,111 @@ public class ExcelService {
 
         // Đóng workbook
         workbook.close();
+    }
+
+    public void exportStoreOrder(
+            Long storeId,
+            Integer month,
+            Integer year,
+            OutputStream outputStream
+    ) throws IOException {
+        // Lấy dữ liệu từ service
+        List<StoreDailyRevenueResponse> revenueData =
+                storeService.getDailyRevenueByMonthAndYear(storeId, month, year);
+
+        // Tạo workbook và sheet
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("Doanh thu hàng ngày");
+
+        // Tạo header
+        Row headerRow = sheet.createRow(0);
+        headerRow.createCell(0).setCellValue("Ngày");
+        headerRow.createCell(1).setCellValue("Tháng");
+        headerRow.createCell(2).setCellValue("Năm");
+        headerRow.createCell(3).setCellValue("Doanh thu");
+
+        // Điền dữ liệu
+        int rowNum = 1;
+        for (StoreDailyRevenueResponse data : revenueData) {
+            Row row = sheet.createRow(rowNum++);
+            row.createCell(0).setCellValue(data.getDay());
+            row.createCell(1).setCellValue(data.getMonth());
+            row.createCell(2).setCellValue(data.getYear());
+            row.createCell(3).setCellValue(data.getTotalRevenue());
+        }
+
+        // Áp dụng style
+        applyStyles(workbook, sheet, 4);
+
+        // Ghi file Excel
+        workbook.write(outputStream);
+
+        // Đóng workbook
+        workbook.close();
+    }
+
+    public void exportStoreOrdersToExcel(
+            List<StoreOrderResponse> storeOrders,
+            OutputStream outputStream
+    ) throws IOException {
+        if (storeOrders.isEmpty()) {
+            throw new IllegalArgumentException("Không có dữ liệu để xuất Excel.");
+        }
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Danh sách đơn hàng");
+
+            // Tạo header
+            Row headerRow = sheet.createRow(0);
+            headerRow.createCell(0).setCellValue("Mã Hóa Đơn");
+            headerRow.createCell(1).setCellValue("Tên Khách hàng");
+            headerRow.createCell(2).setCellValue("Trạng Thái");
+            headerRow.createCell(3).setCellValue("Phương Thức Thanh Toán");
+            headerRow.createCell(4).setCellValue("Phương Thức Vận Chuyển");
+            headerRow.createCell(5).setCellValue("Tổng Doanh thu");
+            headerRow.createCell(6).setCellValue("Ngày Tạo");
+            headerRow.createCell(7).setCellValue("Ngày Chỉnh Sửa");
+            headerRow.createCell(8).setCellValue("Tạo Bởi ( ID Nhân Viên )");
+            headerRow.createCell(9).setCellValue("Cập Nhật Bởi ( ID Nhân Viên )");
+
+            CellStyle currencyStyle = workbook.createCellStyle();
+            DataFormat format = workbook.createDataFormat();
+            currencyStyle.setDataFormat(format.getFormat("#,##0 \"đ\""));
+
+            // Định dạng ngày tháng
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+            // Điền dữ liệu
+            int rowNum = 1;
+            for (StoreOrderResponse data : storeOrders) {
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(data.getOrderId());
+                row.createCell(1).setCellValue(data.getUser() != null ?
+                        data.getUser().getFirstName() + " " + data.getUser().getLastName() : "GUEST"
+                );
+                row.createCell(2).setCellValue(data.getOrderStatus().getStatusName());
+                row.createCell(3).setCellValue(data.getPaymentMethod().getMethodName());
+                row.createCell(4).setCellValue(data.getShippingMethod() != null ?
+                        data.getShippingMethod().getMethodName() : "IN STORE"
+                );
+
+
+                Cell totalPriceCell = row.createCell(5);
+                totalPriceCell.setCellValue(data.getTotalPrice());
+                totalPriceCell.setCellStyle(currencyStyle);
+
+                row.createCell(6).setCellValue(data.getCreatedAt().format(dateFormatter));
+                row.createCell(7).setCellValue(data.getUpdatedAt().format(dateFormatter));
+                row.createCell(8).setCellValue(data.getCreatedBy() != null ?
+                        data.getCreatedBy().toString() : "SYSTEM");
+                row.createCell(9).setCellValue(data.getUpdatedBy() != null ?
+                        data.getUpdatedBy().toString() : "SYSTEM");
+            }
+
+            // Áp dụng style
+            applyStyles(workbook, sheet, 10);
+
+            // Ghi file Excel
+            workbook.write(outputStream);
+        }
     }
 }
