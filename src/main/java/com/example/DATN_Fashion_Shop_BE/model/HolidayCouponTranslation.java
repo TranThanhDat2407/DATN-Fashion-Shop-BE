@@ -16,7 +16,7 @@ public class HolidayCouponTranslation {
     private Long id;
 
     @Column(name = "coupon_type", nullable = false)
-    private String couponType; // Loại mã giảm giá (VD: BIRTHDAY, HOLIDAY, WELCOME, ngayquoctephunu)
+    private String couponType;
 
     @Column(name = "name", columnDefinition = "NVARCHAR(255)", nullable = false)
     private String name; // Tiêu đề bản dịch
