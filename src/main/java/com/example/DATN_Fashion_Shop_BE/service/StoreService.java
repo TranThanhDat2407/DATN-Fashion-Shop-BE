@@ -185,7 +185,6 @@ public class StoreService {
         return new PageImpl<>(stockResponses, pageable, inventoryPage.getTotalElements());
     }
 
-
     double haversine(double val) {
         return Math.pow(Math.sin(val / 2), 2);
     }
