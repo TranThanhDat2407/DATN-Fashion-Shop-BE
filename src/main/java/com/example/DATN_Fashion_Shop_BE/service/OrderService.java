@@ -141,14 +141,14 @@ public class OrderService {
         }
         String fullShippingAddress = String.format("%s, %s, %s, %s",
                 address.getStreet(), address.getWard(), address.getDistrict(), address.getCity());
-        log.info("📍 Địa chỉ giao hàng: {}, {}, {}, {}", address.getStreet(), address.getWard(), address.getDistrict(), address.getCity());
+
 
         // 5️⃣ Tính phí vận chuyển
         double shippingFee = ghnService.calculateShippingFee(address, cartItems);
         log.info("🚚 Phí vận chuyển: {}", shippingFee);
         // 6️⃣ Tính tổng tiền đơn hàng
         double finalAmount = totalAmount - discount + shippingFee;
-        log.info("💰 Tổng tiền đơn hàng sau khi áp dụng mã giảm giá và phí vận chuyển: {}", finalAmount);
+
 
         ShippingMethod shippingMethod = shippingMethodRepository.findById(orderRequest.getShippingMethodId())
                 .orElseThrow(() -> {
@@ -205,10 +205,6 @@ public class OrderService {
             orderDetailRepository.saveAll(orderDetails);
             log.info("✅ Đã lưu {} sản phẩm vào OrderDetail.", orderDetails.size());
 
-
-
-
-
             try {
                 String vnp_TxnRef = String.valueOf(savedOrder.getId());
                 long vnp_Amount = (long) (finalAmount * 100);
@@ -217,7 +213,7 @@ public class OrderService {
 
                 String paymentUrl = vnPayService.createPaymentUrl(vnp_Amount, vnp_OrderInfo, vnp_TxnRef, vnp_IpAddr);
 
-                log.info("💳 URL thanh toán VNPay: {}", paymentUrl);
+//                log.info("💳 URL thanh toán VNPay: {}", paymentUrl);
 
                 return ResponseEntity.ok(Collections.singletonMap("paymentUrl", paymentUrl));
             }catch (Exception e) {
@@ -299,9 +295,6 @@ public class OrderService {
                 translations
         );
 
-
-
-
         Payment payment = Payment.builder()
                 .order(savedOrder)
                 .paymentMethod(paymentMethod)
@@ -318,7 +311,7 @@ public class OrderService {
         User userWithAddresses = userRepository.findById(savedOrder.getUser().getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng!"));
 
-        log.info("📌 User Addresses từ DB: {}", userWithAddresses.getUserAddresses());
+//        log.info("📌 User Addresses từ DB: {}", userWithAddresses.getUserAddresses());
 
         List<UserAddressResponse> userAddressResponses = (userWithAddresses.getUserAddresses() != null)
                 ? userWithAddresses.getUserAddresses().stream()
@@ -326,7 +319,7 @@ public class OrderService {
                 .collect(Collectors.toList())
                 : new ArrayList<>();
 
-        log.info("📌 userAddressResponses: {}", userAddressResponses);
+//        log.info("📌 userAddressResponses: {}", userAddressResponses);
 
 
         // Sau khi lưu OrderDetail, lấy lại đơn hàng từ DB để cập nhật danh sách OrderDetail
@@ -346,11 +339,12 @@ public class OrderService {
                 .collect(Collectors.toList());
 
 
-        log.info("📌 userAddressResponses: {}", userAddressResponses);
+//        log.info("📌 userAddressResponses: {}", userAddressResponses);
 
         // ✅ Gửi email xác nhận đơn hàng
         if (userWithAddresses.getEmail() != null && !userWithAddresses.getEmail().isEmpty()) {
             emailService.sendOrderConfirmationEmail(userWithAddresses.getEmail(), orderDetailResponses);
+//            emailProducer.sendOrderEmail(userWithAddresses.getEmail(), orderDetailResponses);
             log.info("📧 Đã gửi email xác nhận đơn hàng đến {}", userWithAddresses.getEmail());
         } else {
             log.warn("⚠ Không thể gửi email xác nhận đơn hàng vì email của người dùng không tồn tại.");
