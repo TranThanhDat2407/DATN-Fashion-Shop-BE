@@ -185,7 +185,6 @@ public class StoreService {
         return new PageImpl<>(stockResponses, pageable, inventoryPage.getTotalElements());
     }
 
-
     double haversine(double val) {
         return Math.pow(Math.sin(val / 2), 2);
     }
@@ -294,7 +293,8 @@ public class StoreService {
 
     public List<StoreRevenueByDateRangeResponse> getRevenueByDateRange(Long storeId, LocalDateTime startDate, LocalDateTime endDate) {
         // Lấy dữ liệu từ repository
-        List<StoreRevenueByDateRangeResponse> revenueData = orderRepository.getRevenueByDateRange(storeId, startDate, endDate);
+        List<StoreRevenueByDateRangeResponse> revenueData = orderRepository
+                .getRevenueByDateRange(storeId, startDate, endDate);
 
         // Tạo danh sách đầy đủ các tháng trong khoảng thời gian
         List<StoreRevenueByDateRangeResponse> fullRevenueData = new ArrayList<>();
@@ -325,7 +325,8 @@ public class StoreService {
 
     public List<StoreDailyRevenueResponse> getDailyRevenueByMonthAndYear(Long storeId, Integer month, Integer year) {
         // Lấy dữ liệu từ repository
-        List<StoreDailyRevenueResponse> revenueData = orderRepository.getDailyRevenueByMonthAndYear(storeId, month, year);
+        List<StoreDailyRevenueResponse> revenueData = orderRepository
+                .getDailyRevenueByMonthAndYear(storeId, month, year);
 
         // Tạo danh sách đầy đủ các ngày trong tháng
         List<StoreDailyRevenueResponse> fullRevenueData = new ArrayList<>();
@@ -342,7 +343,9 @@ public class StoreService {
             if (existingData != null) {
                 fullRevenueData.add(existingData); // Thêm dữ liệu thực tế
             } else {
-                fullRevenueData.add(new StoreDailyRevenueResponse(finalDay, month, year, 0.0)); // Thêm dữ liệu mặc định
+                fullRevenueData
+                        .add(new StoreDailyRevenueResponse(
+                                finalDay, month, year, 0.0)); // Thêm dữ liệu mặc định
             }
         }
 

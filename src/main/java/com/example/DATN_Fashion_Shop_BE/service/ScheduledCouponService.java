@@ -29,7 +29,7 @@ public class ScheduledCouponService {
     private final FileStorageService fileStorageService;
     private  final HolidayRepository holidayRepository;
     private final HolidayCouponTranslationService holidayCouponTranslationService;
-
+//
     @Scheduled(cron = "0 0 0 * * ?")
 //   @Scheduled(cron = "0 * * * * ?")
     public void generateDailyCoupons() {
@@ -155,23 +155,6 @@ public class ScheduledCouponService {
 
 
 
-//    static final Map<String, List<CouponTranslationDTO>> COUPON_TRANSLATIONS = Map.of(
-//            "BIRTHDAY", List.of(
-//                    new CouponTranslationDTO("Mã giảm giá sinh nhật", "Giảm giá nhân dịp sinh nhật", "vi"),
-//                    new CouponTranslationDTO("Birthday Discount", "Discount for your birthday", "en"),
-//                    new CouponTranslationDTO("誕生日割引", "誕生日の割引", "jp")
-//            ),
-//            "HOLIDAY", List.of(
-//                    new CouponTranslationDTO("Mã giảm giá ngày lễ", "Ưu đãi đặc biệt cho ngày lễ", "vi"),
-//                    new CouponTranslationDTO("Holiday Discount", "Special offer for the holiday", "en"),
-//                    new CouponTranslationDTO("祝日割引", "祝日の特別オファー", "jp")
-//            ),
-//            "WELCOME", List.of(
-//                    new CouponTranslationDTO("Mã giảm giá chào mừng", "Ưu đãi cho khách hàng mới", "vi"),
-//                    new CouponTranslationDTO("Welcome Discount", "Special offer for new users", "en"),
-//                    new CouponTranslationDTO("ウェルカム割引", "新規ユーザー向けの特別オファー", "jp")
-//            )
-//    );
 
 }
 

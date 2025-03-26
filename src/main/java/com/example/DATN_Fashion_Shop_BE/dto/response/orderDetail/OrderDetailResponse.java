@@ -80,17 +80,6 @@ public class OrderDetailResponse {
                 ? paymentMethods.stream().map(PaymentMethodResponse::getMethodName).collect(Collectors.joining(", "))
                 : "Thanh toán khi nhận hàng";
 
-        log.info("📌 Order Payments: {}", order.getPayments());
-
-
-        // Kiểm tra dữ liệu
-        log.info("✅ Hình ảnh: " + productImage);
-        log.info("✅ Sản phẩm: " + orderDetail.getProductVariant());
-        log.info("✅ Số lượng: " + orderDetail.getQuantity());
-        log.info("✅ Màu: " + (variant.getColorValue() != null ? variant.getColorValue().getValueName() : "Không có"));
-        log.info("✅ Size: " + (variant.getSizeValue() != null ? variant.getSizeValue().getValueName() : "Không có"));
-        log.info("✅ Giá: " + orderDetail.getTotalPrice());
-
 
         return OrderDetailResponse.builder()
                 .orderDetailId(orderDetail.getId())

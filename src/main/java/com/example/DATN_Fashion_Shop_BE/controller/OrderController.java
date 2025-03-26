@@ -76,6 +76,7 @@ public class OrderController {
 
 
 
+
     private static final Logger log = LoggerFactory.getLogger(OrderController.class);
     @Operation(
             summary = "Đặt hàng",
@@ -203,7 +204,7 @@ public class OrderController {
     public ResponseEntity<ApiResponse<Page<HistoryOrderResponse>>> getOrderHistory(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "5") int size) {
 
         Page<HistoryOrderResponse> historyOrders = orderService.getOrderHistoryByUserId(userId, page, size);
 
@@ -254,7 +255,9 @@ public class OrderController {
                     .body(Collections.singletonMap("message", "Thanh toán thất bại."));
         }
         // 1️⃣ Kiểm tra mã giao dịch và tìm đơn hàng
-        Order order = orderRepository.findById(Long.valueOf(transactionCode))
+//        Order order = orderRepository.findById(Long.valueOf(transactionCode))
+//                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với mã giao dịch: " + transactionCode));
+        Order order = orderRepository.findOrderWithUserAndAddresses(Long.valueOf(transactionCode))
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với mã giao dịch: " + transactionCode));
 
 //         ✅ Kiểm tra trạng thái thanh toán VNPay
@@ -273,23 +276,33 @@ public class OrderController {
                             .orElseThrow(() -> new RuntimeException("Phương thức thanh toán không hợp lệ.")))
                     .paymentDate(new Date())
                     .amount(amount)
-                    .status("SUCCESS")
+                    .status("PAID")
                     .transactionCode(vnp_TransactionNo)
                     .build();
 
             paymentRepository.save(payment);
 
-            User userWithAddresses = userRepository.findById(order.getUser().getId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng!"));
+            Order userWithAddresses = orderRepository.findOrderWithUserAndAddresses(Long.valueOf(transactionCode))
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với mã giao dịch: " + transactionCode));
 
-            List<UserAddressResponse> userAddressResponses = (userWithAddresses.getUserAddresses() != null)
-                    ? userWithAddresses.getUserAddresses().stream()
+//            User userWithAddresses = userRepository.findById(order.getUser().getId())
+//                    .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng!"));
+
+//            List<UserAddressResponse> userAddressResponses = (userWithAddresses.getUserAddresses() != null)
+//                    ? userWithAddresses.getUserAddresses().stream()
+//                    .map(UserAddressResponse::fromUserAddress)
+//                    .collect(Collectors.toList())
+//                    : new ArrayList<>();
+
+                   List<UserAddressResponse> userAddressResponses = (userWithAddresses.getUser().getUserAddresses() != null)
+                    ? userWithAddresses.getUser().getUserAddresses().stream()
                     .map(UserAddressResponse::fromUserAddress)
                     .collect(Collectors.toList())
                     : new ArrayList<>();
 
             User user = order.getUser();
             if (user.getEmail() != null && !user.getEmail().isEmpty()) {
+
                 List<OrderDetail> orderDetails = orderDetailRepository.findByOrderId(order.getId());
 
                 List<OrderDetailResponse> orderDetailResponses = orderDetails.stream()
@@ -304,9 +317,17 @@ public class OrderController {
 
 
         } else {
-            order.setOrderStatus(orderStatusRepository.findByStatusName("CANCELLED")
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy trạng thái CANCELLED.")));
-            orderRepository.save(order);
+            log.info("❌ Giao dịch thất bại với vnp_ResponseCode: {} và vnp_TransactionStatus: {}", vnp_ResponseCode, vnp_TransactionStatus);
+            Optional<OrderStatus> cancelledStatus = orderStatusRepository.findByStatusName("CANCELLED");
+            if (cancelledStatus.isPresent()) {
+                order.setOrderStatus(cancelledStatus.get());
+                orderRepository.save(order);
+                order = orderRepository.findById(order.getId()).orElseThrow();
+                log.info("✅ Đã cập nhật trạng thái đơn hàng ID: {} thành CANCELLED", order.getId());
+            } else {
+                log.error("⚠ Không tìm thấy trạng thái CANCELLED trong database.");
+            }
+
             log.error("❌ Giao dịch thất bại. Đã cập nhật trạng thái đơn hàng ID: {}", order.getId());
         }
 
@@ -318,7 +339,7 @@ public class OrderController {
 
 
     @Operation(
-            summary = "Lọc đơn hàng theo trạng thái",
+            summary = "Lọc đơn hàng theo trạng thái (dùng cho Customers)" ,
             description = "API này cho phép người dùng xem danh sách đơn hàng theo trạng thái",
             tags = "Orders"
     )
@@ -356,6 +377,114 @@ public class OrderController {
                 )
         );
     }
+
+    @Operation(
+            summary = " ✅ Lọc và lấy danh sách đơn hàng theo nhiều tiêu chí (dùng cho Admin)",
+            description = "API này cho phép người dùng xem danh sách đơn hàng theo trạng thái",
+            tags = "Orders"
+    )
+    @GetMapping("/filter")
+    public ResponseEntity<ApiResponse<Page<GetAllOrderAdmin>>> getFilteredOrders(
+            @RequestParam(required = false) Long orderId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String shippingAddress,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false)@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)  LocalDateTime fromDate,
+            @RequestParam(required = false)@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)  LocalDateTime toDate,
+            @RequestParam(required = false)@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)  LocalDateTime updateFromDate,
+            @RequestParam(required = false)@DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDateTime updateToDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDirection
+    ) {
+        Page<GetAllOrderAdmin> orders = orderService.getFilteredOrders(
+                orderId, status, shippingAddress, minPrice, maxPrice,
+                fromDate, toDate, updateFromDate, updateToDate,
+                page, size, sortBy, sortDirection
+        );
+        log.info("Received shippingAddress: " + shippingAddress);
+
+        return buildResponse(orders, MessageKeys.ORDERS_HISTORY_SUCCESS, MessageKeys.ORDERS_HISTORY_NOT_FOUND);
+    }
+
+    // 📌 Hàm dùng chung để trả về API response
+    private ResponseEntity<ApiResponse<Page<GetAllOrderAdmin>>> buildResponse(Page<GetAllOrderAdmin> orders, String successKey, String errorKey) {
+        if (orders.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    ApiResponseUtils.errorResponse(HttpStatus.NOT_FOUND, localizationUtils.getLocalizedMessage(errorKey), null)
+            );
+        }
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(localizationUtils.getLocalizedMessage(successKey), orders)
+        );
+    }
+    @Operation(
+            summary = "Cập nhật trạng thái đơn hàng",
+            description = "Cho phép cập nhật trạng thái đơn hàng theo ID",
+            tags = "Orders"
+    )
+    @PutMapping("/{orderId}/status")
+    public ResponseEntity<ApiResponse<GetAllOrderAdmin>> updateOrderStatus(
+            @PathVariable Long orderId,
+            @RequestBody Map<String, String> request) {
+        log.info("Received request body: {}", request);
+
+        String status = request.get("status");
+        if (status == null || status.isEmpty()) {
+            log.error("Status is missing in request body!");
+            return ResponseEntity.badRequest().body(ApiResponseUtils.errorResponse(
+                    HttpStatus.BAD_REQUEST,
+                    "Status is required",null));
+        }
+
+        GetAllOrderAdmin updatedOrder = orderService.updateOrderStatus(orderId, status);
+
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        "Cập nhật trạng thái đơn hàng thành công",
+                        updatedOrder
+                )
+        );
+    }
+
+    @Operation(
+            summary = "Cập nhật trạng thái thanh toán",
+            description = "Cho phép cập nhật trạng thái thanh toán cho đơn với đối với (COD) dành cho Staff",
+            tags = "Orders"
+    )
+    @PutMapping("/{orderId}/payment-status")
+    public ResponseEntity<ApiResponse<GetAllOrderAdmin>> updatePaymentStatus(
+            @PathVariable Long orderId,
+            @RequestParam String paymentStatus) {
+
+        GetAllOrderAdmin updatedOrder = orderService.updatePaymentStatus(orderId, paymentStatus);
+
+        if (updatedOrder == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    ApiResponseUtils.errorResponse(
+                            HttpStatus.NOT_FOUND,
+                            localizationUtils.getLocalizedMessage(MessageKeys.ORDER_NOT_FOUND),
+                            null
+                    )
+            );
+        }
+
+        return ResponseEntity.ok(
+                ApiResponseUtils.successResponse(
+                        localizationUtils.getLocalizedMessage(MessageKeys.PAYMENT_STATUS_UPDATED_SUCCESS),
+                        updatedOrder
+                )
+        );
+    }
+
+
+
+
+
+
+
 
     @GetMapping("revenue/today")
     public ResponseEntity<ApiResponse<TotalRevenueTodayResponse>> getRevenueToday() {

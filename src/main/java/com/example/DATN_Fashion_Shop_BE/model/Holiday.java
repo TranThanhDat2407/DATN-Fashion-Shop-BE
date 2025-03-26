@@ -26,7 +26,7 @@ public class Holiday extends BaseEntity{
     private LocalDate date;
 
 
-    private Boolean isFixed; // TRUE nếu ngày lễ cố định, FALSE nếu có thể thay đổi
+    private Boolean isFixed;
 
     @Column(columnDefinition = "NVARCHAR(255)", nullable = false)
     private String description;
