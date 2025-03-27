@@ -36,6 +36,8 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.lettuce.core.pubsub.PubSubOutput.Type.message;
+
 @RestController
 @RequestMapping("${api.prefix}/users")
 @RequiredArgsConstructor
@@ -584,17 +586,13 @@ public class UserController {
     )
     @PatchMapping("/{userId}/block-enable")
     public ResponseEntity<ApiResponse<?>> blockOrEnableUser(
-            @PathVariable Long userId,
-            @RequestParam Boolean active
+            @PathVariable Long userId
     ) {
         try {
-            userService.blockOrEnable(userId, active);
-            String message = active
-                    ? localizationUtils.getLocalizedMessage(MessageKeys.ENABLE_SUCCESSFULLY)
-                    : localizationUtils.getLocalizedMessage(MessageKeys.BLOCK_SUCCESSFULLY);
+            userService.blockOrEnable(userId);
             return ResponseEntity.ok(
                     ApiResponseUtils.successResponse(
-                            message,
+                            localizationUtils.getLocalizedMessage(MessageKeys.REGISTER_SUCCESSFULLY),
                             null
                     )
             );
