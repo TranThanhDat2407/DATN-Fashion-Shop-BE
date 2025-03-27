@@ -19,7 +19,7 @@ import java.util.Optional;
 @Repository
 public interface InventoryTransferRepository extends JpaRepository<InventoryTransfer, Long> {
     @Query("SELECT it FROM InventoryTransfer it " +
-            "WHERE it.store.id = :storeId " +
+            "WHERE :storeId IS NULL OR it.store.id = :storeId " +
             "AND (:status IS NULL OR it.status = :status) " +
             "AND (:isReturn IS NULL OR it.isReturn = :isReturn)")
     Page<InventoryTransfer> findByStoreIdAndStatusAndIsReturn(@Param("storeId") Long storeId,

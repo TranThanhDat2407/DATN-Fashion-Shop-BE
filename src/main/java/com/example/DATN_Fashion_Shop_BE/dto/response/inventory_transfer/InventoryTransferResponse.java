@@ -16,6 +16,7 @@ public class InventoryTransferResponse extends BaseResponse {
     private Long id;
     private Long warehouseId;
     private Long storeId;
+    private String storeName;
     private TransferStatus status;
     private String message;
     private Boolean isReturn;
@@ -26,6 +27,7 @@ public class InventoryTransferResponse extends BaseResponse {
                 .id(transfer.getId())
                 .warehouseId(transfer.getWarehouse().getId())
                 .storeId(transfer.getStore().getId())
+                .storeName(transfer.getStore().getName())
                 .status(transfer.getStatus())
                 .message(transfer.getMessage())
                 .isReturn(transfer.getIsReturn())
