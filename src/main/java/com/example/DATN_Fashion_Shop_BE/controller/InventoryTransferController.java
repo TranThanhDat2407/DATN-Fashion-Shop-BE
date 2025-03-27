@@ -60,9 +60,9 @@ public class InventoryTransferController {
         ));
     }
 
-    @GetMapping("/store/{storeId}")
+    @GetMapping("/store")
     public ResponseEntity<ApiResponse<PageResponse<InventoryTransferResponse>>> getAllTransfersByStore(
-            @PathVariable Long storeId,
+            @RequestParam(required = false) Long storeId,
             @RequestParam(required = false) TransferStatus status,
             @RequestParam(required = false) Boolean isReturn,
             @RequestParam(defaultValue = "vi") String langCode,
