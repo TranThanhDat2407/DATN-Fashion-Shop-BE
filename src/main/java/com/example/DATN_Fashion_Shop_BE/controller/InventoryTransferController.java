@@ -67,17 +67,19 @@ public class InventoryTransferController {
             @RequestParam(required = false) Boolean isReturn,
             @RequestParam(defaultValue = "vi") String langCode,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "updatedAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
-        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+            @RequestParam(defaultValue = "10") int size) {
+
+        Sort sort = Sort.by(
+                Sort.Order.desc("updatedAt"),
+                Sort.Order.asc("status")
+        );
         Pageable pageable = PageRequest.of(page, size, sort);
 
         return ResponseEntity.ok(ApiResponseUtils.successResponse(
                 localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
                 PageResponse.fromPage(inventoryTransferService
-                        .getAllTransfersByStore(storeId, status, isReturn, pageable, langCode))
-        ));
+                        .getAllTransfersByStore(storeId, status, isReturn, pageable, langCode)))
+        );
     }
 
     @GetMapping("/{id}")

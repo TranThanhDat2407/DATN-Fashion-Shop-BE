@@ -32,8 +32,7 @@ public interface InventoryTransferRepository extends JpaRepository<InventoryTran
             "AND (:status IS NULL OR it.status = :status) " +
             "AND (:isReturn IS NULL OR it.isReturn = :isReturn) " +
             "ORDER BY " +
-            "CASE WHEN (it.status = 'PENDING' AND it.createdAt < :warningThreshold) THEN 0 ELSE 1 END, " +
-            "it.updatedAt DESC, it.status ASC")
+            "CASE WHEN (it.status = 'PENDING' AND it.createdAt < :warningThreshold) THEN 0 ELSE 1 END")
     Page<InventoryTransfer> findWithWarningPriority(
             @Param("storeId") Long storeId,
             @Param("status") TransferStatus status,
