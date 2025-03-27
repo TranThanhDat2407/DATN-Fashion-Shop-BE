@@ -24,7 +24,7 @@ public class UserAdminResponse extends BaseResponse {
     private LocalDateTime dateOfBirth;
     @JsonProperty("role")
     private Role role;
-    @JsonProperty("is_active")
+    @JsonProperty("isActive")
     private boolean active;
 
     public static UserAdminResponse fromUser(User user) {

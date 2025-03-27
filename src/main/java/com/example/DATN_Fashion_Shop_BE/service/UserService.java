@@ -332,7 +332,7 @@ public class UserService{
         userRepository.save(user);
     }
 
-    public void blockOrEnable(Long userId, Boolean active) throws DataNotFoundException {
+    public void blockOrEnable(Long userId) throws DataNotFoundException {
         // Tìm kiếm người dùng dựa trên userId
         User existingUser = userRepository.findById(userId)
                 .orElseThrow(() -> new DataNotFoundException(
@@ -340,7 +340,7 @@ public class UserService{
                 ));
 
         // Cập nhật trạng thái isActive
-        existingUser.setIsActive(active);
+        existingUser.setIsActive(!existingUser.getIsActive());
 
         // Lưu lại thay đổi vào cơ sở dữ liệu
         userRepository.save(existingUser);
