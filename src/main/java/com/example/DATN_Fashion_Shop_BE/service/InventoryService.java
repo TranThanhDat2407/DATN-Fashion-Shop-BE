@@ -2,8 +2,8 @@ package com.example.DATN_Fashion_Shop_BE.service;
 
 
 import com.example.DATN_Fashion_Shop_BE.dto.request.inventory.WarehouseInventoryRequest;
-import com.example.DATN_Fashion_Shop_BE.dto.response.audit.CategoryAudResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.inventory.InventoryAudResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.inventory.InventoryStatusResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.inventory.WarehouseInventoryResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.inventory.WarehouseStockResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
@@ -25,7 +25,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -36,6 +38,7 @@ public class InventoryService {
     private final ProductVariantRepository productVariantRepository;
     private final CategoryRepository categoryRepository;
     private final WarehouseRepository warehouseRepository;
+    private final OrderDetailRepository orderDetailRepository;
     private final CategoryService categoryService;
 
     private static final Logger logger = LoggerFactory.getLogger(InventoryService.class);
@@ -223,6 +226,22 @@ public class InventoryService {
         Inventory updatedInventory = inventoryRepository.save(inventory);
 
         return WarehouseInventoryResponse.fromInventory(updatedInventory);
+    }
+
+    public Page<InventoryStatusResponse> getUnsoldProductsByStore(Long storeId, String langCode, Pageable pageable) {
+        // Lấy toàn bộ danh sách
+        List<InventoryStatusResponse> allItems = inventoryRepository.findUnsoldProductsByStore(storeId, langCode);
+
+        // Tính toán phân trang thủ công
+        int total = allItems.size();
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), total);
+
+        // Lấy sublist theo trang
+        List<InventoryStatusResponse> pageItems = allItems.subList(start, end);
+
+        // Tạo đối tượng Page
+        return new PageImpl<>(pageItems, pageable, total);
     }
 
 }

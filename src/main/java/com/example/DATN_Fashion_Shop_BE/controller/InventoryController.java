@@ -5,16 +5,14 @@ import com.example.DATN_Fashion_Shop_BE.dto.request.inventory.WarehouseInventory
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.inventory.InventoryAudResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.inventory.InventoryStatusResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.inventory.WarehouseInventoryResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.inventory.WarehouseStockResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.product.InventoryResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.store.StoreStockResponse;
 import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.service.InventoryService;
 import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import lombok.AllArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -102,5 +100,22 @@ public class InventoryController {
                 response
         ));
     }
+
+    @GetMapping("/unsold")
+    public ResponseEntity<ApiResponse<PageResponse<InventoryStatusResponse>>> getUnsoldProducts(
+            @RequestParam Long storeId,
+            @RequestParam String langCode,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+           ) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<InventoryStatusResponse> response = inventoryService.getUnsoldProductsByStore(storeId, langCode,pageable);
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.CATEGORY_RETRIEVED_SUCCESSFULLY),
+                PageResponse.fromPage(response)
+        ));
+    }
+
 
 }
