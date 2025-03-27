@@ -215,20 +215,6 @@ public class CouponController {
                 localizationUtils.getLocalizedMessage(MessageKeys.COUPON_GETALL_SUCCESS),
                 result ));
     }
-//    @PostMapping("/generate-birthday")
-//    public ResponseEntity<Map<String, Object>> generateBirthdayCoupons() {
-//        LocalDate today = LocalDate.now();
-//        System.out.println("📅 Ngày hiện tại: " + today);
-//
-//        List<User> usersWithBirthday = userRepository.findByDateOfBirth(today);
-//
-//        if (usersWithBirthday.isEmpty()) {
-//            return ResponseEntity.ok(Map.of("message", "🚫 Không có user nào có sinh nhật hôm nay.", "userCount", 0));
-//        }
-//
-//        couponService.generateBirthdayCoupons(usersWithBirthday);
-//        return ResponseEntity.ok(Map.of("message", "🎉 Đã tạo mã giảm giá sinh nhật thành công!", "userCount", usersWithBirthday.size()));
-//    }
 
     @GetMapping("/{couponId}")
     public ResponseEntity<ApiResponse<CouponDetailResponse>> getCouponById(
@@ -262,5 +248,25 @@ public class CouponController {
                 couponService.canUserUseCoupon(userId, couponId)
         ));
     }
+    @GetMapping("/coupon-configs")
+    public ResponseEntity<Map<String, CouponConfig>> getCouponConfigs() {
+        return ResponseEntity.ok(couponConfigService.getAllCouponConfigs());
+    }
+    @PutMapping("/coupon-configs/{type}")
+    public ResponseEntity<?> resetCouponConfig(@PathVariable String type) {
+        boolean isUpdated = couponConfigService.resetCouponConfig(type);
+        if (isUpdated) {
+            return ResponseEntity.ok().body("Coupon fields reset successfully");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Coupon type not found");
+        }
+    }
+    @GetMapping("/coupon-configs/valid")
+    public ResponseEntity<Map<String, CouponConfig>> getValidCouponConfigs() {
+        Map<String, CouponConfig> validConfigs = couponConfigService.getValidCouponConfigs();
+        return ResponseEntity.ok(validConfigs);
+    }
+
+
 
 }

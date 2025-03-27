@@ -76,6 +76,7 @@ public class OrderController {
 
 
 
+
     private static final Logger log = LoggerFactory.getLogger(OrderController.class);
     @Operation(
             summary = "Đặt hàng",
@@ -254,7 +255,9 @@ public class OrderController {
                     .body(Collections.singletonMap("message", "Thanh toán thất bại."));
         }
         // 1️⃣ Kiểm tra mã giao dịch và tìm đơn hàng
-        Order order = orderRepository.findById(Long.valueOf(transactionCode))
+//        Order order = orderRepository.findById(Long.valueOf(transactionCode))
+//                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với mã giao dịch: " + transactionCode));
+        Order order = orderRepository.findOrderWithUserAndAddresses(Long.valueOf(transactionCode))
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với mã giao dịch: " + transactionCode));
 
 //         ✅ Kiểm tra trạng thái thanh toán VNPay
@@ -279,17 +282,27 @@ public class OrderController {
 
             paymentRepository.save(payment);
 
-            User userWithAddresses = userRepository.findById(order.getUser().getId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng!"));
+            Order userWithAddresses = orderRepository.findOrderWithUserAndAddresses(Long.valueOf(transactionCode))
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với mã giao dịch: " + transactionCode));
 
-            List<UserAddressResponse> userAddressResponses = (userWithAddresses.getUserAddresses() != null)
-                    ? userWithAddresses.getUserAddresses().stream()
+//            User userWithAddresses = userRepository.findById(order.getUser().getId())
+//                    .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng!"));
+
+//            List<UserAddressResponse> userAddressResponses = (userWithAddresses.getUserAddresses() != null)
+//                    ? userWithAddresses.getUserAddresses().stream()
+//                    .map(UserAddressResponse::fromUserAddress)
+//                    .collect(Collectors.toList())
+//                    : new ArrayList<>();
+
+                   List<UserAddressResponse> userAddressResponses = (userWithAddresses.getUser().getUserAddresses() != null)
+                    ? userWithAddresses.getUser().getUserAddresses().stream()
                     .map(UserAddressResponse::fromUserAddress)
                     .collect(Collectors.toList())
                     : new ArrayList<>();
 
             User user = order.getUser();
             if (user.getEmail() != null && !user.getEmail().isEmpty()) {
+
                 List<OrderDetail> orderDetails = orderDetailRepository.findByOrderId(order.getId());
 
                 List<OrderDetailResponse> orderDetailResponses = orderDetails.stream()
@@ -304,9 +317,17 @@ public class OrderController {
 
 
         } else {
-            order.setOrderStatus(orderStatusRepository.findByStatusName("CANCELLED")
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy trạng thái CANCELLED.")));
-            orderRepository.save(order);
+            log.info("❌ Giao dịch thất bại với vnp_ResponseCode: {} và vnp_TransactionStatus: {}", vnp_ResponseCode, vnp_TransactionStatus);
+            Optional<OrderStatus> cancelledStatus = orderStatusRepository.findByStatusName("CANCELLED");
+            if (cancelledStatus.isPresent()) {
+                order.setOrderStatus(cancelledStatus.get());
+                orderRepository.save(order);
+                order = orderRepository.findById(order.getId()).orElseThrow();
+                log.info("✅ Đã cập nhật trạng thái đơn hàng ID: {} thành CANCELLED", order.getId());
+            } else {
+                log.error("⚠ Không tìm thấy trạng thái CANCELLED trong database.");
+            }
+
             log.error("❌ Giao dịch thất bại. Đã cập nhật trạng thái đơn hàng ID: {}", order.getId());
         }
 

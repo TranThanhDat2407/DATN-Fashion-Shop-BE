@@ -54,8 +54,13 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     Optional<BigDecimal> findTotalRevenueByYear(int year);
 
 
+    @Query("SELECT o FROM Order o JOIN FETCH o.user u LEFT JOIN FETCH u.userAddresses WHERE o.id = :orderId")
+    Optional<Order> findOrderWithUserAndAddresses(@Param("orderId") Long orderId);
 
- @Query("SELECT o FROM Order o " +
+
+
+
+    @Query("SELECT o FROM Order o " +
             "WHERE CAST(o.createdAt AS DATE) = CAST(GETDATE() AS DATE)  AND o.orderStatus.id= 6")
     List<Order> getTotalRevenueToday();
 
