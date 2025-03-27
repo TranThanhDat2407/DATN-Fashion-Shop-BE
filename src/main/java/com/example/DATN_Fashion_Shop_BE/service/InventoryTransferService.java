@@ -140,21 +140,20 @@ public class InventoryTransferService {
     }
 
     public Page<InventoryTransferResponse> getAllTransfersByStore(
-            Long storeId, TransferStatus status, Boolean isReturn, Pageable pageable, String langCode) {
+            Long storeId, TransferStatus status, Boolean isReturn,
+            Pageable pageable, String langCode) {
 
-        Page<InventoryTransfer> transfersPage = inventoryTransferRepository
-                .findByStoreIdAndStatusAndIsReturn(storeId, status, isReturn, pageable);
+        LocalDateTime warningThreshold = LocalDateTime.now().minusDays(10);
 
-        // Chuyển đổi Page -> List để sắp xếp
-        List<InventoryTransferResponse> sortedTransfers = transfersPage.getContent().stream()
-                .map(item -> InventoryTransferResponse.fromInventoryTransfer(item, langCode))
-                .sorted(Comparator.comparing(this::isWarningTransfer).reversed()) // Warning lên đầu
-                .collect(Collectors.toList());
+        Page<InventoryTransfer> transfersPage = inventoryTransferRepository.findWithWarningPriority(
+                storeId, status, isReturn, warningThreshold, pageable);
 
-        // Tạo lại Page sau khi sắp xếp
-        return new PageImpl<>(sortedTransfers, pageable, transfersPage.getTotalElements());
+        return transfersPage.map(transfer -> {
+            InventoryTransferResponse response = InventoryTransferResponse.fromInventoryTransfer(transfer, langCode);
+
+            return response;
+        });
     }
-
     // Kiểm tra xem transfer có cần cảnh báo không
     private boolean isWarningTransfer(InventoryTransferResponse transfer) {
         if (!transfer.getStatus().equals(TransferStatus.PENDING)) return false;
