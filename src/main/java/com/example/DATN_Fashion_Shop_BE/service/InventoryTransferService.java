@@ -23,10 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -52,16 +49,23 @@ public class InventoryTransferService {
         Store store = storeRepository.findById(request.getStoreId())
                 .orElseThrow(() -> new IllegalArgumentException("Store not found"));
 
+        // Kiểm tra và trừ inventory
         request.getTransferItems().forEach(item -> {
             ProductVariant productVariant = productVariantRepository.findById(item.getProductVariantId())
                     .orElseThrow(() -> new IllegalArgumentException("Product Variant not found"));
 
-            int warehouseStock = inventoryRepository.findByProductVariantIdAndWarehouseNotNull(productVariant.getId())
-                    .stream().mapToInt(Inventory::getQuantityInStock).sum();
+            // Lấy inventory của product variant trong kho (warehouse)
+            Inventory warehouseInventory = inventoryRepository
+                    .findByWarehouseIdAndProductVariantId(warehouse.getId(), productVariant.getId())
+                    .orElseThrow(() -> new IllegalStateException("Inventory not found for product variant " + productVariant.getId() + " in warehouse"));
 
-            if (warehouseStock < item.getQuantity()) {
+            if (warehouseInventory.getQuantityInStock() < item.getQuantity()) {
                 throw new IllegalStateException("Not enough stock available in warehouse for product variant " + productVariant.getId());
             }
+
+            // Trừ inventory từ warehouse
+            warehouseInventory.setQuantityInStock(warehouseInventory.getQuantityInStock() - item.getQuantity());
+            inventoryRepository.save(warehouseInventory);
         });
 
         InventoryTransfer transfer = InventoryTransfer.builder()
@@ -99,25 +103,20 @@ public class InventoryTransferService {
 
         for (InventoryTransferItem item : transfer.getTransferItems()) {
             ProductVariant productVariant = item.getProductVariant();
-            Inventory warehouseInventory = inventoryRepository.findByProductVariantIdAndWarehouseNotNull(productVariant.getId())
-                    .stream().findFirst().orElseThrow(() -> new IllegalStateException("No inventory found in warehouse"));
 
-            int warehouseStock = warehouseInventory.getQuantityInStock() != null
-                    ? warehouseInventory.getQuantityInStock() : 0;
-            if (warehouseStock < item.getQuantity()) {
-                throw new IllegalStateException("Not enough stock in warehouse to confirm transfer");
-            }
-            warehouseInventory.setQuantityInStock(warehouseStock - item.getQuantity());
-            inventoryRepository.save(warehouseInventory);
-
-            Inventory storeInventory = inventoryRepository.findByProductVariantIdAndStoreNotNull(productVariant.getId())
-                    .stream().findFirst().orElse(new Inventory());
+            // Bỏ phần kiểm tra và trừ inventory ở warehouse
+            // Chỉ thực hiện cộng inventory vào store
+            Inventory storeInventory = inventoryRepository
+                    .findByStoreIdAndProductVariantId(
+                            transfer.getStore().getId(),
+                            productVariant.getId())
+                    .orElse(new Inventory());
 
             storeInventory.setProductVariant(productVariant);
             storeInventory.setStore(transfer.getStore());
-            int storeStock = storeInventory.getQuantityInStock() != null ? storeInventory.getQuantityInStock() : 0;
+            int storeStock = storeInventory.getQuantityInStock() != null ?
+                    storeInventory.getQuantityInStock() : 0;
             storeInventory.setQuantityInStock(storeStock + item.getQuantity());
-
 
             inventoryRepository.save(storeInventory);
         }
@@ -133,6 +132,28 @@ public class InventoryTransferService {
 
         if (transfer.getStatus() == TransferStatus.CONFIRMED) {
             throw new IllegalStateException("Cannot cancel a confirmed transfer");
+        }
+
+        // Chỉ hoàn lại inventory nếu trạng thái hiện tại là PENDING
+        if (transfer.getStatus() == TransferStatus.PENDING ) {
+            // Lấy danh sách các items trong phiếu chuyển kho
+            List<InventoryTransferItem> transferItems = inventoryTransferItemRepository
+                    .findByInventoryTransferId(transferId);
+
+            for (InventoryTransferItem item : transferItems) {
+                // Tìm inventory record tương ứng trong warehouse
+                Inventory warehouseInventory = inventoryRepository
+                        .findByWarehouseIdAndProductVariantId(
+                                transfer.getWarehouse().getId(),
+                                item.getProductVariant().getId())
+                        .orElseThrow(() -> new IllegalStateException(
+                                "Inventory not found for product variant " + item.getProductVariant().getId() +
+                                        " in warehouse " + transfer.getWarehouse().getId()));
+
+                // Cộng lại số lượng đã trừ
+                warehouseInventory.setQuantityInStock(warehouseInventory.getQuantityInStock() + item.getQuantity());
+                inventoryRepository.save(warehouseInventory);
+            }
         }
 
         transfer.setStatus(TransferStatus.CANCELED);

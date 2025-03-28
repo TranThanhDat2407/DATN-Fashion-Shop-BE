@@ -163,6 +163,7 @@ public class OrderService {
 
         // 🛒 Nếu là COD, tạo luôn đơn hàng
         if ("COD".equalsIgnoreCase(paymentMethod.getMethodName())) {
+
             return processCodOrder(orderRequest, cart, cartItems, coupon, finalAmount, fullShippingAddress, shippingFee, shippingMethod, paymentMethod);
         }
 
@@ -212,7 +213,7 @@ public class OrderService {
                 String vnp_OrderInfo = "Thanh toan don hang " + vnp_TxnRef;
 
                 String paymentUrl = vnPayService.createPaymentUrl(vnp_Amount, vnp_OrderInfo, vnp_TxnRef, vnp_IpAddr);
-
+                subtractInventoryForOrder(savedOrder);
 //                log.info("💳 URL thanh toán VNPay: {}", paymentUrl);
 
                 return ResponseEntity.ok(Collections.singletonMap("paymentUrl", paymentUrl));
@@ -223,6 +224,37 @@ public class OrderService {
         }
 
         throw new RuntimeException("Phương thức thanh toán không được hỗ trợ.");
+    }
+
+    private void subtractInventoryForOrder(Order order) {
+        // Lấy tất cả order details của đơn hàng
+        List<OrderDetail> orderDetails = orderDetailRepository.findByOrderId(order.getId());
+
+        for (OrderDetail detail : orderDetails) {
+            ProductVariant productVariant = detail.getProductVariant();
+            int quantity = detail.getQuantity();
+
+            // Tìm inventory trong warehouse ID 1
+            Inventory warehouseInventory = inventoryRepository
+                    .findByWarehouseIdAndProductVariantId(1L, productVariant.getId())
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Không tìm thấy inventory cho sản phẩm " + productVariant.getId() +
+                                    " trong kho ID 1"));
+
+            // Kiểm tra số lượng tồn kho
+            if (warehouseInventory.getQuantityInStock() < quantity) {
+                throw new IllegalStateException(
+                        "Không đủ tồn kho cho sản phẩm " + productVariant.getProduct().getId() +
+                                " (ID: " + productVariant.getId() + ")");
+            }
+
+            // Trừ inventory
+            warehouseInventory.setQuantityInStock(warehouseInventory.getQuantityInStock() - quantity);
+            inventoryRepository.save(warehouseInventory);
+
+            log.info("✅ Đã trừ {} sản phẩm {} từ kho",
+                    quantity, productVariant.getProduct().getId());
+        }
     }
 
 
@@ -340,7 +372,7 @@ public class OrderService {
 
 
 //        log.info("📌 userAddressResponses: {}", userAddressResponses);
-
+          subtractInventoryForOrder(reloadedOrder);
         // ✅ Gửi email xác nhận đơn hàng
         if (userWithAddresses.getEmail() != null && !userWithAddresses.getEmail().isEmpty()) {
             emailService.sendOrderConfirmationEmail(userWithAddresses.getEmail(), orderDetailResponses);
