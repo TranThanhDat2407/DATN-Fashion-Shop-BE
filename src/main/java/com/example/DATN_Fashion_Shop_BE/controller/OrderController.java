@@ -30,6 +30,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.apache.kafka.shaded.com.google.protobuf.Api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +72,7 @@ public class OrderController {
     private final PaymentMethodRepository paymentMethodRepository;
     private final OrderStatusRepository orderStatusRepository;
     private final CartService cartService;
+    private final InventoryService inventoryService;
     private final EmailService emailService;
 
 
@@ -719,7 +721,27 @@ public class OrderController {
         );
     }
 
+    @PostMapping("/{orderId}/cancel")
+    public ResponseEntity<ApiResponse<String>> cancelOrderAndRestoreInventory(
+            @PathVariable Long orderId
+            ) throws DataNotFoundException {
 
+        // 1. Kiểm tra đơn hàng có thể hủy
+        Order order = orderService.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+
+
+        // 2. Hủy đơn hàng
+        orderService.cancelOrder(orderId);
+
+        // 3. Hoàn trả tồn kho
+        inventoryService.restoreInventoryFromCancelledOrder(orderId);
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                "Order cancelled successfully and inventory restored",
+                "Order " + orderId + " has been cancelled"
+        ));
+    }
 }
 
 
