@@ -210,6 +210,25 @@ public class InventoryService {
         return WarehouseInventoryResponse.fromInventory(savedInventory);
     }
 
+    public void restoreInventoryFromCancelledOrder(Long orderId) throws DataNotFoundException {
+        // Lấy tất cả các order items của đơn hàng
+        List<OrderDetail> orderItems = orderDetailRepository.findByOrderId(orderId);
+
+        for (OrderDetail item : orderItems) {
+            // Tìm inventory tương ứng với product variant và store
+            Inventory inventory = inventoryRepository.findByWarehouseIdAndProductVariantId(
+                    1L,
+                    item.getProductVariant().getId()
+            ).orElseThrow(() -> new DataNotFoundException(
+                    "Inventory not found for product variant: " + item.getProductVariant().getId() +
+                            " and store: " + item.getOrder().getStore().getId()));
+
+            // Hoàn trả số lượng
+            inventory.setQuantityInStock(inventory.getQuantityInStock() + item.getQuantity());
+            inventoryRepository.save(inventory);
+        }
+    }
+
     public WarehouseInventoryResponse updateWarehouseInventory(Long inventoryId,
                                                                Integer newQuantity) throws DataNotFoundException {
         // Validate inventory exists and belongs to warehouse (not store)

@@ -29,12 +29,11 @@ import com.example.DATN_Fashion_Shop_BE.exception.DataNotFoundException;
 import com.example.DATN_Fashion_Shop_BE.exception.NotFoundException;
 import com.example.DATN_Fashion_Shop_BE.model.*;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
-import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
 import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
-import org.aspectj.weaver.ast.Or;
+import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -257,6 +256,16 @@ public class OrderService {
         }
     }
 
+    public void cancelOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        OrderStatus cancelledStatus = orderStatusRepository.findByStatusName("CANCELLED")
+                .orElseThrow(() -> new ResourceNotFoundException("OrderStatus CANCELLED not found"));
+
+        order.setOrderStatus(cancelledStatus);
+        orderRepository.save(order);
+    }
 
     // Xử lý đơn hàng khi thanh toán COD
     @Transactional
@@ -609,11 +618,6 @@ public class OrderService {
 
         return GetAllOrderAdmin.fromGetAllOrderAdmin(order);
     }
-
-
-
-
-
 
     public TotalRevenueTodayResponse getTotalRevenueToday() {
         List<Order> totalRevenue = orderRepository.getTotalRevenueToday();
@@ -1071,6 +1075,10 @@ public class OrderService {
         }
 
         throw new RuntimeException("Phương thức thanh toán không được hỗ trợ.");
+    }
+
+    public Optional<Order> findById(Long id) {
+        return orderRepository.findById(id);
     }
 
 }
