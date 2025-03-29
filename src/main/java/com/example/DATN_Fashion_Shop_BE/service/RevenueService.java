@@ -1,9 +1,8 @@
 package com.example.DATN_Fashion_Shop_BE.service;
 
 
-import com.example.DATN_Fashion_Shop_BE.dto.response.revenue.CountStartAndWishList;
-import com.example.DATN_Fashion_Shop_BE.dto.response.revenue.InventoryStatistics;
-import com.example.DATN_Fashion_Shop_BE.dto.response.revenue.Top10Products;
+import com.example.DATN_Fashion_Shop_BE.dto.response.revenue.*;
+import com.example.DATN_Fashion_Shop_BE.dto.response.revenue.CountWishList;
 import com.example.DATN_Fashion_Shop_BE.repository.*;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.*;
@@ -25,6 +24,8 @@ public class RevenueService {
     private final OrderDetailRepository orderDetailRepository;
     private final WishlistItemRepository wishListItemRepository;
     private final InventoryRepository inventoryRepository;
+    private final ReviewRepository reviewRepository;
+
     /**
      * Lấy doanh thu theo ngày
      */
@@ -56,43 +57,21 @@ public class RevenueService {
     }
 
     /**
-     * Thống kê lượt yêu thích sản phẩm và đánh giá
+     * Thống kê lượt yêu thích sản phẩm
      */
-    public Page<CountStartAndWishList> getSortedProductStats(
+    public Page<CountWishList> getSortedProductStats(
             String languageCode,
             Long productId,
             String productName,
-            Integer minStars,
             int page,
-            int size,
-            String sortBy) {
+            int size) {
 
-        Pageable pageable = PageRequest.of(page, size);
+        // XÓA Sort.by(Sort.Direction.DESC, "totalWishList")
+        Pageable pageable = PageRequest.of(page, size, Sort.unsorted());
 
-        // Lấy dữ liệu từ repository
-        Page<CountStartAndWishList> productStatsPage = wishListItemRepository.getProductStats(
-                languageCode, productId, productName, minStars, pageable);
-
-        List<CountStartAndWishList> productStats = new ArrayList<>(productStatsPage.getContent());
-
-        // Sắp xếp theo tổng số wishlist & số review
-        Comparator<CountStartAndWishList> comparator = Comparator
-                .comparing(CountStartAndWishList::getTotalWishList, Comparator.reverseOrder())
-                .thenComparing(CountStartAndWishList::getTotalStart, Comparator.reverseOrder());
-
-        if ("reviews".equalsIgnoreCase(sortBy)) {
-            comparator = Comparator
-                    .comparing(CountStartAndWishList::getTotalStart, Comparator.reverseOrder())
-                    .thenComparing(CountStartAndWishList::getTotalWishList, Comparator.reverseOrder());
-        }
-
-        productStats.sort(comparator);
-
-        return new PageImpl<>(productStats, pageable, productStatsPage.getTotalElements());
+        // Gọi repository để lấy dữ liệu (đã có ORDER BY trong query)
+        return wishListItemRepository.getProductStats(languageCode, productId, productName, pageable);
     }
-
-
-
 
 
     /**
@@ -104,4 +83,9 @@ public class RevenueService {
     }
 
 
+    public Page<CountReviews> getReviewStatistics(String languageCode, Pageable pageable) {
+        return reviewRepository.getProductReviewStatistics(languageCode, pageable);
+    }
+
 }
+

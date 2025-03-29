@@ -18,7 +18,7 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:sqlserver://localhost:1433;databaseName=DATN_FASHION_SHOP;encrypt=false;trustServerCertificate=true;}
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     username: ${SPRING_DATASOURCE_USERNAME:sa}
-    password: ${SPRING_DATASOURCE_PASSWORD:songlong}
+    password: ${SPRING_DATASOURCE_PASSWORD:123}
   jpa:
     show-sql: true  
     hibernate:
@@ -140,8 +140,8 @@ exchanger:
     key: "7236dc721c56e195be6eef59"
 
 ghn:
-  token: "6b3b4d35-e5f0-11ef-b2e4-6ec7c647cc27"
-  shopId: "195952"
+  token: "885c111e-e5e9-11ef-990e-cecd68e7eb91"
+  shopId: "5622599"
 
 vnpay:
   tmnCode: "IQUTYPIQ"

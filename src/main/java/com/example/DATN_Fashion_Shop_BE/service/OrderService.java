@@ -147,8 +147,10 @@ public class OrderService {
         double shippingFee = ghnService.calculateShippingFee(address, cartItems);
         log.info("🚚 Phí vận chuyển: {}", shippingFee);
         // 6️⃣ Tính tổng tiền đơn hàng
-        double finalAmount = totalAmount - discount + shippingFee;
 
+        double finalAmount = totalAmount - discount + shippingFee;
+        double taxAmount = finalAmount * 0.10;
+        double finalAmountWithTax = finalAmount + taxAmount;
 
         ShippingMethod shippingMethod = shippingMethodRepository.findById(orderRequest.getShippingMethodId())
                 .orElseThrow(() -> {
@@ -163,7 +165,7 @@ public class OrderService {
 
         // 🛒 Nếu là COD, tạo luôn đơn hàng
         if ("COD".equalsIgnoreCase(paymentMethod.getMethodName())) {
-            return processCodOrder(orderRequest, cart, cartItems, coupon, finalAmount, fullShippingAddress, shippingFee, shippingMethod, paymentMethod);
+            return processCodOrder(orderRequest, cart, cartItems, coupon, finalAmountWithTax, fullShippingAddress, shippingFee, shippingMethod, paymentMethod);
         }
 
         // 💳 Nếu là VNPay, tạo đơn hàng trước khi tạo URL thanh toán
@@ -175,12 +177,12 @@ public class OrderService {
             Order order = Order.builder()
                     .user(User.builder().id(orderRequest.getUserId()).build())
                     .coupon(coupon)
-                    .totalAmount(finalAmount)
+                    .totalAmount(finalAmountWithTax)
                     .orderStatus(orderStatus)
                     .shippingAddress(fullShippingAddress)
                     .shippingFee(shippingFee)
                     .shippingMethod(shippingMethod)
-                    .taxAmount(0.0)
+                    .taxAmount(taxAmount)
                     .transactionId(null)
                     .payments(new ArrayList<>())
                     .build();
@@ -234,25 +236,30 @@ public class OrderService {
         OrderStatus orderStatus = orderStatusRepository.findByStatusName("PENDING")
                 .orElseThrow(() -> new RuntimeException("Trạng thái đơn hàng không hợp lệ."));
 
+        double taxAmount = finalAmount * 0.10;
+        double finalAmountWithTax = finalAmount + taxAmount;
+
         Order order = Order.builder()
                 .user(User.builder().id(orderRequest.getUserId()).build())
                 .coupon(coupon)
-                .totalAmount(finalAmount)
+                .totalAmount(finalAmountWithTax)
                 .orderStatus(orderStatus)
                 .shippingAddress(fullShippingAddress)
                 .shippingFee(shippingFee)
                 .shippingMethod(shippingMethod)
-                .taxAmount(0.0)
+                .taxAmount(taxAmount)
                 .payments(new ArrayList<>())
                 .build();
 
-        double totalPrice = finalAmount + shippingFee;
+        double totalPrice = finalAmountWithTax ;
         order.setTotalPrice(totalPrice);
-        String vnp_TxnRef = String.valueOf(order.getId());
-        order.setTransactionId(vnp_TxnRef);
+
 
 
         Order savedOrder = orderRepository.save(order);
+        String vnp_TxnRef = String.valueOf(order.getId());
+        order.setTransactionId(vnp_TxnRef);
+
         log.info("✅ Đơn hàng COD đã được tạo với ID: {}", savedOrder.getId());
 
         List<OrderDetail> orderDetails = cartItems.stream().map(item ->

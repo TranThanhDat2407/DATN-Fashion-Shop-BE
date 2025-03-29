@@ -1,14 +1,16 @@
 package com.example.DATN_Fashion_Shop_BE.controller;
 
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
-import com.example.DATN_Fashion_Shop_BE.dto.response.revenue.CountStartAndWishList;
-import com.example.DATN_Fashion_Shop_BE.dto.response.revenue.InventoryStatistics;
-import com.example.DATN_Fashion_Shop_BE.dto.response.revenue.Top10Products;
+import com.example.DATN_Fashion_Shop_BE.dto.response.revenue.*;
+import com.example.DATN_Fashion_Shop_BE.dto.response.revenue.CountWishList;
 import com.example.DATN_Fashion_Shop_BE.service.RevenueService;
 import com.example.DATN_Fashion_Shop_BE.service.WishlistService;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -60,20 +62,19 @@ public class RevenueController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/count/start-wishlist")
-    public ResponseEntity<ApiResponse<Page<CountStartAndWishList>>> getProductStats(
+    @GetMapping("/count/wishlist")
+    public ResponseEntity<ApiResponse<Page<CountWishList>>> getProductStats(
             @RequestParam String languageCode,
             @RequestParam(required = false) Long productId,
             @RequestParam(required = false) String productName,
-            @RequestParam(required = false) Integer minStars,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "wishlist") String sortBy) {  // Thêm sortBy vào API
+            @RequestParam(defaultValue = "10") int size) {
 
-        Page<CountStartAndWishList> productStats = revenueService.getSortedProductStats(
-                languageCode, productId, productName, minStars, page, size, sortBy);
+        // Gọi service để lấy danh sách sản phẩm sắp xếp theo tổng số wishlist giảm dần
+        Page<CountWishList> productStats = revenueService.getSortedProductStats(languageCode, productId, productName, page, size);
 
-        ApiResponse<Page<CountStartAndWishList>> response = ApiResponse.<Page<CountStartAndWishList>>builder()
+        // Tạo ApiResponse
+        ApiResponse<Page<CountWishList>> response = ApiResponse.<Page<CountWishList>>builder()
                 .timestamp(LocalDateTime.now().toString())
                 .status(HttpStatus.OK.value())
                 .message("Success")
@@ -82,6 +83,9 @@ public class RevenueController {
 
         return ResponseEntity.ok(response);
     }
+
+
+
 
 
 
@@ -109,4 +113,10 @@ public class RevenueController {
     }
 
 
+    @GetMapping("/count/reviews")
+    public ResponseEntity<Page<CountReviews>> getReviewStatistics(
+            @RequestParam(defaultValue = "vi") String languageCode,
+            @PageableDefault(size = 10, sort = "totalReviews", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(revenueService.getReviewStatistics(languageCode, pageable));
+    }
 }
