@@ -144,6 +144,8 @@ public class UserService{
             staffRepository.save(staff);
         }
 
+        sendRegistrationConfirmationEmail(savedUser);
+
         // === Tạo mã giảm giá chào mừng thành viên mới ===
         CouponConfig config = couponConfigService.getCouponConfig("chaomungthanhvienmoi");
         if (config == null) {
@@ -179,7 +181,7 @@ public class UserService{
 
             log.info("✅ Đã tạo mã giảm giá chào mừng cho user {}: {}", savedUser.getEmail(), coupon.getCode());
         }
-        sendRegistrationConfirmationEmail(savedUser);
+
 
         return savedUser;
     }
