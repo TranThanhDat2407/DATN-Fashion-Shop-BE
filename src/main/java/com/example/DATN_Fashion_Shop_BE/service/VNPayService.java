@@ -56,7 +56,7 @@ public class VNPayService  {
         params.put("vnp_Version", "2.1.0");
         params.put("vnp_Command", "pay");
         params.put("vnp_TmnCode", vnp_TmnCode);
-        params.put("vnp_Amount", String.valueOf(amount * 100)); // VNPay yêu cầu nhân 100
+        params.put("vnp_Amount", String.valueOf(amount));
         params.put("vnp_CurrCode", "VND");
         params.put("vnp_TxnRef", transactionId);
         params.put("vnp_OrderInfo", orderInfo);
@@ -132,32 +132,6 @@ public class VNPayService  {
         // So sánh với chữ ký nhận được từ VNPay
         return calculatedHash.equalsIgnoreCase(vnpSecureHash);
     }
-
-
-//        public boolean verifyPayment(VnPayResponse vnPayResponse){
-//            // 1️⃣ Tạo chuỗi dữ liệu gốc từ các tham số (loại bỏ secure hash)
-//            Map<String, String> params = new TreeMap<>();
-//            params.put("vnp_TmnCode", vnPayResponse.getVnp_TmnCode());
-//            params.put("vnp_Amount", vnPayResponse.getVnpAmount());
-//            params.put("vnp_BankCode", vnPayResponse.getVnp_BankCode());
-//            params.put("vnp_OrderInfo", vnPayResponse.getVnp_OrderInfo());
-//            params.put("vnp_PayDate", vnPayResponse.getVnp_PayDate());
-//            params.put("vnp_ResponseCode", vnPayResponse.getVnp_ResponseCode());
-//            params.put("vnp_TransactionNo", vnPayResponse.getVnp_TransactionNo());
-//            params.put("vnp_TransactionStatus", vnPayResponse.getVnp_TransactionStatus());
-//
-//            String secretKey = "HJF2G7EHCHPX0K446LBH17FKQUF56MB5";
-//
-//
-//            // 3️⃣ Tạo secure hash từ dữ liệu nhận được
-//        String calculatedHash = hmacSHA512(secretKey, params.toString());
-//
-//        log.info("🔹 Hash nhận từ VNPay: {}", vnPayResponse);
-//        log.info("🔹 Hash tính toán: {}", calculatedHash);
-//
-//            // 4️⃣ So sánh với `vnp_SecureHash` từ VNPay
-//            return calculatedHash.equalsIgnoreCase(vnPayResponse.getVnp_SecureHash());
-//    }
 
 }
 

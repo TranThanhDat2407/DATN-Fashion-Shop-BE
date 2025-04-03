@@ -1,10 +1,17 @@
 package com.example.DATN_Fashion_Shop_BE.controller;
 
+import com.example.DATN_Fashion_Shop_BE.component.LocalizationUtils;
 import com.example.DATN_Fashion_Shop_BE.dto.response.ApiResponse;
+import com.example.DATN_Fashion_Shop_BE.dto.response.PageResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.revenue.*;
 import com.example.DATN_Fashion_Shop_BE.dto.response.revenue.CountWishList;
+import com.example.DATN_Fashion_Shop_BE.dto.response.review.ReviewResponse;
+import com.example.DATN_Fashion_Shop_BE.service.OrderService;
 import com.example.DATN_Fashion_Shop_BE.service.RevenueService;
+import com.example.DATN_Fashion_Shop_BE.service.ReviewService;
 import com.example.DATN_Fashion_Shop_BE.service.WishlistService;
+import com.example.DATN_Fashion_Shop_BE.utils.ApiResponseUtils;
+import com.example.DATN_Fashion_Shop_BE.utils.MessageKeys;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,7 +33,9 @@ import java.util.List;
 @RequestMapping("/api/v1/revenue")
 @AllArgsConstructor
 public class RevenueController {
-
+    private final LocalizationUtils localizationUtils;
+    private final OrderService orderService;
+    private ReviewService reviewService;
     private final RevenueService revenueService;
 
 
@@ -86,11 +95,6 @@ public class RevenueController {
 
 
 
-
-
-
-
-
     @GetMapping("/inventory")
     public ResponseEntity<ApiResponse<Page<InventoryStatistics>>> getInventory(
             @RequestParam Long storeId,
@@ -114,9 +118,71 @@ public class RevenueController {
 
 
     @GetMapping("/count/reviews")
-    public ResponseEntity<Page<CountReviews>> getReviewStatistics(
-            @RequestParam(defaultValue = "vi") String languageCode,
-            @PageableDefault(size = 10, sort = "totalReviews", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(revenueService.getReviewStatistics(languageCode, pageable));
+    public ResponseEntity<ApiResponse<Page<CountReviews>>> getReviewStatistics(
+            @RequestParam String languageCode,
+            @RequestParam(required = false) Long productId,
+            @RequestParam(required = false) String productName,
+            @PageableDefault(size = 10, sort = "totalReviews", direction = Sort.Direction.DESC)
+            Pageable pageable) {
+
+
+        Page<CountReviews> countReviews =revenueService.getReviewStatistics(languageCode,productId,productName, pageable);
+
+
+        ApiResponse<Page<CountReviews>> response = ApiResponse.<Page<CountReviews>>builder()
+                .timestamp(LocalDateTime.now().toString())
+                .status(HttpStatus.OK.value())
+                .message("Success")
+                .data(countReviews)
+                .build();
+
+        return ResponseEntity.ok(response);
+
+
     }
+
+    @GetMapping("/{productId}")
+    public ResponseEntity<ApiResponse<PageResponse<ReviewResponse>>> getReviewsByProduct(
+            @PathVariable Long productId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        Page<ReviewResponse> reviews = reviewService.getReviewsByProduct(productId, page, size, sortBy, sortDir);
+
+        PageResponse<ReviewResponse> pageResponse = PageResponse.fromPage(reviews);
+
+        return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                localizationUtils.getLocalizedMessage(MessageKeys.PRODUCTS_RETRIEVED_SUCCESSFULLY),
+                pageResponse));
+    }
+
+//    @GetMapping("/top-stores")
+//    public ResponseEntity<ApiResponse<List<Top3Store>>> getTop3StoresByRevenue(
+//            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+//            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+//
+//        try {
+//            List<Top3Store> topStores = orderService.getTop3StoresByRevenue(startDate, endDate);
+//
+//            ApiResponse<List<Top3Store>> response = ApiResponse.<List<Top3Store>>builder()
+//                    .timestamp(LocalDateTime.now().toString())
+//                    .status(HttpStatus.OK.value())
+//                    .message("Lấy top 3 cửa hàng thành công")
+//                    .data(topStores)
+//                    .build();
+//
+//            return ResponseEntity.ok(response);
+//        } catch (Exception e) {
+//            ApiResponse<List<Top3Store>> errorResponse = ApiResponse.<List<Top3Store>>builder()
+//                    .timestamp(LocalDateTime.now().toString())
+//                    .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+//                    .message("Lỗi khi lấy top 3 cửa hàng")
+//                    .data(null)
+//                    .build();
+//            return ResponseEntity.internalServerError().body(errorResponse);
+//        }
+//    }
+
 }

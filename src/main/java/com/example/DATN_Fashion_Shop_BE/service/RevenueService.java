@@ -66,10 +66,10 @@ public class RevenueService {
             int page,
             int size) {
 
-        // XÓA Sort.by(Sort.Direction.DESC, "totalWishList")
+
         Pageable pageable = PageRequest.of(page, size, Sort.unsorted());
 
-        // Gọi repository để lấy dữ liệu (đã có ORDER BY trong query)
+
         return wishListItemRepository.getProductStats(languageCode, productId, productName, pageable);
     }
 
@@ -83,8 +83,12 @@ public class RevenueService {
     }
 
 
-    public Page<CountReviews> getReviewStatistics(String languageCode, Pageable pageable) {
-        return reviewRepository.getProductReviewStatistics(languageCode, pageable);
+    public Page<CountReviews> getReviewStatistics(
+            String languageCode,
+            Long productId,
+            String productName,
+            Pageable pageable) {
+        return reviewRepository.getProductReviewStatistics(languageCode,productId,productName, pageable);
     }
 
 }
