@@ -157,3 +157,8 @@ agent:
   authtoken: 2tDeafp1n325wPOEx1eV5QMt2Ye_3NQ2RAbEKmKyeRxos6QQy
 
 
+paypal:
+  client:
+    id: AXOaUr-FvQsXhJwAhq6XyruslKJjmTdIaqJTpL3py2WPl6bdU0iesb_YnLNyOkBzlnQfhFHy7yOsNAMw
+    secret: ENQVrCwdcxm1lTwt6KVSJDfNjO8KbXDFMoGJcgwcg0sU5DB6Vi2JwDo8rxDEj-SojvVioXlNK954y7p3
+  mode: sandbox

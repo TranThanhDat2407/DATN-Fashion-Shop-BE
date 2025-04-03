@@ -88,6 +88,8 @@ public class OrderService {
     private final EmailService emailService;
     private final MomoService momoService;
 
+    private final AddressService addressService;
+    private final PaypalService paypalService;
 
     @Transactional
     public ResponseEntity<?> createOrder(OrderRequest orderRequest, HttpServletRequest request) {
@@ -200,6 +202,63 @@ public class OrderService {
             return processMoMoPayment(orderRequest, request, cartItems, coupon, subtotal,
                     fullShippingAddress, shippingFee, shippingMethod, grandTotal);
         }
+
+        if ("PAYPAL".equalsIgnoreCase(paymentMethod.getMethodName())) {
+
+            OrderStatus orderStatus = orderStatusRepository.findByStatusName("PENDING")
+                    .orElseThrow(() -> new RuntimeException("Trạng thái đơn hàng không hợp lệ."));
+
+            Order order = Order.builder()
+                    .user(User.builder().id(orderRequest.getUserId()).build())
+                    .coupon(coupon)
+                    .totalAmount(finalAmountWithTax)
+                    .orderStatus(orderStatus)
+                    .shippingAddress(fullShippingAddress)
+                    .shippingFee(shippingFee)
+                    .shippingMethod(shippingMethod)
+                    .taxAmount(taxAmount)
+                    .transactionId(null)
+                    .payments(new ArrayList<>())
+                    .build();
+
+            double totalPrice = finalAmount + shippingFee;
+            order.setTotalPrice(totalPrice);
+
+            Order savedOrder = orderRepository.save(order);
+            log.info("✅ Đơn hàng PayPal đã được tạo với ID: {}", savedOrder.getId());
+
+            List<OrderDetail> orderDetails = cartItems.stream().map(item ->
+                    OrderDetail.builder()
+                            .order(savedOrder)
+                            .productVariant(item.getProductVariant())
+                            .quantity(item.getQuantity())
+                            .unitPrice(item.getProductVariant().getSalePrice())
+                            .totalPrice(item.getProductVariant().getSalePrice() * item.getQuantity())
+                            .build()
+            ).collect(Collectors.toList());
+
+            orderDetailRepository.saveAll(orderDetails);
+            log.info("✅ Đã lưu {} sản phẩm vào OrderDetail.", orderDetails.size());
+
+            try {
+                // Gọi service tạo đơn hàng PayPal
+                String returnUrl = "http://localhost:4200/client/usd/en/paypal-success"; // đổi nếu cần
+                String cancelUrl = "http://localhost:4200/client/usd/en/paypal-cancel";
+
+                String paypalApprovalUrl = paypalService.createOrder(finalAmountWithTax, returnUrl, cancelUrl);
+                log.info("💳 URL thanh toán PayPal: {}", paypalApprovalUrl);
+
+                // Trừ tồn kho luôn nếu bạn muốn (hoặc chờ capture xong mới trừ)
+                subtractInventoryForOrder(savedOrder);
+
+                return ResponseEntity.ok(Collections.singletonMap("paymentUrl", paypalApprovalUrl));
+
+            } catch (Exception e) {
+                log.error("❌ Lỗi khi tạo URL thanh toán PayPal: {}", e.getMessage());
+                throw new RuntimeException("Lỗi khi tạo URL thanh toán PayPal.");
+            }
+        }
+
 
         throw new RuntimeException("Phương thức thanh toán không được hỗ trợ.");
     }
@@ -1103,6 +1162,7 @@ public class OrderService {
         order.setTotalPrice(grandTotal + shippingFee);
         Order savedOrder = orderRepository.save(order);
         log.info("✅ Đơn hàng đã được tạo với ID: {}", savedOrder.getId());
+
 
 
 
