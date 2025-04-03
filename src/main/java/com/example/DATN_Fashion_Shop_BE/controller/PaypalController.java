@@ -58,5 +58,31 @@ public class PaypalController {
         }
     }
 
+    @PostMapping("/generate-qr")
+    public ResponseEntity<String> generateQRCode(@RequestParam String invoiceId) {
+        try {
+            String qrCodeBase64 = paypalService.generateQRCode(invoiceId);
+            return ResponseEntity.ok(qrCodeBase64);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error generating QR Code");
+        }
+    }
+
+    @PostMapping("/create-invoice")
+    public ResponseEntity<String> createInvoice(@RequestParam Double amount) {
+        try {
+            // Tạo hóa đơn với số tiền từ tham số `amount`
+            String invoiceId = paypalService.createInvoice(amount);
+
+            // Tạo mã QR từ invoice-id
+            String qrCodeBase64 = paypalService.generateQRCode(invoiceId);
+
+            // Trả về mã QR dưới dạng chuỗi Base64
+            return ResponseEntity.ok(qrCodeBase64);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error creating invoice or QR code");
+        }
+    }
+
 }
 
