@@ -32,23 +32,23 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
         SUM(CASE WHEN CAST(NULLIF(r.reviewRate, '') AS INTEGER) = 3 THEN 1 ELSE 0 END) AS threeStars,
         SUM(CASE WHEN CAST(NULLIF(r.reviewRate, '') AS INTEGER) = 4 THEN 1 ELSE 0 END) AS fourStars,
         SUM(CASE WHEN CAST(NULLIF(r.reviewRate, '') AS INTEGER) = 5 THEN 1 ELSE 0 END) AS fiveStars,
-        SUM(CASE WHEN TRIM(UPPER(COALESCE(NULLIF(r.fit, ''), ''))) = 'CHẬT' THEN 1 ELSE 0 END) AS fitTight,
-        SUM(CASE WHEN TRIM(UPPER(COALESCE(NULLIF(r.fit, ''), ''))) = 'HƠI CHẬT' THEN 1 ELSE 0 END) AS fitSlightlyTight,
-        SUM(CASE WHEN TRIM(UPPER(COALESCE(NULLIF(r.fit, ''), ''))) = 'ĐÚNG VỚI KÍCH THƯỚC' THEN 1 ELSE 0 END) AS fitTrueToSize,
-        SUM(CASE WHEN TRIM(UPPER(COALESCE(NULLIF(r.fit, ''), ''))) = 'HƠI RỘNG' THEN 1 ELSE 0 END) AS fitLoose,
-        SUM(CASE WHEN TRIM(UPPER(COALESCE(NULLIF(r.fit, ''), ''))) = 'RỘNG' THEN 1 ELSE 0 END) AS fitSlightlyLoose
+        SUM(CASE WHEN LOWER(TRIM(COALESCE(r.fit, ''))) = LOWER('Tight') THEN 1 ELSE 0 END) AS fitTight,
+        SUM(CASE WHEN LOWER(TRIM(COALESCE(r.fit, ''))) = LOWER('SlightlyTight') THEN 1 ELSE 0 END) AS fitSlightlyTight,
+        SUM(CASE WHEN LOWER(TRIM(COALESCE(r.fit, ''))) = LOWER('TrueToSize') THEN 1 ELSE 0 END) AS fitTrueToSize,
+        SUM(CASE WHEN LOWER(TRIM(COALESCE(r.fit, ''))) = LOWER('SlightlyLoose') THEN 1 ELSE 0 END) AS fitSlightlyLoose,
+        SUM(CASE WHEN LOWER(TRIM(COALESCE(r.fit, ''))) = LOWER('Loose') THEN 1 ELSE 0 END) AS fitLoose
     )
     FROM Product p
     LEFT JOIN Review r ON r.product.id = p.id
     LEFT JOIN ProductsTranslation pt ON pt.product = p AND pt.language.code = :languageCode
     WHERE p.isActive = true
-    GROUP BY p.id, pt.name
+       AND (:productId IS NULL OR p.id = :productId)
+       AND (:productName IS NULL OR LOWER(pt.name) LIKE LOWER(CONCAT('%', :productName, '%')))
+       GROUP BY p.id, pt.name
 """)
-    Page<CountReviews> getProductReviewStatistics(@Param("languageCode") String languageCode, Pageable pageable);
-
-
-
-
-
-
+    Page<CountReviews> getProductReviewStatistics(
+            @Param("languageCode") String languageCode,
+            @Param("productId") Long productId,
+            @Param("productName") String productName,
+            Pageable pageable);
 }
