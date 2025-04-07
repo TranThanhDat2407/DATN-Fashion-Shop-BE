@@ -11,7 +11,10 @@ import lombok.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Data
@@ -31,6 +34,7 @@ public class OrderDetailResponse {
     private String recipientPhone;
     private String shippingAddress;
     private String paymentMethod;
+//    private PaymentMethodResponse paymentMethod;
     private Double tax;
     private Double shippingFee;
     private Double grandTotal;
@@ -62,13 +66,6 @@ public class OrderDetailResponse {
                 .orElse(userAddressResponses.get(0))
                 : null;
 
-        log.info("📌 Default Address: {}", defaultAddress);
-        String recipientName = (defaultAddress != null) ? defaultAddress.getLastName() + " " + defaultAddress.getFirstName() : null;
-        String recipientPhone = (defaultAddress != null) ? defaultAddress.getPhone() : null;
-
-        log.info("📌 Recipient Name: {}", recipientName);
-        log.info("📌 Recipient Phone: {}", recipientPhone);
-
         List<PaymentMethodResponse> paymentMethods = (order.getPayments() != null)
                 ? order.getPayments().stream()
                 .map(payment -> PaymentMethodResponse.fromPaymentMethod(payment.getPaymentMethod()))
@@ -80,6 +77,9 @@ public class OrderDetailResponse {
                 ? paymentMethods.stream().map(PaymentMethodResponse::getMethodName).collect(Collectors.joining(", "))
                 : "Thanh toán khi nhận hàng";
 
+        String[] paymentMethodsArray = paymentMethodNames.split(", ");
+        Set<String> uniquePaymentMethods = new HashSet<>(Arrays.asList(paymentMethodsArray));
+        paymentMethodNames = String.join(", ", uniquePaymentMethods);
 
         return OrderDetailResponse.builder()
                 .orderDetailId(orderDetail.getId())

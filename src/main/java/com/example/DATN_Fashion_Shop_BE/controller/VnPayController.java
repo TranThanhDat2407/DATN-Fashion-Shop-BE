@@ -27,11 +27,11 @@ import java.util.*;
 public class VnPayController {
     private final VNPayService vnPayService;
     private static final Logger log = LoggerFactory.getLogger(VnPayController.class);
-    @GetMapping("/create-payment")
-    public String createPayment(@RequestParam long amount, @RequestParam String orderInfo, @RequestParam String transactionId ) {
-        String paymentUrl = VNPayService.createPaymentUrl(amount, orderInfo, transactionId, "127.0.0.1");
-        return paymentUrl;
-    }
+//    @GetMapping("/create-payment")
+//    public String createPayment(@RequestParam long amount, @RequestParam String orderInfo, @RequestParam String transactionId ) {
+//        String paymentUrl = VNPayService.createPaymentUrl(amount, orderInfo, transactionId, "127.0.0.1");
+//        return paymentUrl;
+//    }
 
     @PostMapping("/verify")
     public ResponseEntity<?> verifyPayment(@RequestParam Map<String, String> vnpParams)  {

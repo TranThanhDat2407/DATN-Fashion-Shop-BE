@@ -41,4 +41,6 @@ public class GhnController {
     public ResponseEntity<Map> getWards(@RequestParam int districtId) {
         return ghnService.getWards(districtId);
     }
+
+
 }

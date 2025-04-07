@@ -7,13 +7,12 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CountStartAndWishList {
+public class CountWishList {
     private Long productVariantId;
     private String productName;
     private String color;
     private String colorImage;
     private String imageUrl;
     private Double totalPrice;
-    private Long totalStart;
     private Long totalWishList;
 }

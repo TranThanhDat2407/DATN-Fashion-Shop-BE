@@ -29,7 +29,8 @@ public class GHNService {
 //    private static final String BASE_URL = "https://online-gateway.ghn.vn/shiip/public-api/master-data/";
     private static final String BASE_URL = "https://dev-online-gateway.ghn.vn/shiip/public-api/master-data/";
     private static final String TOKEN = "6b3b4d35-e5f0-11ef-b2e4-6ec7c647cc27";
-
+//    private static final String TOKEN = "885c111e-e5e9-11ef-990e-cecd68e7eb91";
+//885c111e-e5e9-11ef-990e-cecd68e7eb91
     private HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
@@ -77,9 +78,13 @@ public class GHNService {
 
     public double calculateShippingFee(Address address, List<CartItem> cartItems) {
         String ghnApiUrl = "https://dev-online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee";
+//        String ghnApiUrl = "https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee";
+//        https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee
         String token = "6b3b4d35-e5f0-11ef-b2e4-6ec7c647cc27";
+//        String token = "885c111e-e5e9-11ef-990e-cecd68e7eb91";
         String shopId = "195952";
-//        int shopDistrictId = 1457;
+//        String shopId = "5622599";
+//        5622599
 
 
         // Lấy districtId và wardCode từ GHN API
@@ -88,11 +93,11 @@ public class GHNService {
             log.warn("⚠ Không tìm thấy District ID cho: {}", address.getCity());
             return 0.0;
         }
-        String fromWardCode = getGhnWardCode("21705", 1457);
-        if (fromWardCode == null) {
-            log.warn("⚠ Không tìm thấy From Ward Code, dùng giá trị mặc định.");
-            fromWardCode = "21705";
-        }
+//        String fromWardCode = getGhnWardCode("21705", 1457);
+//        if (fromWardCode == null) {
+//            log.warn("⚠ Không tìm thấy From Ward Code, dùng giá trị mặc định.");
+//            fromWardCode = "21705";
+//        }
         String wardCode = getGhnWardCode(address.getWard(), districtId);
         if (wardCode == null) {
             log.warn("⚠ Không tìm thấy Ward Code cho: {} - {}", address.getDistrict(), address.getWard());
@@ -112,7 +117,7 @@ public class GHNService {
         requestBody.put("service_type_id", 2);
         requestBody.put("service_id", 53321);
         requestBody.put("from_district_id", 1457);
-        requestBody.put("from_ward_code",fromWardCode);
+        requestBody.put("from_ward_code","21705");
         requestBody.put("to_district_id", districtId);
         requestBody.put("to_ward_code", wardCode);
         requestBody.put("height", 20);
@@ -144,7 +149,9 @@ public class GHNService {
                 Map<String, Object> responseBody = response.getBody();
                 if (responseBody != null && responseBody.containsKey("data")) {
                     Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
-                    return ((Number) data.get("total")).doubleValue();
+                    if (data.containsKey("total")) {
+                        return ((Number) data.get("total")).doubleValue();
+                    }
                 }
                 log.info("📩 Phản hồi GHN nhưng không có dữ liệu hợp lệ: {}", response.getBody());
             } else {
@@ -161,7 +168,12 @@ public class GHNService {
     public Integer getGhnDistrictId(String provinceName, String districtName) {
         String provinceUrl = "https://dev-online-gateway.ghn.vn/shiip/public-api/master-data/province";
         String districtUrl = "https://dev-online-gateway.ghn.vn/shiip/public-api/master-data/district";
+//        String provinceUrl = "https://online-gateway.ghn.vn/shiip/public-api/master-data/province";
+//        String districtUrl = "https://online-gateway.ghn.vn/shiip/public-api/master-data/district";
         String token = "6b3b4d35-e5f0-11ef-b2e4-6ec7c647cc27";
+//        String token = "885c111e-e5e9-11ef-990e-cecd68e7eb91";
+//        https://online-gateway.ghn.vn/shiip/public-api/master-data/province
+//        https://online-gateway.ghn.vn/shiip/public-api/master-data/district
 
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -212,9 +224,7 @@ public class GHNService {
                                 }
                             }
                         }
-                        log.warn("⚠ Không tìm thấy District ID cho {} - {}", provinceName, districtName);
-                    } else {
-                        log.warn("⚠ Không tìm thấy Province ID cho {}", provinceName);
+
                     }
                 }
             } else {
@@ -229,8 +239,10 @@ public class GHNService {
 
     public String getGhnWardCode(String wardName, int districtId) {
         String url = "https://dev-online-gateway.ghn.vn/shiip/public-api/master-data/ward";
+//        String url = "https://online-gateway.ghn.vn/shiip/public-api/master-data/ward";
         String token = "6b3b4d35-e5f0-11ef-b2e4-6ec7c647cc27";
-
+//        String token = "885c111e-e5e9-11ef-990e-cecd68e7eb91";
+//        https://online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.set("Content-Type", "application/json");
