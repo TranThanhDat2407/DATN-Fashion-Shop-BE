@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "store")
@@ -38,5 +39,8 @@ public class Store {
 
     @Column(name = "close_hour")
     private LocalDateTime closeHour;
+
+    @OneToMany(mappedBy = "store", fetch = FetchType.LAZY)
+    private List<Order> orders;
 
 }

@@ -351,4 +351,16 @@ public class StoreService {
 
         return fullRevenueData;
     }
+
+    public List<TopStoresRevenueResponse> getTop5StoresByRevenue(int year) {
+        List<TopStoresRevenueResponse> allStores = storeRepository.findAllStoresWithRevenueInYear(year);
+        return allStores.stream()
+                .sorted(Comparator.comparing(TopStoresRevenueResponse::getTotalRevenue).reversed())
+                .limit(5)
+                .collect(Collectors.toList());
+    }
+
+    public List<CityRevenueResponse> getRevenueStatisticsByCity(int year) {
+        return storeRepository.getRevenueByCity(year);
+    }
 }
