@@ -140,8 +140,8 @@ exchanger:
     key: "7236dc721c56e195be6eef59"
 
 ghn:
-  token: "885c111e-e5e9-11ef-990e-cecd68e7eb91"
-  shopId: "5622599"
+  token: "6b3b4d35-e5f0-11ef-b2e4-6ec7c647cc27"
+  shopId: "195952"
 
 vnpay:
   tmnCode: "IQUTYPIQ"
@@ -157,3 +157,8 @@ agent:
   authtoken: 2tDeafp1n325wPOEx1eV5QMt2Ye_3NQ2RAbEKmKyeRxos6QQy
 
 
+paypal:
+  client:
+    id: AXOaUr-FvQsXhJwAhq6XyruslKJjmTdIaqJTpL3py2WPl6bdU0iesb_YnLNyOkBzlnQfhFHy7yOsNAMw
+    secret: ENQVrCwdcxm1lTwt6KVSJDfNjO8KbXDFMoGJcgwcg0sU5DB6Vi2JwDo8rxDEj-SojvVioXlNK954y7p3
+  mode: sandbox

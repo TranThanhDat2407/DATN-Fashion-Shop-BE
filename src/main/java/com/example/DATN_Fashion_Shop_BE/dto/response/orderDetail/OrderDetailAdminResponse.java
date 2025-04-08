@@ -8,7 +8,10 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Data
@@ -93,9 +96,16 @@ public class OrderDetailAdminResponse {
                 ? paymentMethods.stream().map(PaymentMethodResponse::getMethodName).collect(Collectors.joining(", "))
                 : "Thanh toán khi nhận hàng";
 
-        // 🛠️ Xử lý trạng thái thanh toán
+        String[] paymentMethodsArray = paymentMethodNames.split(", ");
+        Set<String> uniquePaymentMethods = new HashSet<>(Arrays.asList(paymentMethodsArray));
+        paymentMethodNames = String.join(", ", uniquePaymentMethods);
+
         String paymentStatus = (order.getPayments() != null && !order.getPayments().isEmpty())
-                ? order.getPayments().stream().map(Payment::getStatus).findFirst().orElse("Chưa thanh toán")
+                ? order.getPayments().stream()
+                .map(Payment::getStatus)
+                .distinct() // Đảm bảo không có trạng thái trùng lặp
+                .findFirst()
+                .orElse("Chưa thanh toán")
                 : "Chưa thanh toán";
 
         return OrderDetailAdminResponse.builder()

@@ -72,6 +72,7 @@ public class OrderController {
     private final PaymentMethodRepository paymentMethodRepository;
     private final OrderStatusRepository orderStatusRepository;
     private final CartService cartService;
+    private final CartItemRepository cartItemRepository;
     private final InventoryService inventoryService;
     private final EmailService emailService;
 
@@ -106,34 +107,9 @@ public class OrderController {
         Object responseBody = response.getBody();
 
 
-        // Trường hợp response body null
-        if (responseBody == null) {
-            log.error("Order creation failed, response body is null");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                    ApiResponseUtils.errorResponse(
-                            HttpStatus.BAD_REQUEST,
-                            localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_CREATE_FAILED),
-                            "order",
-                            null,
-                            "Không thể tạo đơn hàng, vui lòng thử lại sau."
-                    )
-            );
-        }
-
-        // Trường hợp VNPay trả về Map (Link thanh toán)
-        if (responseBody instanceof Map<?, ?> paymentResponse) {
-            log.info("VNPay payment link response detected.");
-            return ResponseEntity.ok(ApiResponseUtils.successResponse(
-                    localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_SUCCESSFULLY),
-                    paymentResponse
-            ));
-        }
-
-        // Trường hợp COD: response.getBody() là Order
         if (responseBody instanceof Order order) {
-            log.info("Cash on Delivery (COD) order detected. Converting to CreateOrderResponse.");
+            log.info("Order detected (COD or Pay in Store). Converting to CreateOrderResponse.");
             CreateOrderResponse createOrderResponse = CreateOrderResponse.fromOrder(order);
-            log.debug("Converted CreateOrderResponse: " + createOrderResponse);
 
             return ResponseEntity.ok(ApiResponseUtils.successResponse(
                     localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_SUCCESSFULLY),
@@ -141,6 +117,25 @@ public class OrderController {
             ));
         }
 
+
+        // Xử lý thanh toán VNPay hoặc MoMo
+        if (responseBody instanceof Map<?, ?> paymentResponse) {
+
+            if (paymentResponse.containsKey("paymentUrl")) {
+                String paymentUrl = (String) paymentResponse.get("paymentUrl");
+                log.info("VNPay payment link response detected: {}", paymentUrl);
+            } else if (paymentResponse.containsKey("payUrl")) {
+                String payUrl = (String) paymentResponse.get("payUrl");
+                log.info("MoMo payment link response detected: {}", payUrl);
+            } else {
+                log.warn("Unknown payment provider response.");
+            }
+
+            return ResponseEntity.ok(ApiResponseUtils.successResponse(
+                    localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_SUCCESSFULLY),
+                    paymentResponse
+            ));
+        }
 
         if (responseBody instanceof CreateOrderResponse createOrderResponse) {
             log.info("CreateOrderResponse detected, returning success response.");
@@ -240,7 +235,9 @@ public class OrderController {
     )
     @PostMapping("/return")
     public ResponseEntity<?> handleVNPayReturn(@RequestBody Map<String, String> vnpParams) {
-        log.info("🔄 Nhận callback từ VNPay: {}", vnpParams);
+
+        log.info("📤 [VNPay Callback] Nhận dữ liệu: {}", vnpParams);
+
         String transactionCode = vnpParams.get("vnp_TxnRef");
         String vnp_ResponseCode = vnpParams.get("vnp_ResponseCode");
         String vnp_TransactionNo = vnpParams.get("vnp_TransactionNo");
@@ -257,44 +254,49 @@ public class OrderController {
                     .body(Collections.singletonMap("message", "Thanh toán thất bại."));
         }
         // 1️⃣ Kiểm tra mã giao dịch và tìm đơn hàng
-//        Order order = orderRepository.findById(Long.valueOf(transactionCode))
-//                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với mã giao dịch: " + transactionCode));
-        Order order = orderRepository.findOrderWithUserAndAddresses(Long.valueOf(transactionCode))
+        Order order = orderRepository.findById(Long.valueOf(transactionCode))
+
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với mã giao dịch: " + transactionCode));
+//        Order order = orderRepository.findOrderWithUserAndAddresses(Long.valueOf(transactionCode))
+//                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với mã giao dịch: " + transactionCode));
 
 //         ✅ Kiểm tra trạng thái thanh toán VNPay
         if ("00".equals(vnp_ResponseCode) && "00".equals(vnp_TransactionStatus)) {
             order.setOrderStatus(orderStatusRepository.findByStatusName("PROCESSING")
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy trạng thái PROCESSING.")));
+
+            if (order.getTransactionId() != null) {
+                log.warn("⚠ Đơn hàng {} đã có transactionId {}, bỏ qua cập nhật.", order.getId(), order.getTransactionId());
+                return ResponseEntity.ok(CreateOrderResponse.fromOrder(order));
+            }
+
             order.setTransactionId(vnp_TransactionNo);
             orderRepository.save(order);
+
             log.info("✅ Giao dịch thành công. Đã cập nhật trạng thái đơn hàng ID: {}", order.getId());
 
+            boolean paymentExists = paymentRepository.existsByTransactionCode(transactionCode);
+            if (paymentExists) {
+                log.warn("⚠ Thanh toán đã tồn tại cho đơn hàng ID: {}. Không lưu trùng lặp.", transactionCode);
+            } else {
+                // 6️⃣ Lưu thông tin thanh toán
+                Payment payment = Payment.builder()
+                        .order(order)
+                        .paymentMethod(paymentMethodRepository.findByMethodName("VNPAY")
+                                .orElseThrow(() -> new RuntimeException("Phương thức thanh toán không hợp lệ.")))
+                        .paymentDate(new Date())
+                        .amount(amount)
+                        .status("PAID")
+                        .transactionCode(vnp_TransactionNo)
+                        .build();
 
-            // 6️⃣ Lưu thông tin thanh toán
-            Payment payment = Payment.builder()
-                    .order(order)
-                    .paymentMethod(paymentMethodRepository.findByMethodName("VNPAY")
-                            .orElseThrow(() -> new RuntimeException("Phương thức thanh toán không hợp lệ.")))
-                    .paymentDate(new Date())
-                    .amount(amount)
-                    .status("PAID")
-                    .transactionCode(vnp_TransactionNo)
-                    .build();
-
-            paymentRepository.save(payment);
-
+                paymentRepository.save(payment);
+                log.info("✅ Đã lưu thông tin thanh toán cho đơn hàng ID: {}", transactionCode);
+            }
             Order userWithAddresses = orderRepository.findOrderWithUserAndAddresses(Long.valueOf(transactionCode))
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với mã giao dịch: " + transactionCode));
 
-//            User userWithAddresses = userRepository.findById(order.getUser().getId())
-//                    .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng!"));
 
-//            List<UserAddressResponse> userAddressResponses = (userWithAddresses.getUserAddresses() != null)
-//                    ? userWithAddresses.getUserAddresses().stream()
-//                    .map(UserAddressResponse::fromUserAddress)
-//                    .collect(Collectors.toList())
-//                    : new ArrayList<>();
 
                    List<UserAddressResponse> userAddressResponses = (userWithAddresses.getUser().getUserAddresses() != null)
                     ? userWithAddresses.getUser().getUserAddresses().stream()
@@ -308,8 +310,10 @@ public class OrderController {
                 List<OrderDetail> orderDetails = orderDetailRepository.findByOrderId(order.getId());
 
                 List<OrderDetailResponse> orderDetailResponses = orderDetails.stream()
-                        .map(orderDetail -> OrderDetailResponse.fromOrderDetail(orderDetail, userAddressResponses))
+                        .map(orderDetail -> OrderDetailResponse.fromOrderDetail(orderDetail, userAddressResponses, paymentRepository))
                         .collect(Collectors.toList());
+
+
 
                 emailService.sendOrderConfirmationEmail(user.getEmail(), orderDetailResponses);
                 log.info("📧 Đã gửi email xác nhận đơn hàng (VNPay) đến {}", user.getEmail());
@@ -431,7 +435,8 @@ public class OrderController {
     public ResponseEntity<ApiResponse<GetAllOrderAdmin>> updateOrderStatus(
             @PathVariable Long orderId,
             @RequestBody Map<String, String> request) {
-        log.info("Received request body: {}", request);
+        log.info("💳  Received request body: {}", request);
+
 
         String status = request.get("status");
         if (status == null || status.isEmpty()) {
@@ -440,7 +445,12 @@ public class OrderController {
                     HttpStatus.BAD_REQUEST,
                     "Status is required",null));
         }
-
+        if (!Arrays.asList("PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "DONE").contains(status)) {
+            return ResponseEntity.badRequest().body(ApiResponseUtils.errorResponse(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid status value",
+                    null));
+        }
         GetAllOrderAdmin updatedOrder = orderService.updateOrderStatus(orderId, status);
 
         return ResponseEntity.ok(
@@ -637,89 +647,89 @@ public class OrderController {
         );
     }
 
-    @Operation(
-            summary = "Đặt hàng Click & Collect",
-            description = "API này cho phép người dùng đặt hàng Click & Collect, kiểm tra tồn kho và xử lý thanh toán.",
-            tags = "Orders"
-    )
-    @PostMapping("/create-click-and-collect-order")
-    public ResponseEntity<ApiResponse<?>> createClickAndCollectOrder(
-            HttpServletRequest request,
-            @RequestBody @Valid ClickAndCollectOrderRequest orderRequest,
-            BindingResult bindingResult) {
-
-        // 1️⃣ Kiểm tra lỗi đầu vào
-        if (bindingResult.hasErrors()) {
-            log.debug("Validation errors: " + bindingResult.getAllErrors());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                    ApiResponseUtils.generateValidationErrorResponse(
-                            bindingResult,
-                            localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_CREATE_FAILED),
-                            localizationUtils
-                    )
-            );
-        }
-
-        // 2️⃣ Gọi service để tạo đơn hàng Click & Collect
-        ResponseEntity<?> response = orderService.createClickAndCollectOrder(orderRequest, request);
-        Object responseBody = response.getBody();
-
-        // 3️⃣ Nếu response body null => thất bại
-        if (responseBody == null) {
-            log.error("Click & Collect order creation failed, response body is null");
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                    ApiResponseUtils.errorResponse(
-                            HttpStatus.BAD_REQUEST,
-                            localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_CREATE_FAILED),
-                            "clickAndCollectOrder",
-                            null,
-                            "Không thể tạo đơn hàng Click & Collect, vui lòng thử lại sau."
-                    )
-            );
-        }
-
-        // 4️⃣ Nếu VNPay trả về Map (Link thanh toán)
-        if (responseBody instanceof Map<?, ?> paymentResponse) {
-            log.info("VNPay payment link response detected.");
-            return ResponseEntity.ok(ApiResponseUtils.successResponse(
-                    localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_SUCCESSFULLY),
-                    paymentResponse
-            ));
-        }
-
-        // 5️⃣ Nếu đơn hàng tạo thành công theo phương thức thanh toán tại cửa hàng
-        if (responseBody instanceof Order order) {
-            log.info("Click & Collect order with Pay in Store detected. Converting to CreateOrderResponse.");
-            CreateOrderResponse createOrderResponse = CreateOrderResponse.fromOrder(order);
-            log.debug("Converted CreateOrderResponse: " + createOrderResponse);
-
-            return ResponseEntity.ok(ApiResponseUtils.successResponse(
-                    localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_SUCCESSFULLY),
-                    createOrderResponse
-            ));
-        }
-
-        // 6️⃣ Nếu response là CreateOrderResponse
-        if (responseBody instanceof CreateOrderResponse createOrderResponse) {
-            log.info("CreateOrderResponse detected, returning success response.");
-            return ResponseEntity.ok(ApiResponseUtils.successResponse(
-                    localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_SUCCESSFULLY),
-                    createOrderResponse
-            ));
-        }
-
-        // 7️⃣ Nếu không khớp bất kỳ điều kiện nào
-        log.error("Unexpected response type: " + responseBody.getClass().getName());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                ApiResponseUtils.errorResponse(
-                        HttpStatus.BAD_REQUEST,
-                        localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_CREATE_FAILED),
-                        "clickAndCollectOrder",
-                        null,
-                        "Không thể tạo đơn hàng Click & Collect, vui lòng thử lại sau."
-                )
-        );
-    }
+//    @Operation(
+//            summary = "Đặt hàng Click & Collect",
+//            description = "API này cho phép người dùng đặt hàng Click & Collect, kiểm tra tồn kho và xử lý thanh toán.",
+//            tags = "Orders"
+//    )
+//    @PostMapping("/create-click-and-collect-order")
+//    public ResponseEntity<ApiResponse<?>> createClickAndCollectOrder(
+//            HttpServletRequest request,
+//            @RequestBody @Valid ClickAndCollectOrderRequest orderRequest,
+//            BindingResult bindingResult) {
+//
+//        // 1️⃣ Kiểm tra lỗi đầu vào
+//        if (bindingResult.hasErrors()) {
+//            log.debug("Validation errors: " + bindingResult.getAllErrors());
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+//                    ApiResponseUtils.generateValidationErrorResponse(
+//                            bindingResult,
+//                            localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_CREATE_FAILED),
+//                            localizationUtils
+//                    )
+//            );
+//        }
+//
+//        // 2️⃣ Gọi service để tạo đơn hàng Click & Collect
+//        ResponseEntity<?> response = orderService.createClickAndCollectOrder(orderRequest, request);
+//        Object responseBody = response.getBody();
+//
+//        // 3️⃣ Nếu response body null => thất bại
+//        if (responseBody == null) {
+//            log.error("Click & Collect order creation failed, response body is null");
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+//                    ApiResponseUtils.errorResponse(
+//                            HttpStatus.BAD_REQUEST,
+//                            localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_CREATE_FAILED),
+//                            "clickAndCollectOrder",
+//                            null,
+//                            "Không thể tạo đơn hàng Click & Collect, vui lòng thử lại sau."
+//                    )
+//            );
+//        }
+//
+//        // 4️⃣ Nếu VNPay trả về Map (Link thanh toán)
+//        if (responseBody instanceof Map<?, ?> paymentResponse) {
+//            log.info("VNPay payment link response detected.");
+//            return ResponseEntity.ok(ApiResponseUtils.successResponse(
+//                    localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_SUCCESSFULLY),
+//                    paymentResponse
+//            ));
+//        }
+//
+//        // 5️⃣ Nếu đơn hàng tạo thành công theo phương thức thanh toán tại cửa hàng
+//        if (responseBody instanceof Order order) {
+//            log.info("Click & Collect order with Pay in Store detected. Converting to CreateOrderResponse.");
+//            CreateOrderResponse createOrderResponse = CreateOrderResponse.fromOrder(order);
+//            log.debug("Converted CreateOrderResponse: " + createOrderResponse);
+//
+//            return ResponseEntity.ok(ApiResponseUtils.successResponse(
+//                    localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_SUCCESSFULLY),
+//                    createOrderResponse
+//            ));
+//        }
+//
+//        // 6️⃣ Nếu response là CreateOrderResponse
+//        if (responseBody instanceof CreateOrderResponse createOrderResponse) {
+//            log.info("CreateOrderResponse detected, returning success response.");
+//            return ResponseEntity.ok(ApiResponseUtils.successResponse(
+//                    localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_SUCCESSFULLY),
+//                    createOrderResponse
+//            ));
+//        }
+//
+//        // 7️⃣ Nếu không khớp bất kỳ điều kiện nào
+//        log.error("Unexpected response type: " + responseBody.getClass().getName());
+//        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+//                ApiResponseUtils.errorResponse(
+//                        HttpStatus.BAD_REQUEST,
+//                        localizationUtils.getLocalizedMessage(MessageKeys.ORDERS_CREATE_FAILED),
+//                        "clickAndCollectOrder",
+//                        null,
+//                        "Không thể tạo đơn hàng Click & Collect, vui lòng thử lại sau."
+//                )
+//        );
+//    }
 
     @PostMapping("/{orderId}/cancel")
     public ResponseEntity<ApiResponse<String>> cancelOrderAndRestoreInventory(

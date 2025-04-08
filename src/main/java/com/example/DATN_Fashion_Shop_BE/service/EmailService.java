@@ -167,6 +167,13 @@ public class EmailService {
         }
 
         try {
+            // Log thông tin payment method từ tất cả order details
+            log.info("===== THÔNG TIN PHƯƠNG THỨC THANH TOÁN =====");
+            for (OrderDetailResponse detail : orderDetails) {
+                log.info("Order ID: {} - Payment Method: {}", detail.getOrderId(), detail.getPaymentMethod());
+            }
+            log.info("=======================================");
+
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 

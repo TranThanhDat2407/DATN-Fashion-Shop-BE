@@ -1,5 +1,6 @@
 package com.example.DATN_Fashion_Shop_BE.repository;
 
+import com.example.DATN_Fashion_Shop_BE.dto.response.revenue.Top3Store;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.StoreDailyRevenueResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.StoreMonthlyRevenueResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.store.staticsic.StoreRevenueByDateRangeResponse;
@@ -57,6 +58,20 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     @Query("SELECT o FROM Order o JOIN FETCH o.user u LEFT JOIN FETCH u.userAddresses WHERE o.id = :orderId")
     Optional<Order> findOrderWithUserAndAddresses(@Param("orderId") Long orderId);
 
+
+    @Query("SELECT NEW com.example.DATN_Fashion_Shop_BE.dto.response.revenue.Top3Store(" +
+            "s.id, s.name, a.fullAddress, s.phone, SUM(o.totalPrice)) " +
+            "FROM Order o " +
+            "JOIN o.store s " +
+            "JOIN s.address a " +
+            "WHERE (:startDate IS NULL OR CAST(o.createdAt AS localdate) >= :startDate) " +
+            "AND (:endDate IS NULL OR CAST(o.createdAt AS localdate) <= :endDate) " +
+            "GROUP BY s.id, s.name, a.fullAddress, s.phone " +
+            "ORDER BY SUM(o.totalPrice) DESC")
+    List<Top3Store> findTop3StoresByRevenue(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            Pageable pageable);
 
 
 
