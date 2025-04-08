@@ -23,12 +23,12 @@ import java.util.*;
 
 @Service
 public class VNPayService  {
-    private static final Logger log = LoggerFactory.getLogger(VNPayService.class);
+    public static final Logger log = LoggerFactory.getLogger(VNPayService.class);
     private static final String vnp_TmnCode = "IQUTYPIQ";
     private static final String vnp_HashSecret = "HJF2G7EHCHPX0K446LBH17FKQUF56MB5";
-    private static final String vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"; // URL VNPay
-    private static final String vnp_ReturnUrl = "http://localhost:4200/client/vnd/vi/payment_success"; // URL trả về sau khi thanh toán
-    private static final String vnp_IpnUrl = "https://tai.kesug.com/api/v1/payment/vnpay_ipn";
+    public static final String vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"; // URL VNPay
+    public static final String vnp_ReturnUrl = "http://localhost:4200/client/vnd/vi/payment_success"; // URL trả về sau khi thanh toán
+//    private static final String vnp_IpnUrl = "https://tai.kesug.com/api/v1/payment/vnpay_ipn";
 
 
     public static String hmacSHA512( final String data, final String key) {

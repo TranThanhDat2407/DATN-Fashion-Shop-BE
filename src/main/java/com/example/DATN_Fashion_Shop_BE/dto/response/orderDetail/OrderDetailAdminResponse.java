@@ -105,7 +105,7 @@ public class OrderDetailAdminResponse {
                 .map(Payment::getStatus)
                 .distinct() // Đảm bảo không có trạng thái trùng lặp
                 .findFirst()
-                .orElse("Chưa thanh toán") // Trả về trạng thái mặc định nếu không có trạng thái nào
+                .orElse("Chưa thanh toán")
                 : "Chưa thanh toán";
 
         return OrderDetailAdminResponse.builder()

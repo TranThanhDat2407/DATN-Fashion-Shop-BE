@@ -20,10 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -45,28 +42,28 @@ public class MomoController {
      * @param orderId Mã đơn hàng
      * @return Dữ liệu yêu cầu thanh toán
      */
-//    @PostMapping("/create")
-//    public ResponseEntity<?> createPayment(
-//            @RequestParam long amount,
-//            @RequestParam String orderInfo,
-//            @RequestParam String orderId) {
-//
-//        try {
-//            log.info("Tạo yêu cầu thanh toán MoMo - Amount: {}, OrderInfo: {}, OrderId: {}",
-//                    amount, orderInfo, orderId);
-//
-//            Map<String, Object> paymentData = momoService.createPayment(amount, orderInfo, orderId);
-//            return ResponseEntity.ok(paymentData);
-//
-//        } catch (Exception e) {
-//            log.error("Lỗi khi tạo thanh toán MoMo", e);
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                    .body(Map.of(
-//                            "status", "error",
-//                            "message", "Lỗi khi tạo thanh toán MoMo: " + e.getMessage()
-//                    ));
-//        }
-//    }
+    @PostMapping("/create")
+    public ResponseEntity<?> createPayment(
+            @RequestParam long amount,
+            @RequestParam String orderInfo,
+            @RequestParam String orderId) {
+
+        try {
+            log.info("Tạo yêu cầu thanh toán MoMo - Amount: {}, OrderInfo: {}, OrderId: {}",
+                    amount, orderInfo, orderId);
+
+            Map<String, Object> paymentData = momoService.createPayment(amount, orderInfo, orderId);
+            return ResponseEntity.ok(paymentData);
+
+        } catch (Exception e) {
+            log.error("Lỗi khi tạo thanh toán MoMo", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "status", "error",
+                            "message", "Lỗi khi tạo thanh toán MoMo: " + e.getMessage()
+                    ));
+        }
+    }
 
     /**
      * Endpoint nhận callback từ MoMo
@@ -76,7 +73,7 @@ public class MomoController {
     @PostMapping("/callback")
     public ResponseEntity<?> momoCallback(@RequestBody Map<String, Object> callbackData) {
         try {
-            log.info("🔄 Nhận callback từ MoMo: {}", callbackData);
+            log.info("🔄 Nhận callback từ MoMo lần thứ: {}", System.currentTimeMillis());
 
             // Xác minh chữ ký từ MoMo
             if (!momoService.verifyCallback(callbackData)) {
@@ -99,17 +96,20 @@ public class MomoController {
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng với mã giao dịch: " + orderId));
 
             if ("0".equals(resultCode)) {
+
                 order.setOrderStatus(orderStatusRepository.findByStatusName("PROCESSING")
                         .orElseThrow(() -> new RuntimeException("Không tìm thấy trạng thái PROCESSING.")));
+
                 order.setTransactionId(transactionId);
                 orderRepository.save(order);
 
-                log.info("✅ Giao dịch thành công. Đã cập nhật trạng thái đơn hàng ID: {}", order.getId());
 
-                boolean paymentExists = paymentRepository.existsByOrderId(orderId);
-                if (paymentExists) {
-                    log.warn("⚠ Thanh toán đã tồn tại cho đơn hàng ID: {}. Không lưu trùng lặp.", orderId);
-                } else {
+//                log.info("✅ Giao dịch thành công. Đã cập nhật trạng thái đơn hàng ID: {}", order.getId());
+//             boolean paymentExists = paymentRepository.existsByOrderId(orderId);
+//                if (paymentExists) {
+//                    log.warn("⚠ Thanh toán đã tồn tại cho đơn hàng ID: {}. Không lưu trùng lặp.", orderId);
+//                } else {
+                if(!paymentRepository.existsByOrderId(orderId)) {
                     // Lưu thông tin thanh toán
                     Payment payment = Payment.builder()
                             .order(order)
@@ -123,8 +123,11 @@ public class MomoController {
 
                     paymentRepository.save(payment);
                     log.info("✅ Đã lưu thông tin thanh toán cho đơn hàng ID: {}", orderId);
-                }
 
+
+                }
+                order = orderRepository.findOrderWithUserAndAddresses(orderId)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng sau khi lưu payment: " + orderId));
 
                 List<UserAddressResponse> userAddressResponses = (order.getUser().getUserAddresses() != null)
                         ? order.getUser().getUserAddresses().stream()
@@ -134,12 +137,12 @@ public class MomoController {
 
 
                 User user = order.getUser();
-                if (user.getEmail() != null && !user.getEmail().isEmpty()) {
+                if (order.getUser().getEmail() != null && !order.getUser().getEmail().isEmpty()) {
 
                     List<OrderDetail> orderDetails = orderDetailRepository.findByOrderId(order.getId());
 
                     List<OrderDetailResponse> orderDetailResponses = orderDetails.stream()
-                            .map(orderDetail -> OrderDetailResponse.fromOrderDetail(orderDetail, userAddressResponses))
+                            .map(orderDetail -> OrderDetailResponse.fromOrderDetail(orderDetail, userAddressResponses, paymentRepository))
                             .collect(Collectors.toList());
 
                     emailService.sendOrderConfirmationEmail(user.getEmail(), orderDetailResponses);

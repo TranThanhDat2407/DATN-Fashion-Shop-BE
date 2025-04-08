@@ -72,6 +72,7 @@ public class OrderController {
     private final PaymentMethodRepository paymentMethodRepository;
     private final OrderStatusRepository orderStatusRepository;
     private final CartService cartService;
+    private final CartItemRepository cartItemRepository;
     private final InventoryService inventoryService;
     private final EmailService emailService;
 
@@ -120,9 +121,9 @@ public class OrderController {
         // Xử lý thanh toán VNPay hoặc MoMo
         if (responseBody instanceof Map<?, ?> paymentResponse) {
 
-            if (paymentResponse.containsKey("vnp_Url")) {
-                String vnpUrl = (String) paymentResponse.get("vnp_Url");
-                log.info("VNPay payment link response detected: {}", vnpUrl);
+            if (paymentResponse.containsKey("paymentUrl")) {
+                String paymentUrl = (String) paymentResponse.get("paymentUrl");
+                log.info("VNPay payment link response detected: {}", paymentUrl);
             } else if (paymentResponse.containsKey("payUrl")) {
                 String payUrl = (String) paymentResponse.get("payUrl");
                 log.info("MoMo payment link response detected: {}", payUrl);
@@ -309,8 +310,10 @@ public class OrderController {
                 List<OrderDetail> orderDetails = orderDetailRepository.findByOrderId(order.getId());
 
                 List<OrderDetailResponse> orderDetailResponses = orderDetails.stream()
-                        .map(orderDetail -> OrderDetailResponse.fromOrderDetail(orderDetail, userAddressResponses))
+                        .map(orderDetail -> OrderDetailResponse.fromOrderDetail(orderDetail, userAddressResponses, paymentRepository))
                         .collect(Collectors.toList());
+
+
 
                 emailService.sendOrderConfirmationEmail(user.getEmail(), orderDetailResponses);
                 log.info("📧 Đã gửi email xác nhận đơn hàng (VNPay) đến {}", user.getEmail());

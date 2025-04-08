@@ -87,6 +87,7 @@ public class OrderService {
     private final NotificationService notificationService;
     private final EmailService emailService;
     private final MomoService momoService;
+    private final MomoStoreService momoStoreService;
 
     private final AddressService addressService;
     private final PaypalService paypalService;
@@ -303,7 +304,7 @@ public class OrderService {
         User userWithAddresses = userRepository.findById(savedOrder.getUser().getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng!"));
 
-//        log.info("📌 User Addresses từ DB: {}", userWithAddresses.getUserAddresses());
+
 
         List<UserAddressResponse> userAddressResponses = (userWithAddresses.getUserAddresses() != null)
                 ? userWithAddresses.getUserAddresses().stream()
@@ -311,7 +312,7 @@ public class OrderService {
                 .collect(Collectors.toList())
                 : new ArrayList<>();
 
-//        log.info("📌 userAddressResponses: {}", userAddressResponses);
+
 
 
         // Sau khi lưu OrderDetail, lấy lại đơn hàng từ DB để cập nhật danh sách OrderDetail
@@ -326,8 +327,8 @@ public class OrderService {
         // Truy vấn lại danh sách OrderDetail từ DB
         List<OrderDetail> reloadedOrderDetails = orderDetailRepository.findByOrderId(savedOrder.getId());
 
-        List<OrderDetailResponse> orderDetailResponses = reloadedOrderDetails.stream()
-                .map(orderDetail -> OrderDetailResponse.fromOrderDetail(orderDetail, userAddressResponses))
+        List<OrderDetailResponse> orderDetailResponses = orderDetails.stream()
+                .map(orderDetail -> OrderDetailResponse.fromOrderDetail(orderDetail, userAddressResponses, paymentRepository))
                 .collect(Collectors.toList());
 
 
@@ -387,7 +388,7 @@ public class OrderService {
         ).collect(Collectors.toList());
 
         orderDetailRepository.saveAll(orderDetails);
-        log.info("✅ Đã lưu {} sản phẩm vào OrderDetail.", orderDetails.size());
+
 
         try {
             String vnp_TxnRef = String.valueOf(savedOrder.getId());
@@ -395,7 +396,7 @@ public class OrderService {
             String vnp_IpAddr = request.getRemoteAddr();
             String vnp_OrderInfo = "Thanh toan don hang " + vnp_TxnRef;
 
-            String paymentUrl = vnPayService.createPaymentUrl(vnp_Amount, vnp_OrderInfo, vnp_TxnRef, vnp_IpAddr);
+            String paymentUrl = VNPayService.createPaymentUrl(vnp_Amount, vnp_OrderInfo, vnp_TxnRef, vnp_IpAddr);
             subtractInventoryForOrder(savedOrder);
             log.info("💳 URL thanh toán VNPay: {}", paymentUrl);
 
@@ -458,7 +459,15 @@ public class OrderService {
             subtractInventoryForOrder(savedOrder);
 
             log.info("📱 URL  thanh toán MoMo: {}", momoPaymentUrl);
-            return ResponseEntity.ok(Map.of("payUrl", momoPaymentUrl));
+            return ResponseEntity.ok(Map.of(
+                    "payUrl", momoPaymentUrl,
+                    "ipnUrl", MomoService.IPN_URL,
+                    "redirectUrl", MomoService.RETURN_URL,
+                    "orderId", savedOrder.getId(),
+                    "amount", grandTotal,
+                    "orderInfo", "Thanh toán đơn hàng " + savedOrder.getId()
+            ));
+
 
         } catch (Exception e) {
             log.error("❌ Lỗi khi tạo yêu cầu thanh toán MoMo: {}", e.getMessage());
@@ -861,33 +870,28 @@ public class OrderService {
     @Transactional
     public StorePaymentResponse createStoreOrder(Long staffId, StorePaymentRequest request)
             throws DataNotFoundException {
-        // Kiểm tra nhân viên có tồn tại không
         User staff = userRepository.findById(staffId)
                 .orElseThrow(() -> new DataNotFoundException("Staff not found with ID: " + staffId));
 
-        // Nếu có userId, lấy User từ DB, nếu không thì để null
         User user = (request.getUserId() != null) ?
                 userRepository.findById(request.getUserId()).orElse(null) : null;
 
-        // Lấy giỏ hàng của nhân viên (staffId)
         Cart cart = cartRepository.findByUser_Id(staffId)
                 .orElseThrow(() -> new DataNotFoundException("Cart not found for Staff ID: " + staffId));
 
         Store store = storeRepository.findById(request.getStoreId())
-                .orElseThrow(() -> new DataNotFoundException("store not found for Staff ID: " + (request.getStoreId())));
+                .orElseThrow(() -> new DataNotFoundException("Store not found with ID: " + request.getStoreId()));
 
         if (cart.getCartItems().isEmpty()) {
             throw new IllegalStateException("Cart is empty, cannot create order.");
         }
 
-        // Lấy Coupon nếu có
         Coupon coupon = (request.getCouponId() != null) ?
                 couponRepository.findById(request.getCouponId()).orElse(null) : null;
 
         PaymentMethod paymentMethod = paymentMethodRepository.findById(request.getPaymentMethodId())
                 .orElseThrow(() -> new DataNotFoundException("Payment method not found"));
 
-        // Tạo đơn hàng mới
         Order order = Order.builder()
                 .user(user)
                 .store(store)
@@ -897,13 +901,12 @@ public class OrderService {
                 .shippingFee(0D)
                 .taxAmount(request.getTaxAmount())
                 .shippingAddress(store.getAddress().getFullAddress())
-                .orderStatus(orderStatusRepository.findByStatusName("DONE").orElseThrow(null))
+                .orderStatus(orderStatusRepository.findByStatusName("DONE")
+                        .orElseThrow(() -> new DataNotFoundException("Order status DONE not found")))
                 .build();
 
-        // Lưu đơn hàng
         order = orderRepository.save(order);
 
-        // Thêm các sản phẩm vào OrderDetail
         List<OrderDetail> orderDetails = new ArrayList<>();
         for (CartItem cartItem : cart.getCartItems()) {
             OrderDetail orderDetail = OrderDetail.builder()
@@ -917,40 +920,61 @@ public class OrderService {
         }
         orderDetailRepository.saveAll(orderDetails);
 
-        // Lưu thanh toán
-        Payment payment = Payment.builder()
-                .order(order)
-                .paymentMethod(paymentMethod)
-                .paymentDate(new Date())
-                .amount(order.getTotalPrice())
-                .status("COMPLETED") // Giả sử thanh toán tại cửa hàng luôn hoàn tất
-                .transactionCode(request.getTransactionCode() != null ?
-                        request.getTransactionCode() : UUID.randomUUID().toString())
-                .build();
-        paymentRepository.save(payment);
-
         for (OrderDetail orderDetail : orderDetails) {
             Inventory inventory = inventoryRepository
                     .findByStoreIdAndProductVariantId(store.getId(), orderDetail.getProductVariant().getId())
                     .orElseThrow(() -> new DataNotFoundException(
                             "Inventory not found for Product Variant ID: " + orderDetail.getProductVariant().getId()
                                     + " in Store ID: " + store.getId()));
-
             if (inventory.getQuantityInStock() < orderDetail.getQuantity()) {
-                throw new IllegalStateException("Not enough stock available for Product Variant ID: "
+                throw new IllegalStateException("Not enough stock for Product Variant ID: "
                         + orderDetail.getProductVariant().getId());
             }
-
             inventory.setQuantityInStock(inventory.getQuantityInStock() - orderDetail.getQuantity());
             inventoryRepository.save(inventory);
         }
 
-        if(user != null && coupon != null) {
-        couponUserRestrictionRepository.deleteByCouponIdAndUserId(user.getId(), coupon.getId());
+        if (user != null && coupon != null) {
+            couponUserRestrictionRepository.deleteByCouponIdAndUserId(user.getId(), coupon.getId());
         }
 
-        return StorePaymentResponse.fromOrder(order);
+        // Nếu thanh toán là Cash thì tạo luôn Payment
+        if (paymentMethod.getMethodName().equalsIgnoreCase("Cash")) {
+            Payment payment = Payment.builder()
+                    .order(order)
+                    .paymentMethod(paymentMethod)
+                    .paymentDate(new Date())
+                    .amount(order.getTotalPrice())
+                    .status("COMPLETED")
+                    .transactionCode(request.getTransactionCode() != null ?
+                            request.getTransactionCode() : UUID.randomUUID().toString())
+                    .build();
+            paymentRepository.save(payment);
+
+            return StorePaymentResponse.fromOrder(order);
+        }
+
+
+        if (paymentMethod.getMethodName().equalsIgnoreCase("MOMO")) {
+            long storeId = order.getStore().getId();
+            String baseOrderId = String.valueOf(order.getId());
+            long amount = Math.round(order.getTotalPrice());
+            String orderInfo = "Thanh toán đơn hàng #" + baseOrderId;
+
+            Map<String, Object> momoResponse = momoStoreService.createPaymentAtStore(storeId,amount, orderInfo, baseOrderId);
+            String payUrl = momoResponse.get("payUrl") != null ? momoResponse.get("payUrl").toString() : null;
+
+            return StorePaymentResponse.builder()
+                    .orderId(order.getId())
+                    .tax_amount(order.getTotalAmount())
+                    .totalPrice(order.getTotalPrice())
+                    .payUrl(payUrl)
+                    .build();
+        }
+
+        throw new IllegalStateException("Unsupported payment method: " + paymentMethod.getMethodName());
     }
+
 
     public Page<StoreOrderResponse> getStoreOrdersByFilters(
             Long storeId,
