@@ -23,6 +23,7 @@ public class StorePaymentResponse extends BaseResponse {
     private Double totalPrice;
     private String paymentMethodName; // Thêm thông tin chi tiết Payment Method
     private String orderStatusName;
+    private String payUrl;
 
     public static StorePaymentResponse fromOrder(Order order) {
         StorePaymentResponse response = StorePaymentResponse.builder()
@@ -43,7 +44,7 @@ public class StorePaymentResponse extends BaseResponse {
                 .build();
 
         response.setCreatedAt(order.getCreatedAt());
-        response.setUpdatedAt(order.getCreatedAt());
+        response.setUpdatedAt(order.getUpdatedAt());
         response.setCreatedBy(order.getCreatedBy());
         response.setUpdatedBy(order.getUpdatedBy());
 

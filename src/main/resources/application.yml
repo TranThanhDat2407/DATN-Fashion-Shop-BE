@@ -154,7 +154,7 @@ vnpay:
       enabled: true
 
 agent:
-  authtoken: 2tDeafp1n325wPOEx1eV5QMt2Ye_3NQ2RAbEKmKyeRxos6QQy
+  authtoken: 2vQkfrS0QkEUlouXMK7zW5HMihg_48xnHdRXaT8j9G8ruhS61
 
 
 paypal:
