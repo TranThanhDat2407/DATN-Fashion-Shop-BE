@@ -324,4 +324,19 @@ public class StoreController {
         }
     }
 
+    @GetMapping("/top-revenue")
+    public ResponseEntity<List<TopStoresRevenueResponse>> getTop5StoresByRevenue(
+            @RequestParam(required = false, defaultValue = "0") int year) {
+        List<TopStoresRevenueResponse> result = storeService.getTop5StoresByRevenue(year);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/revenue-by-city")
+    public ResponseEntity<List<CityRevenueResponse>> getRevenueByCity(
+            @RequestParam(required = false, defaultValue = "0") int year) {
+
+        List<CityRevenueResponse> result = storeService.getRevenueStatisticsByCity(year);
+        return ResponseEntity.ok(result);
+    }
+
 }

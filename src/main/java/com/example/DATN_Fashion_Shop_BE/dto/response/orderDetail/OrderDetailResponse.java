@@ -6,15 +6,13 @@ import com.example.DATN_Fashion_Shop_BE.dto.response.product.ProductTranslationR
 import com.example.DATN_Fashion_Shop_BE.dto.response.product.ProductVariantResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.userAddressResponse.UserAddressResponse;
 import com.example.DATN_Fashion_Shop_BE.model.*;
+import com.example.DATN_Fashion_Shop_BE.repository.PaymentRepository;
 import com.example.DATN_Fashion_Shop_BE.service.EmailService;
 import lombok.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Data
@@ -34,7 +32,6 @@ public class OrderDetailResponse {
     private String recipientPhone;
     private String shippingAddress;
     private String paymentMethod;
-//    private PaymentMethodResponse paymentMethod;
     private Double tax;
     private Double shippingFee;
     private Double grandTotal;
@@ -42,7 +39,7 @@ public class OrderDetailResponse {
     private static final Logger log = LoggerFactory.getLogger(OrderDetailResponse.class);
 
 
-    public static OrderDetailResponse fromOrderDetail(OrderDetail orderDetail, List<UserAddressResponse> userAddressResponses) {
+    public static OrderDetailResponse fromOrderDetail(OrderDetail orderDetail, List<UserAddressResponse> userAddressResponses, PaymentRepository paymentRepository) {
         Product product = orderDetail.getProductVariant().getProduct();
         Order order = orderDetail.getOrder(); // Lấy Order từ OrderDetail
 
@@ -66,14 +63,19 @@ public class OrderDetailResponse {
                 .orElse(userAddressResponses.get(0))
                 : null;
 
-        List<PaymentMethodResponse> paymentMethods = (order.getPayments() != null)
-                ? order.getPayments().stream()
+        List<Payment> payments = paymentRepository.findByOrderId(order.getId());
+        List<PaymentMethodResponse> paymentMethods = payments.stream()
                 .map(payment -> PaymentMethodResponse.fromPaymentMethod(payment.getPaymentMethod()))
-                .collect(Collectors.toList())
-                : List.of();
+                .collect(Collectors.toList());
 
+        // Log kiểm tra
+        log.info("===== DEBUG PAYMENT METHODS =====");
+        log.info("Order ID: {}", order.getId());
+        log.info("Payments found in DB: {}", payments.size());
+        payments.forEach(p -> log.info("Payment method: {}", p.getPaymentMethod().getMethodName()));
+        log.info("===============================");
 
-        String paymentMethodNames = (paymentMethods != null && !paymentMethods.isEmpty())
+        String paymentMethodNames = (!paymentMethods.isEmpty())
                 ? paymentMethods.stream().map(PaymentMethodResponse::getMethodName).collect(Collectors.joining(", "))
                 : "Thanh toán khi nhận hàng";
 
