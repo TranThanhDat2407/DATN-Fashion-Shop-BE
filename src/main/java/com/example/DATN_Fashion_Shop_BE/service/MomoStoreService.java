@@ -25,7 +25,7 @@ public class MomoStoreService {
     private static final String SECRET_KEY = "SetA5RDnLHvt51AULf51DyauxUo3kDU6";
     private static final String API_URL = "https://test-payment.momo.vn/v2/gateway/api";
     private static final String REQUEST_TYPE = "captureWallet";
-    private static final String IPN_URL = "https://64b7-171-251-218-14.ngrok-free.app/api/v1/store/momo/callback";
+    private static final String IPN_URL = "https://e5df-171-251-218-14.ngrok-free.app/api/v1/store/momo/callback";
     private static final String LANG = "vi";
 
     public Map<String, Object> createPaymentAtStore(long storeId, long amount, String orderInfo, String baseOrderId) {

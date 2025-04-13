@@ -54,22 +54,26 @@ public class RevenueController {
         return ResponseEntity.ok(revenueService.getRevenueByYear(year));
     }
 
-    @GetMapping("/top-products")
+    @GetMapping("/top-10-products")
     public ResponseEntity<ApiResponse<Page<Top10Products>>> getTopSellingProducts(
             @RequestParam String languageCode,
-            Pageable pageable) {
-        Page<Top10Products> page = revenueService.getTopSellingProducts(languageCode, pageable);
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Top10Products> pageResult = revenueService.getTopSellingProducts(languageCode, pageable);
 
         ApiResponse<Page<Top10Products>> response = ApiResponse.<Page<Top10Products>>builder()
                 .timestamp(LocalDateTime.now().toString())
                 .status(HttpStatus.OK.value())
                 .message("Danh sách sản phẩm bán chạy lấy thành công")
-                .data(page)
+                .data(pageResult)
                 .errors(Collections.emptyList())
                 .build();
 
         return ResponseEntity.ok(response);
     }
+
 
     @GetMapping("/count/wishlist")
     public ResponseEntity<ApiResponse<Page<CountWishList>>> getProductStats(
@@ -141,7 +145,7 @@ public class RevenueController {
 
     }
 
-    @GetMapping("/{productId}")
+    @GetMapping("/product/{productId}")
     public ResponseEntity<ApiResponse<PageResponse<ReviewResponse>>> getReviewsByProduct(
             @PathVariable Long productId,
             @RequestParam(defaultValue = "0") int page,

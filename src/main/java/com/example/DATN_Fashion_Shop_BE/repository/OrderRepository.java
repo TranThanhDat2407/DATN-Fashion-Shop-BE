@@ -43,7 +43,9 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     // Lọc theo ngày cập nhật
     Page<Order> findByUpdatedAtBetween(LocalDateTime updateFromDate, LocalDateTime updateToDate, Pageable pageable);
 
-    @Query(value = "SELECT SUM(o.total_price) FROM orders o WHERE CAST(o.created_at AS DATE) = :date", nativeQuery = true)
+
+
+    @Query(value = "SELECT SUM(o.total_price) FROM orders o WHERE CAST(o.created_at AS DATE) = :date AND o.status_id = 6", nativeQuery = true)
     Optional<BigDecimal> findTotalRevenueByDay(@Param("date") LocalDate date);
 
 
