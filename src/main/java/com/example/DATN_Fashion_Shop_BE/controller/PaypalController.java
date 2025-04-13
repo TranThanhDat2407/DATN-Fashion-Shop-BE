@@ -33,14 +33,22 @@ public class PaypalController {
             Map result = paypalService.captureOrder(token);
 
             String status = (String) result.get("status");
-            return ResponseEntity.ok(Map.of(
-                    "status", status,
-                    "paypalResponse", result
-            ));
+
+            // Chỉ trả về thông tin nếu đã capture thành công
+            if ("COMPLETED".equals(status)) {
+                return ResponseEntity.ok(Map.of(
+                        "status", status,
+                        "paypalResponse", result
+                ));
+            } else {
+                // Nếu không thành công, trả về thông báo
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Transaction not completed yet.");
+            }
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("CAPTURE FAILED");
         }
     }
+
 
     @PostMapping("/verify-order")
     public ResponseEntity<?> verifyOrder(@RequestParam String token) {

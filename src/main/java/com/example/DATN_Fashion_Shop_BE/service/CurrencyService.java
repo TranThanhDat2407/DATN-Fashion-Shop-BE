@@ -94,4 +94,23 @@ public class CurrencyService {
                         .build())
                 .collect(Collectors.toList());
     }
+
+    public Double getExchangeRateByCode(String code) {
+        return currencyRepository.findByCode(code.toUpperCase())
+                .map(Currency::getRateToBase)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tỷ giá cho mã tiền tệ: " + code));
+    }
+
+    public double convertFromVnd(double amountInVnd, String targetCurrencyCode) {
+        Double rate = getExchangeRateByCode(targetCurrencyCode);
+        if (rate == null || rate == 0.0) {
+            throw new RuntimeException("Tỷ giá không hợp lệ cho mã tiền tệ: " + targetCurrencyCode);
+        }
+
+        double result = amountInVnd * rate;
+
+        // Làm tròn 2 chữ số sau dấu phẩy
+        return Math.round(result * 100.0) / 100.0;
+    }
+
 }

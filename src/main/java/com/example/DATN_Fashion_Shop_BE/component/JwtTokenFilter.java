@@ -209,6 +209,11 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 Pair.of(String.format("%s/momo/**", apiPrefix), "PUT"),
                 Pair.of(String.format("%s/momo/**", apiPrefix), "DELETE"),
 
+                Pair.of(String.format("%s/paypal/**", apiPrefix), "GET"),
+                Pair.of(String.format("%s/paypal/**", apiPrefix), "POST"),
+                Pair.of(String.format("%s/paypal/**", apiPrefix), "PUT"),
+                Pair.of(String.format("%s/paypal/**", apiPrefix), "DELETE"),
+
                 Pair.of(String.format("%s/staff/login", apiPrefix), "POST"),
 
 //                Pair.of(String.format("%s/staff/**", apiPrefix), "GET"),

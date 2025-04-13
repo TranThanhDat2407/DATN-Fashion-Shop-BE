@@ -88,7 +88,7 @@ public class OrderService {
     private final EmailService emailService;
     private final MomoService momoService;
     private final MomoStoreService momoStoreService;
-
+    private final CurrencyService currencyService;
     private final AddressService addressService;
     private final PaypalService paypalService;
 
@@ -204,8 +204,9 @@ public class OrderService {
                     fullShippingAddress, shippingFee, shippingMethod, grandTotal);
         }
         if ("PAYPAL".equalsIgnoreCase(paymentMethod.getMethodName())) {
+            double grandTotalInUsd = currencyService.convertFromVnd(1406501, "USD");
             return processPayPalPayment(orderRequest, request, cartItems, coupon, subtotal,
-                    fullShippingAddress, shippingFee, shippingMethod, grandTotal);
+                    fullShippingAddress, shippingFee, shippingMethod, grandTotalInUsd);
         }
 
         throw new RuntimeException("Phương thức thanh toán không được hỗ trợ.");
