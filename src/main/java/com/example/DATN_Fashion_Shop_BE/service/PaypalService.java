@@ -1,14 +1,18 @@
 package com.example.DATN_Fashion_Shop_BE.service;
 
 import com.example.DATN_Fashion_Shop_BE.config.PaypalConfig;
+import com.example.DATN_Fashion_Shop_BE.controller.OrderController;
 import com.example.DATN_Fashion_Shop_BE.model.Payment;
 import jakarta.transaction.Transaction;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
@@ -19,7 +23,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class PaypalService {
-
+    private static final Logger log = LoggerFactory.getLogger(OrderController.class);
     private final PaypalConfig config;
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -83,21 +87,42 @@ public class PaypalService {
     }
 
     public Map captureOrder(String token) {
-        String accessToken = getAccessToken();
-        String url = "https://api-m.sandbox.paypal.com/v2/checkout/orders/" + token + "/capture";
+        try {
+            String accessToken = getAccessToken();
+            String url = "https://api-m.sandbox.paypal.com/v2/checkout/orders/" + token + "/capture";
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-        headers.setContentType(MediaType.APPLICATION_JSON);
+            // Get order details before capture to check status
+            ResponseEntity<Map> orderResponse = restTemplate.exchange(
+                    "https://api.sandbox.paypal.com/v2/checkout/orders/" + token,
+                    HttpMethod.GET,
+                    new HttpEntity<>(getHeaders(accessToken)),  // Thêm headers
+                    Map.class
+            );
 
-        HttpEntity<Void> request = new HttpEntity<>(headers);
+            Map orderDetails = orderResponse.getBody();
+            String orderStatus = (String) orderDetails.get("status");
 
-        ResponseEntity<Map> response = restTemplate.exchange(
-                url, HttpMethod.POST, request, Map.class
-        );
+            if ("COMPLETED".equals(orderStatus)) {
+                log.info("Order already completed. No need to capture again.");
+                return orderDetails;  // Trả về thông tin của đơn hàng đã hoàn tất
+            }
 
-        return response.getBody();
+            // Tiến hành capture nếu đơn hàng chưa hoàn tất
+            HttpEntity<Void> captureRequest = new HttpEntity<>(getHeaders(accessToken));
+            ResponseEntity<Map> captureResponse = restTemplate.exchange(url, HttpMethod.POST, captureRequest, Map.class);
+
+            log.info("📡 Capture response from PayPal: {}", captureResponse.getBody());
+            return captureResponse.getBody();
+
+        } catch (Exception e) {
+            log.error("❌ Error while calling PayPal: {}", e.getMessage());
+            throw new RuntimeException("Capture failed", e);
+        }
     }
+
+
+
+
 
     public Map getOrderStatus(String token) {
         String accessToken = getAccessToken();
@@ -116,6 +141,14 @@ public class PaypalService {
 
         return response.getBody();
     }
+
+    private HttpHeaders getHeaders(String accessToken) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken); // Thêm Authorization Header
+        headers.setContentType(MediaType.APPLICATION_JSON); // Đảm bảo gửi Content-Type là JSON
+        return headers;
+    }
+
 
 }
 
