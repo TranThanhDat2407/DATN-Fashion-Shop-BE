@@ -13,4 +13,6 @@ import java.util.Optional;
 public interface ProductMediaRepository extends JpaRepository<ProductMedia, Long> {
     List<ProductMedia> findByProductId(long productId);
     List<ProductMedia> findByProductIdAndColorValueId(Long productId, Long colorId);
+    Optional<ProductMedia> findFirstByProduct_IdAndColorValue_IdOrderByIdAsc(Long productId, Long colorValueId);
+
 }

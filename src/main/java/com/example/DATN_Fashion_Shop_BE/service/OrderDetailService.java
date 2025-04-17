@@ -3,6 +3,7 @@ package com.example.DATN_Fashion_Shop_BE.service;
 import com.example.DATN_Fashion_Shop_BE.dto.response.orderDetail.OrderDetailAdminResponse;
 import com.example.DATN_Fashion_Shop_BE.dto.response.userAddressResponse.UserAddressResponse;
 import com.example.DATN_Fashion_Shop_BE.repository.OrderRepository;
+import com.example.DATN_Fashion_Shop_BE.repository.PaymentRepository;
 import com.example.DATN_Fashion_Shop_BE.repository.UserAddressRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,7 +22,7 @@ public class OrderDetailService {
 
     private final OrderDetailRepository orderDetailRepository;
     private final UserAddressRepository userAddressRepository;
-
+    private final PaymentRepository paymentRepository;
     /**
      * Lấy danh sách chi tiết đơn hàng theo orderId (Customer)
      */
@@ -43,7 +44,7 @@ public class OrderDetailService {
 
         // ✅ Chuyển đổi sang DTO
         return orderDetails.stream()
-                .map(orderDetail -> OrderDetailResponse.fromOrderDetail(orderDetail, userAddressResponses))
+                .map(orderDetail -> OrderDetailResponse.fromOrderDetail(orderDetail, userAddressResponses,paymentRepository))
                 .collect(Collectors.toList());
     }
 

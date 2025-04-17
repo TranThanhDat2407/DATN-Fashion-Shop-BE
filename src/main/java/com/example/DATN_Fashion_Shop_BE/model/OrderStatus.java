@@ -16,7 +16,7 @@ public class OrderStatus extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "status_name", nullable = false)
+    @Column(name = "status_name", nullable = false, unique = true)
     private String statusName;
 
 

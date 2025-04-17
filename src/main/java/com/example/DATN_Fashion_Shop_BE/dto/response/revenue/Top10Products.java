@@ -5,8 +5,8 @@ import lombok.*;
 @Getter
 @Setter
 @Builder
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 public class Top10Products {
     private Long productVariantId;
     private String productName;
@@ -16,4 +16,20 @@ public class Top10Products {
     private String imageUrl;
     private Long totalSold;
     private Double totalRevenue;
+    private Long productId;
+    private Long colorValueId;
+
+
+    public Top10Products(Long productVariantId, String productName, String color, String colorImage,
+                         String size, Long totalSold, Double totalRevenue, Long productId, Long colorValueId) {
+        this.productVariantId = productVariantId;
+        this.productName = productName;
+        this.color = color;
+        this.colorImage = colorImage;
+        this.size = size;
+        this.totalSold = totalSold;
+        this.totalRevenue = totalRevenue;
+        this.productId = productId;
+        this.colorValueId = colorValueId;
+    }
 }

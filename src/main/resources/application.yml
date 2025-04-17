@@ -154,6 +154,11 @@ vnpay:
       enabled: true
 
 agent:
-  authtoken: 2tDeafp1n325wPOEx1eV5QMt2Ye_3NQ2RAbEKmKyeRxos6QQy
+  authtoken: 2vQkfrS0QkEUlouXMK7zW5HMihg_48xnHdRXaT8j9G8ruhS61
 
 
+paypal:
+  client:
+    id: AXOaUr-FvQsXhJwAhq6XyruslKJjmTdIaqJTpL3py2WPl6bdU0iesb_YnLNyOkBzlnQfhFHy7yOsNAMw
+    secret: ENQVrCwdcxm1lTwt6KVSJDfNjO8KbXDFMoGJcgwcg0sU5DB6Vi2JwDo8rxDEj-SojvVioXlNK954y7p3
+  mode: sandbox

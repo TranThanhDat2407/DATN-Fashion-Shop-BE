@@ -22,7 +22,7 @@ public class OrderRequest {
     @NotNull(message = "Payment Method ID không được để trống.")
     private Long paymentMethodId;
 
-
+    private Long storeId;
     private String receiverName;
     private String receiverPhone;
 }

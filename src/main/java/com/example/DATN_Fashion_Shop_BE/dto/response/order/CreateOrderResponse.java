@@ -21,9 +21,9 @@ import java.util.List;
 @NoArgsConstructor
 public class CreateOrderResponse {
     private Long orderId;
-    private Long userId; // Thêm thông tin chi tiết User
-    private Long couponId; // Thêm thông tin chi tiết Coupon
-    private String shippingMethodName; // Thêm thông tin chi tiết Shipping Method
+    private Long userId;
+    private Long couponId;
+    private String shippingMethodName;
     private String shippingAddress;
     private String paymentMethodName; // Thêm thông tin chi tiết Payment Method
     private String orderStatusName;

@@ -25,6 +25,10 @@ public class StoreResponse {
    @JsonFormat(pattern = "HH:mm", shape = JsonFormat.Shape.STRING)
    private LocalDateTime closeHour;
    private String fullAddress;
+   private String city;
+   private String ward;
+   private String district;
+   private String street;
    private Double distance;
 
    public static StoreResponse fromStore(Store store) {
@@ -39,6 +43,10 @@ public class StoreResponse {
               .openHour(store.getOpenHour() != null ? store.getOpenHour() : null)
               .closeHour(store.getCloseHour() != null ? store.getCloseHour() : null)
               .fullAddress(store.getAddress().getFullAddress())
+              .city(store.getAddress().getCity())
+              .ward(store.getAddress().getWard())
+              .district(store.getAddress().getDistrict())
+              .street(store.getAddress().getStreet())
               .build();
    }
 
