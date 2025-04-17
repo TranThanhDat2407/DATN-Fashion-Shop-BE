@@ -51,6 +51,15 @@ public class CouponConfigService {
             }
         }
 
+        // Kiểm tra mã chao thanh vien moi
+        if (!couponConfigMap.containsKey("chaomungthanhvienmoi")) {
+            CouponConfigEntity welcomeConfig = CouponConfigEntity.builder()
+                    .type("chaomungthanhvienmoi")
+                    .build();
+            couponConfigRepository.save(welcomeConfig);
+            couponConfigMap.put("chaomungthanhvienmoi", welcomeConfig);
+            log.info("🆕 Đã thêm cấu hình mặc định cho chaomungthanhvienmoi: {}.");
+        }
         // Kiểm tra mã sinh nhật
         if (!couponConfigMap.containsKey("sinhnhat")) {
             CouponConfigEntity birthdayConfig = CouponConfigEntity.builder()
@@ -160,7 +169,6 @@ public class CouponConfigService {
         }
         return validCouponConfigs;
     }
-
 
 
 

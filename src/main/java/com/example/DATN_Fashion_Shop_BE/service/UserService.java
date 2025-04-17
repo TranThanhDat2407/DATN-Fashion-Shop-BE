@@ -151,20 +151,16 @@ public class UserService{
         } else {
             // Lấy bản dịch từ DB
             List<CouponTranslationDTO> translations = holidayCouponTranslationService.getTranslationsByType("chaomungthanhvienmoi");
-
             // Nếu không có bản dịch, lấy bản dịch mặc định
             if (translations.isEmpty()) {
                 log.warn("⚠️ Không tìm thấy bản dịch, sử dụng bản dịch mặc định.");
                 translations = holidayCouponTranslationService.getTranslationsByType("chaomungthanhvienmoi");
             }
-
             // Tạo mã coupon dựa trên User ID và năm hiện tại
             LocalDate today = LocalDate.now();
             String couponCode = "WELCOME_" + savedUser.getId() + "_" + today.getYear();
-
             // Lấy ảnh từ config hoặc ảnh mặc định
             String imageUrl = (config.getImageUrl() != null) ? config.getImageUrl() : "/uploads/coupons/WelcomeCoupon.png";
-
             // Tạo mã giảm giá
             Coupon coupon = couponService.createCouponForUser(
                     couponCode,
@@ -176,7 +172,6 @@ public class UserService{
                     imageUrl,
                     translations
             );
-
             log.info("✅ Đã tạo mã giảm giá chào mừng cho user {}: {}", savedUser.getEmail(), coupon.getCode());
         }
         sendRegistrationConfirmationEmail(savedUser);
