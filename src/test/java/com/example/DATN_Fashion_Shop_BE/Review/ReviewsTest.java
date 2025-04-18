@@ -24,6 +24,78 @@ public class ReviewsTest {
         driver = new ChromeDriver();
     }
 
+    @Test
+    void insertReviewCaseAllEmpty() throws InterruptedException {
+
+        driver.get("http://localhost:4200/client/VND/en/login");
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        Thread.sleep(1000);
+
+        WebElement emailInput = driver.findElement(By.name("email"));
+        emailInput.sendKeys("customer1@example.com");
+
+        WebElement passInput = driver.findElement(By.name("password"));
+        passInput.sendKeys("Abc123");
+
+        WebElement btnLogin = driver.findElement(By.className("btnLogin"));
+        btnLogin.click();
+        Thread.sleep(2000);
+
+        WebElement btnCategoty = driver.findElement(By.className("btn2"));
+        btnCategoty.click();
+        Thread.sleep(1000);
+
+        List<WebElement> categoryItems = driver.findElements(By.cssSelector("div.category-item"));
+        if (!categoryItems.isEmpty()) {
+            WebElement firstItem = categoryItems.get(0);
+            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", firstItem);
+            Thread.sleep(300);
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", firstItem);
+        }
+        Thread.sleep(2000);
+
+
+        WebElement categoriesChild = driver.findElement(By.className("categoriesChild"));
+        categoriesChild.click();
+        Thread.sleep(2000);
+
+
+        List<WebElement> productItems = driver.findElements(By.className("product-item"));
+        if (!productItems.isEmpty()) {
+            WebElement firstProduct = productItems.get(0);
+            firstProduct.click();
+        }
+        Thread.sleep(2000);
+
+
+        WebElement reviewBtn = wait.until(ExpectedConditions.elementToBeClickable(By.className("writingReview")));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView({block: 'center'});", reviewBtn);
+        Thread.sleep(500);
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", reviewBtn);
+
+
+        WebElement review_submit_btn = driver.findElement(By.className("review-submit-btn"));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", review_submit_btn);
+        //Modal
+        try {
+            WebDriverWait waits = new WebDriverWait(driver, Duration.ofSeconds(5));
+            waits.until(ExpectedConditions.presenceOfElementLocated(By.className("modal-container")));
+
+            WebElement toastMessage = driver.findElement(By.className("modal-container"));
+            Thread.sleep(1000);
+
+            if (toastMessage.isDisplayed()) {
+                String text = toastMessage.getText();
+                System.out.println("Modal hiển thị: " + text);
+            } else {
+                System.out.println("Modal không còn hiển thị.");
+                Assert.fail("Modal không hiển thị trong thời gian dự kiến.");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+    }
 
     @Test
     void insertReview() throws InterruptedException {
@@ -115,9 +187,7 @@ public class ReviewsTest {
                 );
                 ((JavascriptExecutor) driver).executeScript("arguments[0].click();", selectDropdownLocation);
 
-                // Có thể thay thế Thread.sleep bằng chờ điều kiện JavaScript
                 Thread.sleep(2000);
-
                 List<WebElement> showLocations = waitLocation.until(
                         ExpectedConditions.visibilityOfAllElementsLocatedBy(By.className("showLocation"))
                 );
