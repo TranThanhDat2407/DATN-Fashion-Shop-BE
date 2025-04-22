@@ -477,17 +477,26 @@ public class ProductTest {
         Thread.sleep(1000);
 
         WebElement inputNameSearch = driver.findElement(By.name("nameSearch"));
-        inputNameSearch.sendKeys("Shirt Product Test 4");
+        inputNameSearch.sendKeys("Shirt Product Test 4Shirt Product Test 4 â");
 
         Thread.sleep(2500);
-        List<WebElement> firstBtnDelete = driver.findElements(By.className("btn-delete"));
-        if (!firstBtnDelete.isEmpty()) {
-            firstBtnDelete.get(0).click();
+        List<WebElement> firstBtnEdit = driver.findElements(By.className("btn-edit"));
+        if (!firstBtnEdit.isEmpty()) {
+            firstBtnEdit.get(0).click();
         }
         Thread.sleep(2500);
 
 
+        WebElement checkBoxIsActive = driver.findElement(By.id("flexSwitchCheckChecked"));
+        checkBoxIsActive.click();
+        Thread.sleep(2000);
 
+
+        WebElement btn_save_product = driver.findElement(By.className("btn-save-product"));
+        btn_save_product.click();
+        Thread.sleep(2000);
+
+        // Đợi toast hiển thị
         WebElement toastContainer = wait.until(ExpectedConditions.visibilityOfElementLocated(
                 By.cssSelector("#toast-container .toast-success")
         ));
