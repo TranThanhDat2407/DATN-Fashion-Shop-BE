@@ -1,0 +1,164 @@
+server:
+  port: 8080
+spring:
+  #flyway
+  # Đường dẫn tới thư mục chứa các script Flyway
+  flyway:
+    locations: classpath:/db/migration,classpath:/dev/db/migration
+    #Phiên bản baseline sẽ = 1 và không thực hiện bất kỳ thay đổi nào trong DB
+    baseline-on-migrate: true
+    baseline-version: 0
+  data:
+    redis:
+      #spring.data.redis.use-redis-cache
+      use-redis-cache: false
+      host: ${REDIS_HOST:localhost} # Default to 'localhost' if not provided
+      port: ${REDIS_PORT:6379}      # Default to 6379 if not provided
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:sqlserver://localhost:1433;databaseName=DATN_FASHION_SHOP;encrypt=false;trustServerCertificate=true;}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:123}
+  jpa:
+    show-sql: true  
+    hibernate:
+      ddl-auto: update #chỗ này mà sửa thành drop-create thì rất nguy
+      #ddl-auto: validate
+      #Hibernate sẽ không tạo, sửa đổi hoặc xóa bất kỳ bảng, cột hay ràng buộc nào trong cơ sở dữ liệu
+      #validate thường được sử dụng trong môi trường production
+      #Nếu có sự khác biệt giữa cấu trúc cơ sở dữ liệu và các entity class
+      #lỗi sẽ được hiển thị và yêu cầu sửa đổi cấu trúc cơ sở dữ liệu một cách thủ công
+    properties:
+      hibernate:
+      dialect: org.hibernate.dialect.MySQL8Dialect
+      format_sql: true
+      org.hibernate.envers.audit_table_suffix: _AUD
+      org.hibernate.envers.global_with_modified_flag: false
+      org.hibernate.envers.revision_on_collection_change: false
+      org.hibernate.envers.do_not_audit_optimistic_locking_field: true
+      org.hibernate.envers.global_relation_mapping: false
+      org:
+        hibernate:
+          envers:
+            store_data_at_delete: true
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: doducminh141000@gmail.com
+    password: fjgh dfgo mgta mifu
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  web:
+    resources:
+      static-locations:
+        - classpath:/static/
+        - file:uploads/
+
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
+    default-locale: en
+#  #flyway
+#  # Đường dẫn tới thư mục chứa các script Flyway
+#  flyway:
+#    locations: classpath:/db/migration,classpath:/dev/db/migration
+#    #Phiên bản baseline sẽ = 1 và không thực hiện bất kỳ thay đổi nào trong DB
+#    baseline-on-migrate: true
+#    baseline-version: 0
+#  data:
+#    redis:
+#      #spring.data.redis.use-redis-cache
+#      use-redis-cache: false
+#      host: ${REDIS_HOST:localhost} # Default to 'localhost' if not provided
+#      port: ${REDIS_PORT:6379}      # Default to 6379 if not provided
+  security:
+    oauth2:
+      client:
+        registration:
+          facebook:
+            clientId: YOUR_FACEBOOK_APP_ID
+            clientSecret: YOUR_FACEBOOK_APP_SECRET
+            scope:
+              - email
+              - public_profile
+
+api:
+  prefix: /api/v1
+jwt:
+  expiration: 2592000 #30 days = 30 * 24 * 60 * 60
+  expiration-refresh-token: 5184000 #60 days = 60 * 24 * 60 * 60
+  secretKey: TaqlmGv1iEDMRiFp/pHuID1+T84IABfuA0xXh4GhiUI=
+
+logging:
+  level:
+    org.springframework.web: ERROR
+    com.example.DATN_Fashion_Shop_BE: DEBUG
+    org.springdoc: DEBUG
+    org.springframework.boot: DEBUG
+    springframework.security: DEBUG
+    root: DEBUG
+    com.example.DATN_Fashion_Shop_BE.component.JwtTokenFilter: DEBUG
+    org.hibernate.sql: DEBUG
+    org.hibernate.envers: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+# swagger-ui custom path
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+  show-actuator: true
+
+#health check
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      base-path: /api/v1/actuator
+      exposure:
+        #include: "health"
+        include: "health, info, metrics"
+    metrics:
+      enabled: true
+
+exchanger:
+  api:
+    key: "7236dc721c56e195be6eef59"
+
+ghn:
+  token: "6b3b4d35-e5f0-11ef-b2e4-6ec7c647cc27"
+  shopId: "195952"
+
+vnpay:
+  tmnCode: "IQUTYPIQ"
+  secretKey: "HJF2G7EHCHPX0K446LBH17FKQUF56MB5"
+  apiUrl: https://sandbox.vnpayment.vn/merchant_webapi/api/transaction
+
+
+  task:
+    scheduling:
+      enabled: true
+
+agent:
+  authtoken: 2vQkfrS0QkEUlouXMK7zW5HMihg_48xnHdRXaT8j9G8ruhS61
+
+
+paypal:
+  client:
+    id: AXOaUr-FvQsXhJwAhq6XyruslKJjmTdIaqJTpL3py2WPl6bdU0iesb_YnLNyOkBzlnQfhFHy7yOsNAMw
+    secret: ENQVrCwdcxm1lTwt6KVSJDfNjO8KbXDFMoGJcgwcg0sU5DB6Vi2JwDo8rxDEj-SojvVioXlNK954y7p3
+  mode: sandbox

@@ -1,0 +1,36 @@
+<configuration>
+
+    <!-- Console appender -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %level - %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File appender for errors and warnings -->
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>app.log</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %level - %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Root logger configuration to log ERROR, WARN, INFO, and DEBUG -->
+    <root level="debug">
+        <appender-ref ref="STDOUT" />
+        <appender-ref ref="FILE" />
+    </root>
+
+    <!-- Set specific logger for the hikari connection pool to log warnings and errors -->
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+
+    <!-- Add debug level logging for Springdoc OpenAPI to trace the issue -->
+    <logger name="org.springdoc" level="debug"/>
+
+    <!-- Logger for JwtTokenFilter -->
+    <logger name="com.example.DATN_Fashion_Shop_BE.component.JwtTokenFilter" level="DEBUG"/>
+
+    <!-- Logger for Spring Security -->
+    <logger name="org.springframework.security" level="DEBUG"/>
+
+</configuration>
