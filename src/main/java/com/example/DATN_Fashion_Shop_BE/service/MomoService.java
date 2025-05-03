@@ -26,7 +26,7 @@ public class MomoService {
     private static final String SECRET_KEY = "K951B6PE1waDMi640xX08PD3vg6EkVlz";
     private static final String API_URL = "https://test-payment.momo.vn/v2/gateway/api";
     public static final String RETURN_URL = "http://localhost:4200/client/vnd/vi/momo-success";
-    public static final String IPN_URL = "https://e5df-171-251-218-14.ngrok-free.app/api/v1/momo/callback";
+    public static final String IPN_URL = "https://b7eb-171-251-218-9.ngrok-free.app/api/v1/momo/callback";
     private static final String REQUEST_TYPE = "captureWallet";
     private static final String LANG = "vi";
 
