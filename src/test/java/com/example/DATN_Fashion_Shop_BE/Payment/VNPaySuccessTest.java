@@ -16,6 +16,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class VNPaySuccessTest extends PaymentTestBase{
@@ -300,114 +301,75 @@ public class VNPaySuccessTest extends PaymentTestBase{
 
     private void selectNCBBank(WebDriver driver, WebDriverWait wait) {
         try {
-            // 1. Tìm phần tử accordion
-            WebElement domesticBankSection = wait.until(ExpectedConditions.presenceOfElementLocated(
+            // 1. Tìm và chờ phần tử accordion sẵn sàng
+            WebElement domesticBankSection = wait.until(ExpectedConditions.elementToBeClickable(
                     By.cssSelector("div.list-method-button[data-bs-target='#accordionList2']")));
 
-            // Debug chi tiết trạng thái ban đầu
-            logger.debug("[DEBUG] Trạng thái ban đầu - Class: " + domesticBankSection.getAttribute("class")
-                    + ", aria-expanded: " + domesticBankSection.getAttribute("aria-expanded")
-                    + ", displayed: " + domesticBankSection.isDisplayed());
+            // 2. Kiểm tra và mở accordion nếu cần
+            boolean needToOpen = !Boolean.parseBoolean(domesticBankSection.getAttribute("aria-expanded"))
+                    || !driver.findElement(By.id("accordionList2")).isDisplayed();
 
-            // 2. Kiểm tra xem accordion có thực sự hiển thị nội dung không
-            boolean isContentVisible = isAccordionContentVisible(driver);
+            if (needToOpen) {
+                logger.info("[ACTION] Mở accordion...");
+                ((JavascriptExecutor) driver).executeScript(
+                        "arguments[0].scrollIntoView({block: 'center', behavior: 'smooth'});",
+                        domesticBankSection);
 
-            if (!isContentVisible) {
-                logger.info("[ACTION] Accordion đang ở trạng thái không hiển thị nội dung, thử đóng và mở lại...");
+                // Click bằng JavaScript để đảm bảo
+                ((JavascriptExecutor) driver).executeScript("arguments[0].click();", domesticBankSection);
 
-                // Đóng accordion nếu cần
-                if (!domesticBankSection.getAttribute("class").contains("collapsed")
-                        || "true".equals(domesticBankSection.getAttribute("aria-expanded"))) {
-                    toggleAccordion(driver, domesticBankSection);
-                }
-
-                // Mở lại accordion
-                toggleAccordion(driver, domesticBankSection);
-
-                // Chờ nội dung hiển thị
+                // Chờ nội dung hiển thị hoàn toàn
                 wait.until(ExpectedConditions.visibilityOfElementLocated(
                         By.cssSelector("#accordionList2.collapse.show")));
+
+                // Chờ thêm để DOM ổn định
+                Thread.sleep(1000); // Tăng thời gian chờ
             }
 
-            // 3. Đảm bảo danh sách ngân hàng hiển thị
-            WebElement bankList = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.cssSelector("#accordionList2 .list-bank-main")));
-            logger.info("[DEBUG] Danh sách ngân hàng đã hiển thị");
+            // 3. Tìm và click nút NCB với cơ chế retry
+            int attempts = 0;
+            while (attempts < 3) {
+                try {
+                    // Tìm lại phần tử mỗi lần retry
+                    WebElement ncbButton = wait.until(ExpectedConditions.elementToBeClickable(
+                            By.cssSelector("button#NCB.list-bank-item, [search-value*='ncb'] button")));
 
+                    // Scroll vào view
+                    ((JavascriptExecutor) driver).executeScript(
+                            "arguments[0].scrollIntoView({block: 'center', behavior: 'instant'});",
+                            ncbButton);
 
-            WebElement ncbButton = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.cssSelector("button#NCB.list-bank-item")));
+                    // Click bằng JavaScript
+                    ((JavascriptExecutor) driver).executeScript("arguments[0].click();", ncbButton);
 
+                    // Chờ chuyển trang hoặc thay đổi UI
+                    try {
+                        wait.until(ExpectedConditions.or(
+                                ExpectedConditions.urlContains("Ncb"),
+                                ExpectedConditions.visibilityOfElementLocated(
+                                        By.xpath("//div[contains(., 'Thanh toán qua Ngân hàng NCB')]"))
+                        ));
+                        break; // Thoát vòng lặp nếu thành công
+                    } catch (TimeoutException e) {
+                        attempts++;
+                        if (attempts == 3) throw e;
+                        Thread.sleep(1000);
+                    }
 
-            ((JavascriptExecutor) driver).executeScript(
-                    "arguments[0].scrollIntoView({block: 'center'});",
-                    ncbButton);
-            Thread.sleep(300);
-
-            try {
-
-                ncbButton.click();
-            } catch (ElementClickInterceptedException e) {
-
-                ((JavascriptExecutor) driver).executeScript(
-                        "arguments[0].click();", ncbButton);
+                } catch (StaleElementReferenceException e) {
+                    attempts++;
+                    if (attempts == 3) throw e;
+                    Thread.sleep(1000);
+                }
             }
 
-            // 8. Xác nhận đã chọn NCB thành công
-            wait.until(ExpectedConditions.attributeContains(ncbButton, "class", "active"));
-            logger.info("[SUCCESS] Đã chọn thành công ngân hàng NCB");
+            logger.info("[SUCCESS] Đã chọn thành công ngân hàng NCB và chuyển sang trang nhập thông tin");
 
-        } catch (TimeoutException e) {
-            logger.error("[ERROR] Timeout khi thao tác với accordion: " + e.getMessage());
-            takeScreenshot("accordion-timeout-" + System.currentTimeMillis());
-            throw new AssertionError("Thao tác với accordion timeout", e);
         } catch (Exception e) {
-            logger.error("[ERROR] Lỗi không mong muốn: " + e.getMessage());
-            takeScreenshot("accordion-error-" + System.currentTimeMillis());
-            throw new RuntimeException("Lỗi khi thao tác với accordion", e);
+            logger.error("[ERROR] Lỗi khi thao tác: " + e.getMessage());
+            takeScreenshot("error-selectNCB-" + System.currentTimeMillis());
+            throw new RuntimeException("Lỗi khi chọn ngân hàng NCB", e);
         }
-    }
-
-
-    private boolean isAccordionContentVisible(WebDriver driver) {
-        try {
-            WebElement content = driver.findElement(By.cssSelector("#accordionList2.collapse.show"));
-            return content.isDisplayed();
-        } catch (NoSuchElementException e) {
-            return false;
-        }
-    }
-
-    // Helper method để toggle accordion
-    private void toggleAccordion(WebDriver driver, WebElement accordionButton) throws InterruptedException {
-        try {
-            // Scroll vào view
-            ((JavascriptExecutor) driver).executeScript(
-                    "arguments[0].scrollIntoView({block: 'center', behavior: 'instant'});",
-                    accordionButton);
-            Thread.sleep(300);
-
-            // Thử click bằng Actions API
-            new Actions(driver)
-                    .moveToElement(accordionButton, 10, 10) // Di chuyển đến vị trí cụ thể
-                    .pause(500) // Đợi một chút
-                    .clickAndHold() // Nhấn giữ
-                    .pause(200) // Giữ trong 200ms
-                    .release() // Thả chuột
-                    .perform();
-
-            // 3. Đợi animation hoàn tất
-            Thread.sleep(800);
-        } catch (Exception e) {
-            // Fallback bằng JavaScript click
-            ((JavascriptExecutor) driver).executeScript(
-                    "arguments[0].dispatchEvent(new MouseEvent('click', {" +
-                            "bubbles: true," +
-                            "cancelable: true," +
-                            "view: window" +
-                            "}));", accordionButton);
-        }
-        Thread.sleep(500); // Đợi animation hoàn tất
     }
 
 
@@ -417,65 +379,153 @@ public class VNPaySuccessTest extends PaymentTestBase{
 
     private void enterCardDetails(WebDriverWait wait) {
         try {
-            // Chờ form hiển thị (có thể cần switch frame)
-            wait.until(ExpectedConditions.frameToBeAvailableAndSwitchToIt(
-                    By.cssSelector("iframe.vnpay-card-iframe")));
+            // 1. Đảm bảo trang đã load
+            wait.until(webDriver -> ((JavascriptExecutor) webDriver)
+                    .executeScript("return document.readyState").equals("complete"));
 
-            // Nhập số thẻ
-            WebElement cardNumber = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.cssSelector("input#cardNumber")));
-            cardNumber.clear();
-            cardNumber.sendKeys("9704198526191432198");
+            // 2. Kích hoạt tab "Thẻ nội địa" nếu cần
+            activateDomesticCardTab(wait);
 
-            // Nhập tên chủ thẻ
-            WebElement cardHolder = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.cssSelector("input#cardHolder")));
-            cardHolder.clear();
-            cardHolder.sendKeys("NGUYEN VAN A");
+            // 3. Nhập thông tin thẻ với timeout dài hơn
+            enterCardFieldWithRetry(wait, By.id("cardNumber"), "9704198526191432198", "Số thẻ");
+            enterCardFieldWithRetry(wait, By.id("cardHolder"), "NGUYEN VAN A", "Tên chủ thẻ");
+            enterCardFieldWithRetry(wait, By.id("cardDate"), "07/25", "Ngày phát hành");
 
-            // Nhập ngày hết hạn
-            WebElement expiryDate = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.cssSelector("input#expiryDate")));
-            expiryDate.clear();
-            expiryDate.sendKeys("07/15");
+        } catch (Exception e) {
+            takeScreenshot("payment-error-" + System.currentTimeMillis());
+            throw new RuntimeException("Xử lý thanh toán thất bại", e);
+        }
+    }
 
-            // Quay lại main content
-            driver.switchTo().defaultContent();
+    private void activateDomesticCardTab(WebDriverWait wait) {
+        try {
+            WebElement tab = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.xpath("//a[contains(.,'Thẻ nội địa')]")));
+            ((JavascriptExecutor)driver).executeScript("arguments[0].click();", tab);
+            waitABit(1000); // Chờ tab chuyển đổi
+        } catch (Exception e) {
+            logger.warn("Không thể kích hoạt tab thẻ nội địa: " + e.getMessage());
+        }
+    }
 
-            logger.info("Đã nhập thông tin thẻ thành công");
+    private void enterCardFieldWithRetry(WebDriverWait wait, By locator, String value, String fieldName) {
+        final int MAX_ATTEMPTS = 3;
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                // Sử dụng wait mới với timeout dài hơn cho mỗi lần thử
+                WebDriverWait waits = new WebDriverWait(driver, Duration.ofSeconds(20));
 
-        } catch (TimeoutException e) {
-            takeScreenshot("enter-card-details-failed");
-            throw new AssertionError("Không thể nhập thông tin thẻ", e);
+                // Chờ từng điều kiện riêng biệt
+                WebElement field = waits.until(ExpectedConditions.presenceOfElementLocated(locator));
+                waits.until(ExpectedConditions.visibilityOf(field));
+                waits.until(ExpectedConditions.elementToBeClickable(field));
+
+                // Scroll đặc biệt cho các trường hợp khó
+                ((JavascriptExecutor)driver).executeScript(
+                        "window.scrollTo(0, arguments[0].getBoundingClientRect().top - window.innerHeight/3);",
+                        field);
+
+                // Thử cả 3 cách nhập liệu
+                if (!tryAllInputMethods(field, value)) {
+                    throw new Exception("Tất cả phương pháp nhập liệu thất bại");
+                }
+
+                logger.info("Đã nhập thành công {} ở lần thử {}", fieldName, attempt);
+                return;
+
+            } catch (Exception e) {
+                logger.warn("Lỗi nhập {} (lần {}): {}", fieldName, attempt, e.getMessage());
+                if (attempt == MAX_ATTEMPTS) {
+                    throw new RuntimeException("Không thể nhập " + fieldName + " sau " + MAX_ATTEMPTS + " lần thử", e);
+                }
+                refreshPaymentPage();
+                waitABit(2000);
+            }
+        }
+    }
+    private boolean tryAllInputMethods(WebElement field, String value) {
+        try {
+            // Cách 1: Nhập thông thường
+            field.clear();
+            field.sendKeys(value);
+            return true;
+        } catch (Exception e1) {
+            try {
+                // Cách 2: Nhập bằng JavaScript
+                ((JavascriptExecutor)driver).executeScript(
+                        "arguments[0].value = arguments[1];", field, value);
+                return true;
+            } catch (Exception e2) {
+                try {
+                    // Cách 3: Nhập từng ký tự
+                    field.clear();
+                    for (char c : value.toCharArray()) {
+                        field.sendKeys(String.valueOf(c));
+                        waitABit(50);
+                    }
+                    return true;
+                } catch (Exception e3) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    private void refreshPaymentPage() {
+        try {
+            // Thử click lại tab thanh toán
+            WebElement tab = driver.findElement(By.cssSelector(".nav-link.active"));
+            ((JavascriptExecutor)driver).executeScript("arguments[0].click();", tab);
+            waitABit(1000);
+        } catch (Exception e) {
+            logger.warn("Không thể refresh trang thanh toán: " + e.getMessage());
+        }
+    }
+
+    private void waitABit(long milliseconds) {
+        try {
+            Thread.sleep(milliseconds);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
     private void enterOTPAndComplete(WebDriverWait wait) {
         try {
-            // Chờ OTP dialog xuất hiện
+            // 1. Chờ OTP dialog xuất hiện (nếu có)
             WebElement otpDialog = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.cssSelector(".otp-dialog")));
+                    By.cssSelector(".otp-dialog, .otp-container")));
+            logger.info("Đã hiển thị dialog OTP");
 
-            // Nhập OTP
+            // 2. Nhập OTP
             WebElement otpInput = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.cssSelector("input#otp")));
+                    By.cssSelector("input#otp, input[name='otp']")));
             otpInput.clear();
             otpInput.sendKeys("123456");
+            logger.info("Đã nhập OTP");
 
-            // Xác nhận
+            // 3. Xác nhận OTP
             WebElement confirmButton = wait.until(ExpectedConditions.elementToBeClickable(
-                    By.cssSelector("button#confirmBtn")));
-            confirmButton.click();
+                    By.cssSelector("button#confirmBtn, button[type='submit']")));
 
-            // Chờ thông báo thành công
-            wait.until(ExpectedConditions.visibilityOfElementLocated(
-                    By.cssSelector(".payment-success")));
+            // Sử dụng safeClick để tránh vấn đề che phủ
+            safeClick((By) confirmButton);
+            logger.info("Đã xác nhận OTP");
 
-            logger.info("Đã hoàn tất thanh toán với OTP");
+            // 4. Chờ thông báo thành công
+            wait.until(ExpectedConditions.or(
+                    ExpectedConditions.urlContains("payment_success"),
+                    ExpectedConditions.visibilityOfElementLocated(
+                            By.cssSelector(".payment-success, .transaction-success"))
+            ));
+            logger.info("Xác nhận thanh toán thành công");
 
         } catch (TimeoutException e) {
             takeScreenshot("otp-process-failed");
-            throw new AssertionError("Quá trình nhập OTP thất bại", e);
+            throw new AssertionError("Quá trình nhập OTP thất bại: " + e.getMessage(), e);
+        } catch (Exception e) {
+            takeScreenshot("otp-process-error");
+            throw new RuntimeException("Lỗi khi xử lý OTP", e);
         }
     }
     private void verifyPaymentSuccess() {
